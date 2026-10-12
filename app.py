@@ -95,13 +95,17 @@ def init_connection():
 
 try:
   client = init_connection()
+  # Mettez ici l'URL de votre Google Sheet natif (celui converti)
   sheet_url = (
-      "https://docs.google.com/spreadsheets/d/1nAGX7YyrPdWg4vcOE_ohczvbUaZUIRxlQcsKEw0Nu14/edit?gid=402365672#gid=402365672"
+      "https://docs.google.com/spreadsheets/d/1oYRBzf9csH7mYt8LchZ/edit"
   )
   sheet = client.open_by_url(sheet_url).sheet1
-  # head=9 lit les en-têtes à la ligne 9 de votre Google Sheet
-  data = sheet.get_all_records(head=9)
+  # head=1 car le fichier converti commence directement le tableau en haut, ou head=9 si l'en-tête est à la ligne 9
+  data = sheet.get_all_records()
   df = pd.DataFrame(data)
+
+  # Nettoyage automatique des noms de colonnes (suppression des espaces superflus)
+  df.columns = df.columns.str.strip()
 except Exception as e:
   st.error(
       "⚠️ Erreur de connexion à Google Sheets. Vérifiez vos secrets Streamlit."
@@ -118,6 +122,36 @@ tab1, tab2, tab3, tab4 = st.tabs([
     "📋 Liste & Recherche",
 ])
 
+# Détection sécurisée des noms de colonnes exacts
+col_membre = (
+    "Numéro du membre"
+    if "Numéro du membre" in df.columns
+    else df.columns[0]
+)
+col_enfant = (
+    "Nom et Prénom de l'enfant"
+    if "Nom et Prénom de l'enfant" in df.columns
+    else df.columns[1]
+)
+col_date = (
+    "Date de naissance"
+    if "Date de naissance" in df.columns
+    else df.columns[2]
+)
+col_sexe = "Sexe" if "Sexe" in df.columns else df.columns[3]
+col_ville = "Ville" if "Ville" in df.columns else df.columns[4]
+col_parent = (
+    "Nom et prénoms du parent"
+    if "Nom et prénoms du parent" in df.columns
+    else df.columns[5]
+)
+col_tel = "Numero Tèl" if "Numero Tèl" in df.columns else df.columns[6]
+col_adh = (
+    [c for c in df.columns if "Adh" in c][0]
+    if any("Adh" in c for c in df.columns)
+    else df.columns[7]
+)
+
 # ONGLET 1 : TABLEAU DE BORD
 with tab1:
   st.subheader("📈 Statistiques de l'ONG")
@@ -125,18 +159,18 @@ with tab1:
   if not df.empty:
     total_membres = len(df)
     total_garcons = (
-        len(df[df["Sexe"].astype(str).str.upper() == "M"])
-        if "Sexe" in df.columns
+        len(df[df[col_sexe].astype(str).str.upper() == "M"])
+        if col_sexe in df.columns
         else 0
     )
     total_filles = (
-        len(df[df["Sexe"].astype(str).str.upper() == "F"])
-        if "Sexe" in df.columns
+        len(df[df[col_sexe].astype(str).str.upper() == "F"])
+        if col_sexe in df.columns
         else 0
     )
     total_actifs = (
-        len(df[df["Adhésion"].astype(str).str.upper() == "OK"])
-        if "Adhésion" in df.columns
+        len(df[df[col_adh].astype(str).str.upper() == "OK"])
+        if col_adh in df.columns
         else 0
     )
 
@@ -202,7 +236,6 @@ with tab2:
     if submitted:
       if nom_enfant and nom_parent:
         try:
-          # Correspond exactement aux 8 colonnes du Google Sheet
           nouvelle_ligne = [
               matricule_auto,
               nom_enfant,
@@ -233,7 +266,7 @@ with tab2:
 with tab3:
   st.subheader("✏️ Modifier ou Corriger un Enregistrement")
 
-  if not df.empty and "Numéro du membre" in df.columns:
+  if not df.empty and col_membre in df.columns:
     st.markdown(
         """
         <div class="info-box">
@@ -243,47 +276,43 @@ with tab3:
         unsafe_allow_html=True,
     )
 
-    liste_membres = df["Numéro du membre"].astype(str).tolist()
+    liste_membres = df[col_membre].astype(str).tolist()
     choix_membre = st.selectbox(
         "Sélectionner le membre à modifier", liste_membres
     )
 
-    membre_actuel = df[df["Numéro du membre"].astype(str) == choix_membre].iloc[
-        0
-    ]
+    membre_actuel = df[df[col_membre].astype(str) == choix_membre].iloc[0]
 
     with st.form("form_modification"):
       st.markdown(f"**Modification pour le matricule : {choix_membre}**")
 
       m_nom_enfant = st.text_input(
           "Nom et Prénom de l'enfant",
-          value=str(membre_actuel["Nom et Prénom de l'enfant"]),
+          value=str(membre_actuel.get(col_enfant, "")),
       ).upper()
       m_date_nais = st.text_input(
           "Date de naissance / Âge",
-          value=str(membre_actuel["Date de naissance"]),
+          value=str(membre_actuel.get(col_date, "")),
       )
 
-      index_sexe = (
-          0 if str(membre_actuel["Sexe"]).upper() == "M" else 1
-      )
+      val_sexe = str(membre_actuel.get(col_sexe, "M")).upper()
+      index_sexe = 0 if val_sexe == "M" else 1
       m_sexe = st.selectbox("Sexe", ["M", "F"], index=index_sexe)
 
       m_ville = st.text_input(
-          "Ville / Commune", value=str(membre_actuel["Ville"])
+          "Ville / Commune", value=str(membre_actuel.get(col_ville, ""))
       ).upper()
       m_nom_parent = st.text_input(
           "Nom et prénoms du parent",
-          value=str(membre_actuel["Nom et prénoms du parent"]),
+          value=str(membre_actuel.get(col_parent, "")),
       ).upper()
       m_tel = st.text_input(
           "Numéro de téléphone du parent",
-          value=str(membre_actuel["Numero Tèl"]),
+          value=str(membre_actuel.get(col_tel, "")),
       )
 
-      index_adh = (
-          0 if str(membre_actuel["Adhésion"]).upper() == "OK" else 1
-      )
+      val_adh = str(membre_actuel.get(col_adh, "OK")).upper()
+      index_adh = 0 if "OK" in val_adh else 1
       m_adhesion = st.selectbox(
           "Statut d'Adhésion", ["OK", "En attente"], index=index_adh
       )
@@ -295,7 +324,6 @@ with tab3:
           cell = sheet.find(str(choix_membre))
           row_idx = cell.row
 
-          # Mise à jour des colonnes 2 à 8 dans Google Sheets
           sheet.update_cell(row_idx, 2, m_nom_enfant)
           sheet.update_cell(row_idx, 3, m_date_nais)
           sheet.update_cell(row_idx, 4, m_sexe)
