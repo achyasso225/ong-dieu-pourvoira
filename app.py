@@ -9,27 +9,27 @@ st.set_page_config(
     layout="wide",
 )
 
-# Styles CSS personnalisés pour une interface moderne et élégante
+# Styles CSS personnalisés pour une interface moderne et épurée
 st.markdown(
     """
     <style>
     .main-header {
         background: linear-gradient(135deg, #008000 0%, #228B22 100%);
-        padding: 25px;
+        padding: 20px;
         border-radius: 12px;
         color: white;
         text-align: center;
-        margin-bottom: 25px;
+        margin-bottom: 20px;
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
     .main-header h1 {
         color: white;
         margin-bottom: 5px;
-        font-size: 26px;
+        font-size: 24px;
     }
     .main-header p {
         color: #f1f1f1;
-        font-size: 14px;
+        font-size: 13px;
         margin: 0;
     }
     .info-box {
@@ -60,14 +60,14 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# En-tête officiel inspiré de votre document
+# En-tête officiel de l'ONG
 st.markdown(
     """
     <div class="main-header">
         <h1>ONG DIEU POURVOIRA</h1>
         <p><strong>Ensemble aidons les enfants atteints de Paralysie cérébrale</strong></p>
-        <hr style="border-color: rgba(255,255,255,0.3); margin: 10px 0;">
-        <p style="font-size: 12px;">
+        <hr style="border-color: rgba(255,255,255,0.3); margin: 8px 0;">
+        <p style="font-size: 11px;">
             📞 +225 77 71 04 41 8 / 05 86 99 73 27 &nbsp;|&nbsp; 
             ✉️ dieupourvoira187@gmail.com &nbsp;|&nbsp; 
             📍 08 BP 2945 ABIDJAN 08
@@ -77,10 +77,11 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Chargement du fichier Excel ou utilisation des données d'origine
-uploaded_file = st.sidebar.file_uploader(
-    "📂 Importer votre fichier Excel", type=["xlsx", "xls"]
-)
+# Option discrète pour importer un fichier Excel dans un menu repliable (expander)
+with st.expander("📂 Options avancées : Importer / Mettre à jour le fichier Excel"):
+  uploaded_file = st.file_uploader(
+      "Sélectionnez votre fichier Excel", type=["xlsx", "xls"]
+  )
 
 if uploaded_file is not None:
   df = pd.read_excel(uploaded_file)
@@ -175,13 +176,13 @@ else:
   }
   df = pd.DataFrame(data)
 
-# Navigation latérale
-st.sidebar.markdown("### 🧭 Menu Principal")
-menu = st.sidebar.radio(
-    "Aller à :", ["📊 Tableau de Bord", "➕ Enregistrer", "📋 Liste & Recherche"]
+# --- NAVIGATION PAR ONGLETS (Remplace le menu latéral) ---
+tab1, tab2, tab3 = st.tabs(
+    ["📊 Tableau de Bord", "➕ Enregistrer un Membre", "📋 Liste & Recherche"]
 )
 
-if menu == "📊 Tableau de Bord":
+# ONGLET 1 : TABLEAU DE BORD
+with tab1:
   st.subheader("📈 Statistiques de l'ONG")
 
   total_membres = len(df)
@@ -196,47 +197,48 @@ if menu == "📊 Tableau de Bord":
   col4.metric("Adhésions OK", total_actifs)
 
   st.markdown("---")
-  st.markdown("### 🕒 Derniers ajouts")
+  st.markdown("### 🕒 Derniers ajouts dans la base")
   st.dataframe(df.tail(5), use_container_width=True)
 
-elif menu == "➕ Enregistrer":
-  st.subheader("📝 Formulaire d'Enregistrement")
+# ONGLET 2 : FORMULAIRE D'ENREGISTREMENT
+with tab2:
+  st.subheader("📝 Formulaire d'Enregistrement d'un Nouveau Membre")
 
   st.markdown(
       """
       <div class="info-box">
-          ℹ️ Le numéro de membre est incrémenté automatiquement. Remplissez les informations de l'enfant et du parent.
+          ℹ️ Le numéro de membre est généré automatiquement. Remplissez les informations ci-dessous puis validez.
       </div>
   """,
       unsafe_allow_html=True,
   )
 
-  with st.form("form_membre"):
+  with st.form("form_membre_principal"):
     prochain_num = len(df) + 1
     matricule_auto = f"ONG DP {prochain_num:03d}"
 
     st.markdown("##### 👶 Informations de l'enfant")
-    col1, col2, col3 = st.columns(3)
-    with col1:
+    c1, c2, c3 = st.columns(3)
+    with c1:
       numero_membre = st.text_input("Numéro du membre", value=matricule_auto)
-    with col2:
+    with c2:
       sexe = st.selectbox("Sexe", ["M", "F"])
-    with col3:
+    with c3:
       date_naissance = st.text_input("Date de naissance / Âge")
 
     nom_enfant = st.text_input(
         "Nom et Prénom de l'enfant (Ex: KOUASSI JEAN)"
     ).upper()
-    ville = st.text_input("Ville / Commune (Ex: COCODY)").upper()
+    ville = st.text_input("Ville / Commune de résidence (Ex: COCODY)").upper()
 
     st.markdown("---")
     st.markdown("##### 👪 Informations du parent & Statut")
-    col4, col5 = st.columns(2)
-    with col4:
+    c4, c5 = st.columns(2)
+    with c4:
       nom_parent = st.text_input(
           "Nom et prénoms du parent (Ex: KOUASSI MARC)"
-      ).upper()
-    with col5:
+    ).upper()
+    with c5:
       numero_tel = st.text_input("Numéro de téléphone du parent")
 
     adhesion = st.selectbox("Statut d'Adhésion", ["OK", "En attente"])
@@ -265,11 +267,12 @@ elif menu == "➕ Enregistrer":
             "⚠️ Veuillez renseigner au moins le nom de l'enfant et du parent."
         )
 
-elif menu == "📋 Liste & Recherche":
+# ONGLET 3 : LISTE & RECHERCHE
+with tab3:
   st.subheader("📋 Répertoire Général des Membres")
 
   recherche = st.text_input(
-      "🔍 Rechercher (Nom d'enfant, Parent, Ville ou Matricule)..."
+      "🔍 Rechercher un enfant, un parent, une ville ou un matricule..."
   )
 
   if recherche:
@@ -290,7 +293,7 @@ elif menu == "📋 Liste & Recherche":
 
   st.dataframe(df_affiche, use_container_width=True)
 
-  # Export Excel
+  # Bouton de téléchargement Excel
   output = BytesIO()
   with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
     df.to_excel(writer, index=False, sheet_name="Membres")
