@@ -95,17 +95,20 @@ def init_connection():
 
 try:
   client = init_connection()
-  # Mettez ici l'URL de votre Google Sheet natif (celui converti)
+  # Nouvelle URL exacte de votre Google Sheet converti
   sheet_url = (
-      "https://docs.google.com/spreadsheets/d/1nAGX7YyrPdWg4vcOE_ohczvbUaZUIRxlQcsKEw0Nu14/edit?gid=402365672#gid=402365672"
+      "https://docs.google.com/spreadsheets/d/1nAGX7YyrPDWg4vCOE_ohczvbUAZIRxIQcsKEw0Nu14/edit"
   )
   sheet = client.open_by_url(sheet_url).sheet1
-  # head=1 car le fichier converti commence directement le tableau en haut, ou head=9 si l'en-tête est à la ligne 9
-  data = sheet.get_all_records()
+
+  # head=9 lit les en-têtes à la ligne 9 et ignore l'en-tête graphique du haut
+  data = sheet.get_all_records(head=9)
   df = pd.DataFrame(data)
 
-  # Nettoyage automatique des noms de colonnes (suppression des espaces superflus)
+  # Nettoyage des espaces et filtrage des lignes valides
   df.columns = df.columns.str.strip()
+  if "Numéro du membre" in df.columns:
+    df = df[df["Numéro du membre"].astype(str).str.startswith("ONG DP")]
 except Exception as e:
   st.error(
       "⚠️ Erreur de connexion à Google Sheets. Vérifiez vos secrets Streamlit."
@@ -122,34 +125,44 @@ tab1, tab2, tab3, tab4 = st.tabs([
     "📋 Liste & Recherche",
 ])
 
-# Détection sécurisée des noms de colonnes exacts
+# Détection sécurisée des colonnes
 col_membre = (
     "Numéro du membre"
     if "Numéro du membre" in df.columns
-    else df.columns[0]
+    else (df.columns[0] if len(df.columns) > 0 else "")
 )
 col_enfant = (
     "Nom et Prénom de l'enfant"
     if "Nom et Prénom de l'enfant" in df.columns
-    else df.columns[1]
+    else (df.columns[1] if len(df.columns) > 1 else "")
 )
 col_date = (
     "Date de naissance"
     if "Date de naissance" in df.columns
-    else df.columns[2]
+    else (df.columns[2] if len(df.columns) > 2 else "")
 )
-col_sexe = "Sexe" if "Sexe" in df.columns else df.columns[3]
-col_ville = "Ville" if "Ville" in df.columns else df.columns[4]
+col_sexe = (
+    "Sexe" if "Sexe" in df.columns else (df.columns[3] if len(df.columns) > 3 else "")
+)
+col_ville = (
+    "Ville"
+    if "Ville" in df.columns
+    else (df.columns[4] if len(df.columns) > 4 else "")
+)
 col_parent = (
     "Nom et prénoms du parent"
     if "Nom et prénoms du parent" in df.columns
-    else df.columns[5]
+    else (df.columns[5] if len(df.columns) > 5 else "")
 )
-col_tel = "Numero Tèl" if "Numero Tèl" in df.columns else df.columns[6]
+col_tel = (
+    "Numero Tèl"
+    if "Numero Tèl" in df.columns
+    else (df.columns[6] if len(df.columns) > 6 else "")
+)
 col_adh = (
     [c for c in df.columns if "Adh" in c][0]
     if any("Adh" in c for c in df.columns)
-    else df.columns[7]
+    else (df.columns[7] if len(df.columns) > 7 else "")
 )
 
 # ONGLET 1 : TABLEAU DE BORD
