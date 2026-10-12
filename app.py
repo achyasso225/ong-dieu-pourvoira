@@ -97,7 +97,7 @@ try:
   client = init_connection()
   # Mettez ici l'URL de votre Google Sheet natif (celui converti)
   sheet_url = (
-      "https://docs.google.com/spreadsheets/d/1oYRBzf9csH7mYt8LchZ/edit"
+      "https://docs.google.com/spreadsheets/d/1nAGX7YyrPdWg4vcOE_ohczvbUaZUIRxlQcsKEw0Nu14/edit?gid=402365672#gid=402365672"
   )
   sheet = client.open_by_url(sheet_url).sheet1
   # head=1 car le fichier converti commence directement le tableau en haut, ou head=9 si l'en-tête est à la ligne 9
