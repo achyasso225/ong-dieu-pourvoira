@@ -96,7 +96,7 @@ def init_connection():
 try:
   client = init_connection()
   sheet_url = (
-      "https://docs.google.com/spreadsheets/d/1oYRBzf9csH7mYt8LchZ/edit"
+      "https://docs.google.com/spreadsheets/d/1nAGX7YyrPdWg4vcOE_ohczvbUaZUIRxlQcsKEw0Nu14/edit?gid=402365672#gid=402365672"
   )
   sheet = client.open_by_url(sheet_url).sheet1
   # head=9 lit les en-têtes à la ligne 9 de votre Google Sheet
