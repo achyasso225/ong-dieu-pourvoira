@@ -99,7 +99,7 @@ try:
       "https://docs.google.com/spreadsheets/d/1oYRBzf9csH7mYt8LchZ/edit"
   )
   sheet = client.open_by_url(sheet_url).sheet1
-  # head=9 permet de dire à gspread que les en-têtes du tableau commencent à la ligne 9
+  # head=9 lit les en-têtes à la ligne 9 de votre Google Sheet
   data = sheet.get_all_records(head=9)
   df = pd.DataFrame(data)
 except Exception as e:
@@ -196,13 +196,13 @@ with tab2:
       numero_tel = st.text_input("Numéro de téléphone du parent")
 
     adhesion = st.selectbox("Statut d'Adhésion", ["OK", "En attente"])
-    besoin = st.text_input("Besoin / Remarques (Optionnel)")
 
     submitted = st.form_submit_button("Enregistrer et envoyer dans Google Drive")
 
     if submitted:
       if nom_enfant and nom_parent:
         try:
+          # Correspond exactement aux 8 colonnes du Google Sheet
           nouvelle_ligne = [
               matricule_auto,
               nom_enfant,
@@ -212,7 +212,6 @@ with tab2:
               nom_parent,
               numero_tel,
               adhesion,
-              besoin,
           ]
           sheet.append_row(nouvelle_ligne)
           st.success(
@@ -289,13 +288,6 @@ with tab3:
           "Statut d'Adhésion", ["OK", "En attente"], index=index_adh
       )
 
-      valeur_besoin = (
-          str(membre_actuel["Besoin"])
-          if "Besoin" in df.columns and pd.notna(membre_actuel["Besoin"])
-          else ""
-      )
-      m_besoin = st.text_input("Besoin / Remarques", value=valeur_besoin)
-
       btn_modifier = st.form_submit_button("Mettre à jour les informations")
 
       if btn_modifier:
@@ -303,6 +295,7 @@ with tab3:
           cell = sheet.find(str(choix_membre))
           row_idx = cell.row
 
+          # Mise à jour des colonnes 2 à 8 dans Google Sheets
           sheet.update_cell(row_idx, 2, m_nom_enfant)
           sheet.update_cell(row_idx, 3, m_date_nais)
           sheet.update_cell(row_idx, 4, m_sexe)
@@ -310,7 +303,6 @@ with tab3:
           sheet.update_cell(row_idx, 6, m_nom_parent)
           sheet.update_cell(row_idx, 7, m_tel)
           sheet.update_cell(row_idx, 8, m_adhesion)
-          sheet.update_cell(row_idx, 9, m_besoin)
 
           st.success(
               f"✅ Les informations de {choix_membre} ont été modifiées avec"
