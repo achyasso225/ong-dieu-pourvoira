@@ -1,4 +1,5 @@
 from io import BytesIO
+import math
 import gspread
 from google.oauth2.service_account import Credentials
 import pandas as pd
@@ -118,7 +119,7 @@ except Exception as e:
 tab1, tab2, tab3, tab4 = st.tabs([
     "📊 Tableau de Bord",
     "➕ Enregistrer un Membre",
-    "✏️ Modifier un Membre",
+    "✏️ Modifier / Supprimer",
     "📋 Liste & Recherche",
 ])
 
@@ -272,93 +273,156 @@ with tab2:
             "⚠️ Veuillez renseigner au moins le nom de l'enfant et du parent."
         )
 
-# ONGLET 3 : MODIFIER UN MEMBRE EXISTANT
+# ONGLET 3 : MODIFIER OU SUPPRIMER UN MEMBRE (AVEC RECHERCHE)
 with tab3:
-  st.subheader("✏️ Modifier ou Corriger un Enregistrement")
+  st.subheader("✏️ Modifier ou Supprimer un Enregistrement")
 
   if not df.empty and col_membre in df.columns:
     st.markdown(
         """
         <div class="info-box">
-            ℹ️ Sélectionnez un membre par son numéro pour modifier ses informations en cas d'erreur. La mise à jour sera reportée directement dans Google Drive.
+            ℹ️ Recherchez un membre par son nom, son parent, sa ville ou son matricule pour le modifier ou le supprimer.
         </div>
     """,
         unsafe_allow_html=True,
     )
 
-    liste_membres = df[col_membre].astype(str).tolist()
-    choix_membre = st.selectbox(
-        "Sélectionner le membre à modifier", liste_membres
+    recherche_edit = st.text_input(
+        "🔍 Rechercher le membre à modifier ou supprimer...",
+        key="recherche_edit",
     )
 
-    membre_actuel = df[df[col_membre].astype(str) == choix_membre].iloc[0]
+    if recherche_edit:
+      mask_edit = df.astype(str).apply(
+          lambda row: row.str.contains(recherche_edit, case=False, na=False).any(),
+          axis=1,
+      )
+      df_edit_filtered = df[mask_edit]
+    else:
+      df_edit_filtered = df
 
-    with st.form("form_modification"):
-      st.markdown(f"**Modification pour le matricule : {choix_membre}**")
-
-      m_nom_enfant = st.text_input(
-          "Nom et Prénom de l'enfant",
-          value=str(membre_actuel.get(col_enfant, "")),
-      ).upper()
-      m_date_nais = st.text_input(
-          "Date de naissance / Âge",
-          value=str(membre_actuel.get(col_date, "")),
+    if not df_edit_filtered.empty:
+      liste_membres = df_edit_filtered[col_membre].astype(str).tolist()
+      choix_membre = st.selectbox(
+          "Sélectionner le membre",
+          liste_membres,
+          format_func=lambda m: (
+              f"{m} - "
+              f"{df_edit_filtered[df_edit_filtered[col_membre].astype(str) == m][col_enfant].values[0]}"
+              if col_enfant in df_edit_filtered.columns
+              else m
+          ),
       )
 
-      val_sexe = str(membre_actuel.get(col_sexe, "M")).upper()
-      index_sexe = 0 if val_sexe == "M" else 1
-      m_sexe = st.selectbox("Sexe", ["M", "F"], index=index_sexe)
+      membre_actuel = df[df[col_membre].astype(str) == choix_membre].iloc[0]
 
-      m_ville = st.text_input(
-          "Ville / Commune", value=str(membre_actuel.get(col_ville, ""))
-      ).upper()
-      m_nom_parent = st.text_input(
-          "Nom et prénoms du parent",
-          value=str(membre_actuel.get(col_parent, "")),
-      ).upper()
-      m_tel = st.text_input(
-          "Numéro de téléphone du parent",
-          value=str(membre_actuel.get(col_tel, "")),
+      st.markdown("---")
+      choix_action = st.radio(
+          "Action à effectuer",
+          ["Modifier les informations", "Supprimer le membre"],
+          horizontal=True,
       )
 
-      val_adh = str(membre_actuel.get(col_adh, "OK")).upper()
-      index_adh = 0 if "OK" in val_adh else 1
-      m_adhesion = st.selectbox(
-          "Statut d'Adhésion", ["OK", "En attente"], index=index_adh
-      )
+      if choix_action == "Modifier les informations":
+        with st.form("form_modification"):
+          st.markdown(f"**Modification pour le matricule : {choix_membre}**")
 
-      btn_modifier = st.form_submit_button("Mettre à jour les informations")
-
-      if btn_modifier:
-        try:
-          cell = sheet.find(str(choix_membre))
-          row_idx = cell.row
-
-          sheet.update_cell(row_idx, 2, m_nom_enfant)
-          sheet.update_cell(row_idx, 3, m_date_nais)
-          sheet.update_cell(row_idx, 4, m_sexe)
-          sheet.update_cell(row_idx, 5, m_ville)
-          sheet.update_cell(row_idx, 6, m_nom_parent)
-          sheet.update_cell(row_idx, 7, m_tel)
-          sheet.update_cell(row_idx, 8, m_adhesion)
-
-          st.success(
-              f"✅ Les informations de {choix_membre} ont été modifiées avec"
-              " succès dans Google Drive !"
+          m_nom_enfant = st.text_input(
+              "Nom et Prénom de l'enfant",
+              value=str(membre_actuel.get(col_enfant, "")),
+          ).upper()
+          m_date_nais = st.text_input(
+              "Date de naissance / Âge",
+              value=str(membre_actuel.get(col_date, "")),
           )
-          st.balloons()
-          st.rerun()
-        except Exception as e:
-          st.error(f"Erreur lors de la modification dans Google Sheets : {e}")
-  else:
-    st.info("Aucun membre disponible pour modification.")
 
-# ONGLET 4 : LISTE, RECHERCHE & TÉLÉCHARGEMENT
+          val_sexe = str(membre_actuel.get(col_sexe, "M")).upper()
+          index_sexe = 0 if val_sexe == "M" else 1
+          m_sexe = st.selectbox("Sexe", ["M", "F"], index=index_sexe)
+
+          m_ville = st.text_input(
+              "Ville / Commune", value=str(membre_actuel.get(col_ville, ""))
+          ).upper()
+          m_nom_parent = st.text_input(
+              "Nom et prénoms du parent",
+              value=str(membre_actuel.get(col_parent, "")),
+          ).upper()
+          m_tel = st.text_input(
+              "Numéro de téléphone du parent",
+              value=str(membre_actuel.get(col_tel, "")),
+          )
+
+          val_adh = str(membre_actuel.get(col_adh, "OK")).upper()
+          index_adh = 0 if "OK" in val_adh else 1
+          m_adhesion = st.selectbox(
+              "Statut d'Adhésion", ["OK", "En attente"], index=index_adh
+          )
+
+          btn_modifier = st.form_submit_button("Mettre à jour les informations")
+
+          if btn_modifier:
+            try:
+              cell = sheet.find(str(choix_membre))
+              row_idx = cell.row
+
+              sheet.update_cell(row_idx, 2, m_nom_enfant)
+              sheet.update_cell(row_idx, 3, m_date_nais)
+              sheet.update_cell(row_idx, 4, m_sexe)
+              sheet.update_cell(row_idx, 5, m_ville)
+              sheet.update_cell(row_idx, 6, m_nom_parent)
+              sheet.update_cell(row_idx, 7, m_tel)
+              sheet.update_cell(row_idx, 8, m_adhesion)
+
+              st.success(
+                  f"✅ Les informations de {choix_membre} ont été modifiées avec"
+                  " succès dans Google Drive !"
+              )
+              st.balloons()
+              st.rerun()
+            except Exception as e:
+              st.error(
+                  f"Erreur lors de la modification dans Google Sheets : {e}"
+              )
+      else:
+        st.warning(
+            f"⚠️ Vous êtes sur le point de supprimer le membre **{choix_membre}"
+            f" - {membre_actuel.get(col_enfant, '')}**."
+        )
+        confirmer_suppression = st.checkbox(
+            "Je confirme vouloir supprimer définitivement ce membre"
+        )
+        if st.button(
+            "🗑️ Confirmer la suppression", type="primary", use_container_width=True
+        ):
+          if confirmer_suppression:
+            try:
+              cell = sheet.find(str(choix_membre))
+              row_idx = cell.row
+              sheet.delete_rows(row_idx)
+              st.success(
+                  f"✅ Le membre {choix_membre} a été supprimé avec succès !"
+              )
+              st.balloons()
+              st.rerun()
+            except Exception as e:
+              st.error(f"Erreur lors de la suppression : {e}")
+          else:
+            st.error(
+                "⚠️ Veuillez cocher la case de confirmation pour procéder à la"
+                " suppression."
+            )
+    else:
+      st.warning("Aucun membre ne correspond à votre recherche.")
+  else:
+    st.info("Aucun membre disponible.")
+
+# ONGLET 4 : LISTE, RECHERCHE & PAGINATION (MIN 10 LIGNES)
 with tab4:
   st.subheader("📋 Répertoire Général des Membres")
 
   recherche = st.text_input(
-      "🔍 Rechercher un enfant, un parent, une ville ou un matricule..."
+      "🔍 Rechercher un enfant, un parent, une ville ou un matricule...",
+      key="recherche_liste",
   )
 
   if not df.empty:
@@ -372,7 +436,35 @@ with tab4:
     else:
       df_affiche = df
 
-    st.dataframe(df_affiche, use_container_width=True)
+    total_lignes = len(df_affiche)
+    if total_lignes > 0:
+      col_pg1, col_pg2 = st.columns([1, 2])
+      with col_pg1:
+        lignes_par_page = st.selectbox(
+            "Lignes par page", [10, 25, 50, 100], index=0, key="lignes_page"
+        )
+
+      total_pages = math.ceil(total_lignes / lignes_par_page)
+
+      with col_pg2:
+        page_actuelle = st.selectbox(
+            "Sélectionner la plage / page",
+            range(1, total_pages + 1),
+            format_func=lambda x: (
+                f"Affichage : { (x-1)*lignes_par_page + 1 } à"
+                f" {min(x*lignes_par_page, total_lignes)} (sur {total_lignes}"
+                " membres)"
+            ),
+            key="select_page",
+        )
+
+      debut = (page_actuelle - 1) * lignes_par_page
+      fin = min(debut + lignes_par_page, total_lignes)
+      df_page = df_affiche.iloc[debut:fin]
+
+      st.dataframe(df_page, use_container_width=True)
+    else:
+      st.dataframe(df_affiche, use_container_width=True)
 
     st.markdown("---")
     st.markdown("### 📥 Télécharger une copie locale")
