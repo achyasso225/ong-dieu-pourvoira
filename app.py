@@ -80,7 +80,7 @@ st.markdown(
 )
 
 
-# --- CONNEXION AUTOMATIQUE À GOOGLE SHEETS ---
+# --- CONNEXION AUTOMATIQUE À GOOGLE SHEETS PAR NOM ---
 @st.cache_resource
 def init_connection():
   scope = [
@@ -95,11 +95,8 @@ def init_connection():
 
 try:
   client = init_connection()
-  # Nouvelle URL exacte de votre Google Sheet converti
-  sheet_url = (
-      "https://docs.google.com/spreadsheets/d/1nAGX7YyrPDWg4vCOE_ohczvbUAZIRxIQcsKEw0Nu14/edit"
-  )
-  sheet = client.open_by_url(sheet_url).sheet1
+  # Ouverture directe par le nom exact du fichier partagé sur Google Drive
+  sheet = client.open("Base_de_donnee_ONG_Dieu_Pourvoira").sheet1
 
   # head=9 lit les en-têtes à la ligne 9 et ignore l'en-tête graphique du haut
   data = sheet.get_all_records(head=9)
