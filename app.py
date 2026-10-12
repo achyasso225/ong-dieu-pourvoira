@@ -99,7 +99,8 @@ try:
       "https://docs.google.com/spreadsheets/d/1oYRBzf9csH7mYt8LchZ/edit"
   )
   sheet = client.open_by_url(sheet_url).sheet1
-  data = sheet.get_all_records()
+  # head=9 permet de dire à gspread que les en-têtes du tableau commencent à la ligne 9
+  data = sheet.get_all_records(head=9)
   df = pd.DataFrame(data)
 except Exception as e:
   st.error(
@@ -171,7 +172,6 @@ with tab2:
     st.markdown("##### 👶 Informations de l'enfant")
     c1, c2, c3 = st.columns(3)
     with c1:
-      # Champ grisé et verrouillé (disabled=True)
       numero_membre = st.text_input(
           "Numéro du membre (Auto)", value=matricule_auto, disabled=True
       )
@@ -249,7 +249,6 @@ with tab3:
         "Sélectionner le membre à modifier", liste_membres
     )
 
-    # Récupérer les informations actuelles du membre sélectionné
     membre_actuel = df[df["Numéro du membre"].astype(str) == choix_membre].iloc[
         0
     ]
@@ -286,7 +285,9 @@ with tab3:
       index_adh = (
           0 if str(membre_actuel["Adhésion"]).upper() == "OK" else 1
       )
-      m_adhesion = st.selectbox("Statut d'Adhésion", ["OK", "En attente"], index=index_adh)
+      m_adhesion = st.selectbox(
+          "Statut d'Adhésion", ["OK", "En attente"], index=index_adh
+      )
 
       valeur_besoin = (
           str(membre_actuel["Besoin"])
@@ -299,11 +300,9 @@ with tab3:
 
       if btn_modifier:
         try:
-          # Trouver la ligne exacte dans Google Sheets via gspread
           cell = sheet.find(str(choix_membre))
           row_idx = cell.row
 
-          # Mise à jour des colonnes dans Google Sheets (Colonnes 2 à 9, la colonne 1 étant le numéro du membre fixe)
           sheet.update_cell(row_idx, 2, m_nom_enfant)
           sheet.update_cell(row_idx, 3, m_date_nais)
           sheet.update_cell(row_idx, 4, m_sexe)
