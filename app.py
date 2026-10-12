@@ -4,30 +4,87 @@ import streamlit as st
 
 # Configuration de la page
 st.set_page_config(
-    page_title="ONG DIEU POURVOIRA - Gestion des Membres", layout="centered"
+    page_title="ONG DIEU POURVOIRA - Gestion des Membres",
+    page_icon="💚",
+    layout="wide",
 )
 
-# En-tête de l'application
+# Styles CSS personnalisés pour une interface moderne et élégante
 st.markdown(
-    "<h2 style='text-align: center; color: #008000;'>ONG DIEU POURVOIRA</h2>",
+    """
+    <style>
+    .main-header {
+        background: linear-gradient(135deg, #008000 0%, #228B22 100%);
+        padding: 25px;
+        border-radius: 12px;
+        color: white;
+        text-align: center;
+        margin-bottom: 25px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .main-header h1 {
+        color: white;
+        margin-bottom: 5px;
+        font-size: 26px;
+    }
+    .main-header p {
+        color: #f1f1f1;
+        font-size: 14px;
+        margin: 0;
+    }
+    .info-box {
+        background-color: #fdfefe;
+        border-left: 5px solid #ff7f00;
+        padding: 12px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+        font-size: 14px;
+        color: #333;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .stButton>button {
+        width: 100%;
+        background-color: #008000;
+        color: white;
+        border-radius: 8px;
+        padding: 10px;
+        font-weight: bold;
+        border: none;
+    }
+    .stButton>button:hover {
+        background-color: #006400;
+        color: white;
+    }
+    </style>
+""",
     unsafe_allow_html=True,
 )
-st.markdown(
-    "<p style='text-align: center; font-style: italic;'>Ensemble aidons"
-    " les enfants atteints de Paralysie cérébrale</p>",
-    unsafe_allow_html=True,
-)
-st.markdown("---")
 
-# Option pour charger le fichier Excel existant
-uploaded_file = st.file_uploader(
-    "📂 Importer votre fichier Excel actuel (Optionnel)", type=["xlsx", "xls"]
+# En-tête officiel inspiré de votre document
+st.markdown(
+    """
+    <div class="main-header">
+        <h1>ONG DIEU POURVOIRA</h1>
+        <p><strong>Ensemble aidons les enfants atteints de Paralysie cérébrale</strong></p>
+        <hr style="border-color: rgba(255,255,255,0.3); margin: 10px 0;">
+        <p style="font-size: 12px;">
+            📞 +225 77 71 04 41 8 / 05 86 99 73 27 &nbsp;|&nbsp; 
+            ✉️ dieupourvoira187@gmail.com &nbsp;|&nbsp; 
+            📍 08 BP 2945 ABIDJAN 08
+        </p>
+    </div>
+""",
+    unsafe_allow_html=True,
+)
+
+# Chargement du fichier Excel ou utilisation des données d'origine
+uploaded_file = st.sidebar.file_uploader(
+    "📂 Importer votre fichier Excel", type=["xlsx", "xls"]
 )
 
 if uploaded_file is not None:
   df = pd.read_excel(uploaded_file)
 else:
-  # Données de base basées sur votre capture si aucun fichier n'est chargé
   data = {
       "Numéro du membre": [
           "ONG DP 001",
@@ -118,41 +175,75 @@ else:
   }
   df = pd.DataFrame(data)
 
-# Menu latéral
-menu = st.sidebar.selectbox(
-    "Navigation", ["➕ Enregistrer un membre", "📋 Voir la liste complète"]
+# Navigation latérale
+st.sidebar.markdown("### 🧭 Menu Principal")
+menu = st.sidebar.radio(
+    "Aller à :", ["📊 Tableau de Bord", "➕ Enregistrer", "📋 Liste & Recherche"]
 )
 
-if menu == "➕ Enregistrer un membre":
-  st.subheader("Formulaire d'enregistrement")
+if menu == "📊 Tableau de Bord":
+  st.subheader("📈 Statistiques de l'ONG")
 
-  with st.form("form_enregistrement"):
-    # Calcul automatique du prochain numéro
+  total_membres = len(df)
+  total_garcons = len(df[df["Sexe"].str.upper() == "M"])
+  total_filles = len(df[df["Sexe"].str.upper() == "F"])
+  total_actifs = len(df[df["Adhésion"].str.upper() == "OK"])
+
+  col1, col2, col3, col4 = st.columns(4)
+  col1.metric("Total Enfants", total_membres)
+  col2.metric("Garçons", total_garcons)
+  col3.metric("Filles", total_filles)
+  col4.metric("Adhésions OK", total_actifs)
+
+  st.markdown("---")
+  st.markdown("### 🕒 Derniers ajouts")
+  st.dataframe(df.tail(5), use_container_width=True)
+
+elif menu == "➕ Enregistrer":
+  st.subheader("📝 Formulaire d'Enregistrement")
+
+  st.markdown(
+      """
+      <div class="info-box">
+          ℹ️ Le numéro de membre est incrémenté automatiquement. Remplissez les informations de l'enfant et du parent.
+      </div>
+  """,
+      unsafe_allow_html=True,
+  )
+
+  with st.form("form_membre"):
     prochain_num = len(df) + 1
-    matricule_defaut = f"ONG DP {prochain_num:03d}"
+    matricule_auto = f"ONG DP {prochain_num:03d}"
 
-    col1, col2 = st.columns(2)
+    st.markdown("##### 👶 Informations de l'enfant")
+    col1, col2, col3 = st.columns(3)
     with col1:
-      numero_membre = st.text_input(
-          "Numéro du membre", value=matricule_defaut
-      )
-      sexe = st.selectbox("Sexe", ["M", "F"])
-      ville = st.text_input("Ville / Commune")
+      numero_membre = st.text_input("Numéro du membre", value=matricule_auto)
     with col2:
-      date_naissance = st.text_input("Date de naissance (ex: 15/06/2018 ou Âge)")
-      numero_tel = st.text_input("Numéro Tèl du parent")
+      sexe = st.selectbox("Sexe", ["M", "F"])
+    with col3:
+      date_naissance = st.text_input("Date de naissance / Âge")
 
     nom_enfant = st.text_input(
         "Nom et Prénom de l'enfant (Ex: KOUASSI JEAN)"
     ).upper()
-    nom_parent = st.text_input(
-        "Nom et prénoms du parent (Ex: KOUASSI MARC)"
-    ).upper()
-    adhesion = st.selectbox("Adhésion", ["OK", "En attente"])
+    ville = st.text_input("Ville / Commune (Ex: COCODY)").upper()
 
-    valider = st.form_submit_button("Enregistrer dans la base")
+    st.markdown("---")
+    st.markdown("##### 👪 Informations du parent & Statut")
+    col4, col5 = st.columns(2)
+    with col4:
+      nom_parent = st.text_input(
+          "Nom et prénoms du parent (Ex: KOUASSI MARC)"
+      ).upper()
+    with col5:
+      numero_tel = st.text_input("Numéro de téléphone du parent")
 
-    if valider:
+    adhesion = st.selectbox("Statut d'Adhésion", ["OK", "En attente"])
+
+    submitted = st.form_submit_button("Enregistrer le membre")
+
+    if submitted:
       if nom_enfant and nom_parent:
         nouvelle_ligne = {
             "Numéro du membre": numero_membre,
@@ -164,30 +255,50 @@ if menu == "➕ Enregistrer un membre":
             "Numero Tèl": numero_tel,
             "Adhésion": adhesion,
         }
-        # Ajout de la ligne au tableau
         df = pd.concat([df, pd.DataFrame([nouvelle_ligne])], ignore_index=True)
         st.success(
-            f"✅ {nom_enfant} a été enregistré avec succès sous le numéro"
-            f" {numero_membre} !"
+            f"✅ Enregistré avec succès ! Matricule attribué :"
+            f" **{numero_membre}**"
         )
       else:
         st.error(
-            "Veuillez renseigner au moins le nom de l'enfant et du parent."
+            "⚠️ Veuillez renseigner au moins le nom de l'enfant et du parent."
         )
 
-elif menu == "📋 Voir la liste complète":
-  st.subheader("Base de données des membres")
-  st.dataframe(df, use_container_width=True)
+elif menu == "📋 Liste & Recherche":
+  st.subheader("📋 Répertoire Général des Membres")
 
-  # Bouton de téléchargement du fichier Excel mis à jour
+  recherche = st.text_input(
+      "🔍 Rechercher (Nom d'enfant, Parent, Ville ou Matricule)..."
+  )
+
+  if recherche:
+    mask = (
+        df["Numéro du membre"].str.contains(recherche, case=False, na=False)
+        | df["Nom et Prénom de l'enfant"].str.contains(
+            recherche, case=False, na=False
+        )
+        | df["Nom et prénoms du parent"].str.contains(
+            recherche, case=False, na=False
+        )
+        | df["Ville"].str.contains(recherche, case=False, na=False)
+    )
+    df_affiche = df[mask]
+    st.info(f"Résultats trouvés : {len(df_affiche)}")
+  else:
+    df_affiche = df
+
+  st.dataframe(df_affiche, use_container_width=True)
+
+  # Export Excel
   output = BytesIO()
   with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
     df.to_excel(writer, index=False, sheet_name="Membres")
-  excel_file = output.getvalue()
+  excel_data = output.getvalue()
 
   st.download_button(
-      label="📥 Télécharger le fichier Excel mis à jour (.xlsx)",
-      data=excel_file,
+      label="📥 Télécharger le fichier Excel mis à jour",
+      data=excel_data,
       file_name="ONG_Dieu_Pourvoira_Membres.xlsx",
       mime=(
           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
