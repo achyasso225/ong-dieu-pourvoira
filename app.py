@@ -276,16 +276,13 @@ with tab2:
               adhesion,
           ]
           sheet.append_row(nouvelle_ligne)
-          st.success(
-              f"✅ Succès : Enregistré dans Google Drive ! Matricule attribué"
-              f" : **{matricule_auto}**"
+          st.session_state["toast_msg"] = (
+              f"✅ Succès : Enregistré ! Matricule : {matricule_auto}"
           )
           st.balloons()
           st.rerun()
         except Exception as e:
-          st.error(
-              f"❌ Erreur lors de l'enregistrement dans Google Sheets : {e}"
-          )
+          st.error(f"❌ Erreur lors de l'enregistrement : {e}")
       else:
         st.error(
             "⚠️ Échec : Veuillez renseigner au moins le nom de l'enfant et du"
@@ -392,16 +389,12 @@ with tab3:
               sheet.update_cell(row_idx, 7, str(m_tel))
               sheet.update_cell(row_idx, 8, m_adhesion)
 
-              st.success(
-                  f"✅ Succès : Les informations de {choix_membre} ont été"
-                  " modifiées !"
+              st.session_state["toast_msg"] = (
+                  f"✅ Succès : Membre {choix_membre} modifié avec succès !"
               )
-              st.balloons()
               st.rerun()
             except Exception as e:
-              st.error(
-                  f"❌ Erreur lors de la modification dans Google Sheets : {e}"
-              )
+              st.error(f"❌ Erreur lors de la modification : {e}")
       else:
         st.warning(
             f"⚠️ Vous êtes sur le point de supprimer le membre **{choix_membre}"
@@ -418,10 +411,9 @@ with tab3:
               cell = sheet.find(str(choix_membre))
               row_idx = cell.row
               sheet.delete_rows(row_idx)
-              st.success(
-                  f"✅ Succès : Le membre {choix_membre} a été supprimé !"
+              st.session_state["toast_msg"] = (
+                  f"✅ Succès : Membre {choix_membre} supprimé avec succès !"
               )
-              st.balloons()
               st.rerun()
             except Exception as e:
               st.error(f"❌ Erreur lors de la suppression : {e}")
@@ -502,3 +494,9 @@ with tab4:
     )
   else:
     st.warning("⚠️ Aucune donnée à afficher.")
+
+# Affichage persistant des notifications de succès après rechargement de page
+if "toast_msg" in st.session_state:
+  st.toast(st.session_state["toast_msg"], icon="🎉")
+  st.success(st.session_state["toast_msg"])
+  del st.session_state["toast_msg"]
