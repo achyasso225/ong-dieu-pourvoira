@@ -103,8 +103,26 @@ try:
   data = sheet.get_all_records(head=9)
   df = pd.DataFrame(data)
 
-  # Nettoyage des espaces et filtrage des lignes valides
+  # Nettoyage des espaces
   df.columns = df.columns.str.strip()
+
+  # Détection dynamique de la colonne téléphone pour formater proprement les zéros
+  col_tel_detect = (
+      "Numero Tèl"
+      if "Numero Tèl" in df.columns
+      else (df.columns[6] if len(df.columns) > 6 else "")
+  )
+  if col_tel_detect in df.columns:
+    df[col_tel_detect] = (
+        df[col_tel_detect]
+        .astype(str)
+        .str.replace(r"\.0$", "", regex=True)
+        .str.strip()
+    )
+    df[col_tel_detect] = df[col_tel_detect].apply(
+        lambda x: "0" + x if len(x) == 9 and x.isdigit() else x
+    )
+
   if "Numéro du membre" in df.columns:
     df = df[df["Numéro du membre"].astype(str).str.startswith("ONG DP")]
 except Exception as e:
@@ -254,23 +272,24 @@ with tab2:
               sexe,
               ville,
               nom_parent,
-              numero_tel,
+              str(numero_tel),
               adhesion,
           ]
           sheet.append_row(nouvelle_ligne)
           st.success(
-              f"✅ Enregistré avec succès dans Google Drive ! Matricule attribué"
+              f"✅ Succès : Enregistré dans Google Drive ! Matricule attribué"
               f" : **{matricule_auto}**"
           )
           st.balloons()
           st.rerun()
         except Exception as e:
           st.error(
-              f"Erreur lors de l'enregistrement dans Google Sheets : {e}"
+              f"❌ Erreur lors de l'enregistrement dans Google Sheets : {e}"
           )
       else:
         st.error(
-            "⚠️ Veuillez renseigner au moins le nom de l'enfant et du parent."
+            "⚠️ Échec : Veuillez renseigner au moins le nom de l'enfant et du"
+            " parent."
         )
 
 # ONGLET 3 : MODIFIER OU SUPPRIMER UN MEMBRE (AVEC RECHERCHE)
@@ -370,18 +389,18 @@ with tab3:
               sheet.update_cell(row_idx, 4, m_sexe)
               sheet.update_cell(row_idx, 5, m_ville)
               sheet.update_cell(row_idx, 6, m_nom_parent)
-              sheet.update_cell(row_idx, 7, m_tel)
+              sheet.update_cell(row_idx, 7, str(m_tel))
               sheet.update_cell(row_idx, 8, m_adhesion)
 
               st.success(
-                  f"✅ Les informations de {choix_membre} ont été modifiées avec"
-                  " succès dans Google Drive !"
+                  f"✅ Succès : Les informations de {choix_membre} ont été"
+                  " modifiées !"
               )
               st.balloons()
               st.rerun()
             except Exception as e:
               st.error(
-                  f"Erreur lors de la modification dans Google Sheets : {e}"
+                  f"❌ Erreur lors de la modification dans Google Sheets : {e}"
               )
       else:
         st.warning(
@@ -400,19 +419,19 @@ with tab3:
               row_idx = cell.row
               sheet.delete_rows(row_idx)
               st.success(
-                  f"✅ Le membre {choix_membre} a été supprimé avec succès !"
+                  f"✅ Succès : Le membre {choix_membre} a été supprimé !"
               )
               st.balloons()
               st.rerun()
             except Exception as e:
-              st.error(f"Erreur lors de la suppression : {e}")
+              st.error(f"❌ Erreur lors de la suppression : {e}")
           else:
             st.error(
-                "⚠️ Veuillez cocher la case de confirmation pour procéder à la"
-                " suppression."
+                "⚠️ Échec : Veuillez cocher la case de confirmation pour"
+                " procéder à la suppression."
             )
     else:
-      st.warning("Aucun membre ne correspond à votre recherche.")
+      st.warning("⚠️ Aucun membre ne correspond à votre recherche.")
   else:
     st.info("Aucun membre disponible.")
 
@@ -432,7 +451,7 @@ with tab4:
           axis=1,
       )
       df_affiche = df[mask]
-      st.info(f"Résultats trouvés : {len(df_affiche)}")
+      st.info(f"ℹ️ Résultats trouvés : {len(df_affiche)}")
     else:
       df_affiche = df
 
@@ -482,4 +501,4 @@ with tab4:
         ),
     )
   else:
-    st.info("Aucune donnée à afficher.")
+    st.warning("⚠️ Aucune donnée à afficher.")
