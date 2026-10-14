@@ -81,7 +81,7 @@ st.markdown(
 )
 
 
-# --- CONNEXION AUTOMATIQUE À GOOGLE SHEETS PAR NOM ---
+# --- CONNEXION AUTOMATIQUE À GOOGLE SHEETS ---
 @st.cache_resource
 def init_connection():
   scope = [
@@ -96,17 +96,15 @@ def init_connection():
 
 try:
   client = init_connection()
-  # Ouverture directe par le nom exact du fichier partagé sur Google Drive
-  sheet = client.open("Base_de_donnee_ONG_Dieu_Pourvoira").sheet1
+  spreadsheet = client.open("Base_de_donnee_ONG_Dieu_Pourvoira")
+  sheet = spreadsheet.sheet1
 
-  # head=9 lit les en-têtes à la ligne 9 et ignore l'en-tête graphique du haut
+  # Lecture des membres
   data = sheet.get_all_records(head=9)
   df = pd.DataFrame(data)
-
-  # Nettoyage des espaces
   df.columns = df.columns.str.strip()
 
-  # Détection dynamique de la colonne téléphone pour formater proprement les zéros
+  # Formatage des numéros de téléphone pour conserver le '0' initial
   col_tel_detect = (
       "Numero Tèl"
       if "Numero Tèl" in df.columns
@@ -125,23 +123,73 @@ try:
 
   if "Numéro du membre" in df.columns:
     df = df[df["Numéro du membre"].astype(str).str.startswith("ONG DP")]
+
+  # Lecture des utilisateurs / responsables depuis le 2nd onglet 'Utilisateurs'
+  try:
+    sheet_users = spreadsheet.worksheet("Utilisateurs")
+    df_users = pd.DataFrame(sheet_users.get_all_records())
+    df_users.columns = df_users.columns.str.strip()
+  except Exception:
+    # Création d'une table par défaut si l'onglet n'existe pas encore
+    df_users = pd.DataFrame([{
+        "Identifiant": "admin",
+        "Mot_de_passe": "admin123",
+        "Nom_Responsable": "Direction DSI",
+        "Zone": "🌐 Vue Globale",
+    }])
+
 except Exception as e:
   st.error(
       "⚠️ Erreur de connexion à Google Sheets. Vérifiez vos secrets Streamlit."
       f" Détails : {e}"
   )
   df = pd.DataFrame()
+  df_users = pd.DataFrame()
+
+# --- DÉFINITION DES ZONES D'ABIDJAN ---
+ZONES_SUD = [
+    "TREICHVILLE",
+    "MARCORY",
+    "KOUMASSI",
+    "PORT-BOUET",
+    "PORTBOUET",
+    "ADJAHUI",
+    "MODESTE",
+    "BASSAM",
+    "GRAND-BASSAM",
+    "YAOU",
+    "BONOUA",
+    "SAMO",
+    "ABOISSO",
+    "ADIAKE",
+    "ASSINIE",
+]
+ZONES_NORD = [
+    "YOPOUGON",
+    "ATTECOUBE",
+    "ATTÉCOUBÉ",
+    "N'DOTRE",
+    "NDOTRE",
+    "ADJAME",
+    "ADJAMÉ",
+    "WILLIAMS CIVIL",
+    "WILLIAMSSVILLE",
+    "SONGON",
+    "DABOU",
+]
 
 
-# --- NAVIGATION PAR ONGLETS ---
-tab1, tab2, tab3, tab4 = st.tabs([
-    "📊 Tableau de Bord",
-    "➕ Enregistrer un Membre",
-    "✏️ Modifier / Supprimer",
-    "📋 Liste & Recherche",
-])
+def attribuer_zone(ville):
+  v = str(ville).upper().strip()
+  if any(z in v for z in ZONES_SUD):
+    return "📍 Zone Sud"
+  elif any(z in v for z in ZONES_NORD):
+    return "📍 Zone Nord"
+  else:
+    return "📍 Autres / Centre"
 
-# Détection sécurisée des colonnes
+
+# Détection des colonnes principales
 col_membre = (
     "Numéro du membre"
     if "Numéro du membre" in df.columns
@@ -181,322 +229,447 @@ col_adh = (
     else (df.columns[7] if len(df.columns) > 7 else "")
 )
 
-# ONGLET 1 : TABLEAU DE BORD
-with tab1:
-  st.subheader("📈 Statistiques de l'ONG")
+if not df.empty and col_ville in df.columns:
+  df["Zone_Geographique"] = df[col_ville].apply(attribuer_zone)
+else:
+  df["Zone_Geographique"] = "📍 Autres / Centre"
 
-  if not df.empty:
-    total_membres = len(df)
-    total_garcons = (
-        len(df[df[col_sexe].astype(str).str.upper() == "M"])
-        if col_sexe in df.columns
-        else 0
-    )
-    total_filles = (
-        len(df[df[col_sexe].astype(str).str.upper() == "F"])
-        if col_sexe in df.columns
-        else 0
-    )
-    total_actifs = (
-        len(df[df[col_adh].astype(str).str.upper() == "OK"])
-        if col_adh in df.columns
-        else 0
-    )
 
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Total Enfants", total_membres)
-    col2.metric("Garçons", total_garcons)
-    col3.metric("Filles", total_filles)
-    col4.metric("Adhésions OK", total_actifs)
+# --- GESTION DE LA SESSION DE CONNEXION ---
+if "user_connected" not in st.session_state:
+  st.session_state["user_connected"] = False
+  st.session_state["user_info"] = None
 
-    st.markdown("---")
-    st.markdown("### 🕒 Derniers ajouts dans la base Google Drive")
-    st.dataframe(df.tail(5), use_container_width=True)
-  else:
-    st.warning("Aucune donnée trouvée dans le fichier Google Sheets.")
-
-# ONGLET 2 : FORMULAIRE D'ENREGISTREMENT
-with tab2:
-  st.subheader("📝 Formulaire d'Enregistrement (Synchronisé en direct)")
-
+# --- ÉCRAN DE CONNEXION ---
+if not st.session_state["user_connected"]:
+  st.subheader("🔐 Connexion au Portail ONG DIEU POURVOIRA")
   st.markdown(
       """
       <div class="info-box">
-          ℹ️ Le numéro de membre s'incrémente automatiquement et est verrouillé. En validant, l'enfant est enregistré instantanément dans Google Drive !
+          Veuillez saisir vos identifiants fournis par la DSI pour accéder à l'espace de votre zone.
       </div>
   """,
       unsafe_allow_html=True,
   )
 
-  with st.form("form_membre_principal"):
-    prochain_num = len(df) + 1 if not df.empty else 1
-    matricule_auto = f"ONG DP {prochain_num:03d}"
+  col_login1, col_login2, col_login3 = st.columns([1, 2, 1])
+  with col_login2:
+    with st.form("form_connexion"):
+      identifiant = st.text_input("Identifiant utilisateur")
+      mot_de_passe = st.text_input("Mot de passe", type="password")
+      btn_connexion = st.form_submit_button("Se connecter")
 
-    st.markdown("##### 👶 Informations de l'enfant")
-    c1, c2, c3 = st.columns(3)
-    with c1:
-      numero_membre = st.text_input(
-          "Numéro du membre (Auto)", value=matricule_auto, disabled=True
-      )
-    with c2:
-      sexe = st.selectbox("Sexe", ["M", "F"])
-    with c3:
-      date_naissance = st.text_input("Date de naissance / Âge")
-
-    nom_enfant = st.text_input(
-        "Nom et Prénom de l'enfant (Ex: KOUASSI JEAN)"
-    ).upper()
-    ville = st.text_input("Ville / Commune de résidence (Ex: COCODY)").upper()
-
-    st.markdown("---")
-    st.markdown("##### 👪 Informations du parent & Statut")
-    c4, c5 = st.columns(2)
-    with c4:
-      nom_parent = st.text_input(
-          "Nom et prénoms du parent (Ex: KOUASSI MARC)"
-    ).upper()
-    with c5:
-      numero_tel = st.text_input("Numéro de téléphone du parent")
-
-    adhesion = st.selectbox("Statut d'Adhésion", ["OK", "En attente"])
-
-    submitted = st.form_submit_button("Enregistrer et envoyer dans Google Drive")
-
-    if submitted:
-      if nom_enfant and nom_parent:
-        try:
-          nouvelle_ligne = [
-              matricule_auto,
-              nom_enfant,
-              date_naissance,
-              sexe,
-              ville,
-              nom_parent,
-              str(numero_tel),
-              adhesion,
+      if btn_connexion:
+        if not df_users.empty and "Identifiant" in df_users.columns:
+          match = df_users[
+              (df_users["Identifiant"].astype(str) == identifiant.strip())
+              & (df_users["Mot_de_passe"].astype(str) == mot_de_passe.strip())
           ]
-          sheet.append_row(nouvelle_ligne)
-          st.session_state["toast_msg"] = (
-              f"✅ Succès : Enregistré ! Matricule : {matricule_auto}"
-          )
-          st.balloons()
-          st.rerun()
-        except Exception as e:
-          st.error(f"❌ Erreur lors de l'enregistrement : {e}")
-      else:
-        st.error(
-            "⚠️ Échec : Veuillez renseigner au moins le nom de l'enfant et du"
-            " parent."
-        )
+          if not match.empty:
+            st.session_state["user_connected"] = True
+            st.session_state["user_info"] = match.iloc[0].to_dict()
+            st.toast(
+                f"Bienvenue {st.session_state['user_info'].get('Nom_Responsable', '')} !",
+                icon="👋",
+            )
+            st.rerun()
+          else:
+            st.error("❌ Identifiant ou mot de passe incorrect.")
+        else:
+          # Mode de secours si l'onglet Utilisateurs n'est pas rempli
+          if identifiant == "admin" and mot_de_passe == "admin123":
+            st.session_state["user_connected"] = True
+            st.session_state["user_info"] = {
+                "Nom_Responsable": "Direction DSI",
+                "Zone": "🌐 Vue Globale",
+            }
+            st.rerun()
+          else:
+            st.error("❌ Identifiant ou mot de passe incorrect.")
 
-# ONGLET 3 : MODIFIER OU SUPPRIMER UN MEMBRE (AVEC RECHERCHE)
-with tab3:
-  st.subheader("✏️ Modifier ou Supprimer un Enregistrement")
+# --- APPLICATION PRINCIPALE APRÈS CONNEXION ---
+else:
+  user_info = st.session_state["user_info"]
+  user_zone = user_info.get("Zone", "🌐 Vue Globale")
+  user_nom = user_info.get("Nom_Responsable", "Responsable")
 
-  if not df.empty and col_membre in df.columns:
+  # Sidebar de session
+  st.sidebar.markdown(f"### 👤 Connected : **{user_nom}**")
+  st.sidebar.info(f"**Zone assignée :** {user_zone}")
+
+  # Déconnexion
+  if st.sidebar.button("🔒 Se déconnecter"):
+    st.session_state["user_connected"] = False
+    st.session_state["user_info"] = None
+    st.rerun()
+
+  # Application du filtrage strict selon la Zone du responsable
+  if "Zone Sud" in user_zone:
+    df_f = df[df["Zone_Geographique"] == "📍 Zone Sud"]
+    choix_zone_label = "📍 Zone Sud"
+  elif "Zone Nord" in user_zone:
+    df_f = df[df["Zone_Geographique"] == "📍 Zone Nord"]
+    choix_zone_label = "📍 Zone Nord"
+  elif "Autres" in user_zone or "Centre" in user_zone:
+    df_f = df[df["Zone_Geographique"] == "📍 Autres / Centre"]
+    choix_zone_label = "📍 Autres / Centre"
+  else:
+    df_f = df  # Vue globale (Direction DSI)
+    choix_zone_label = "🌐 Vue Globale (DSI)"
+
+  # --- NAVIGATION PAR ONGLETS ---
+  tab1, tab2, tab3, tab4 = st.tabs([
+      "📊 Tableau de Bord",
+      "➕ Enregistrer un Membre",
+      "✏️ Modifier / Supprimer",
+      "📋 Liste & Recherche",
+  ])
+
+  # ONGLET 1 : TABLEAU DE BORD
+  with tab1:
+    st.subheader(f"📈 Statistiques - {choix_zone_label}")
+
+    if not df_f.empty:
+      total_membres = len(df_f)
+      total_garcons = (
+          len(df_f[df_f[col_sexe].astype(str).str.upper() == "M"])
+          if col_sexe in df_f.columns
+          else 0
+      )
+      total_filles = (
+          len(df_f[df_f[col_sexe].astype(str).str.upper() == "F"])
+          if col_sexe in df_f.columns
+          else 0
+      )
+      total_actifs = (
+          len(df_f[df_f[col_adh].astype(str).str.upper() == "OK"])
+          if col_adh in df_f.columns
+          else 0
+      )
+
+      col1, col2, col3, col4 = st.columns(4)
+      col1.metric("Total Enfants", total_membres)
+      col2.metric("Garçons", total_garcons)
+      col3.metric("Filles", total_filles)
+      col4.metric("Adhésions OK", total_actifs)
+
+      st.markdown("---")
+      st.markdown("### 🕒 Derniers ajouts dans votre zone")
+      cols_a_afficher = [
+          c
+          for c in df_f.columns
+          if c != "Zone_Geographique"
+          and c in df.columns
+          and not df[c].isnull().all()
+      ]
+      st.dataframe(df_f[cols_a_afficher].tail(5), use_container_width=True)
+    else:
+      st.warning("⚠️ Aucun membre trouvé pour cette zone.")
+
+  # ONGLET 2 : FORMULAIRE D'ENREGISTREMENT
+  with tab2:
+    st.subheader("📝 Formulaire d'Enregistrement")
+
     st.markdown(
-        """
+        f"""
         <div class="info-box">
-            ℹ️ Recherchez un membre par son nom, son parent, sa ville ou son matricule pour le modifier ou le supprimer.
+            ℹ️ Vous enregistrez un membre dans l'espace : <strong>{choix_zone_label}</strong>.
         </div>
     """,
         unsafe_allow_html=True,
     )
 
-    recherche_edit = st.text_input(
-        "🔍 Rechercher le membre à modifier ou supprimer...",
-        key="recherche_edit",
-    )
+    with st.form("form_membre_principal"):
+      prochain_num = len(df) + 1 if not df.empty else 1
+      matricule_auto = f"ONG DP {prochain_num:03d}"
 
-    if recherche_edit:
-      mask_edit = df.astype(str).apply(
-          lambda row: row.str.contains(recherche_edit, case=False, na=False).any(),
-          axis=1,
-      )
-      df_edit_filtered = df[mask_edit]
-    else:
-      df_edit_filtered = df
+      st.markdown("##### 👶 Informations de l'enfant")
+      c1, c2, c3 = st.columns(3)
+      with c1:
+        numero_membre = st.text_input(
+            "Numéro du membre (Auto)", value=matricule_auto, disabled=True
+        )
+      with c2:
+        sexe = st.selectbox("Sexe", ["M", "F"])
+      with c3:
+        date_naissance = st.text_input("Date de naissance / Âge")
 
-    if not df_edit_filtered.empty:
-      liste_membres = df_edit_filtered[col_membre].astype(str).tolist()
-      choix_membre = st.selectbox(
-          "Sélectionner le membre",
-          liste_membres,
-          format_func=lambda m: (
-              f"{m} - "
-              f"{df_edit_filtered[df_edit_filtered[col_membre].astype(str) == m][col_enfant].values[0]}"
-              if col_enfant in df_edit_filtered.columns
-              else m
-          ),
-      )
+      nom_enfant = st.text_input(
+          "Nom et Prénom de l'enfant (Ex: KOUASSI JEAN)"
+      ).upper()
 
-      membre_actuel = df[df[col_membre].astype(str) == choix_membre].iloc[0]
+      ville_options = [
+          "MARCORY",
+          "TREICHVILLE",
+          "KOUMASSI",
+          "PORT-BOUET",
+          "YOPOUGON",
+          "ADJAME",
+          "ATTECOUBE",
+          "COCODY",
+          "ABOISSO",
+          "GRAND-BASSAM",
+          "BONOUA",
+          "DABOU",
+          "AUTRE",
+      ]
+      ville_choix = st.selectbox("Commune / Ville principale", ville_options)
+      if ville_choix == "AUTRE":
+        ville = st.text_input("Précisez la commune/ville").upper()
+      else:
+        ville = ville_choix
 
       st.markdown("---")
-      choix_action = st.radio(
-          "Action à effectuer",
-          ["Modifier les informations", "Supprimer le membre"],
-          horizontal=True,
+      st.markdown("##### 👪 Informations du parent & Statut")
+      c4, c5 = st.columns(2)
+      with c4:
+        nom_parent = st.text_input(
+            "Nom et prénoms du parent (Ex: KOUASSI MARC)"
+        ).upper()
+      with c5:
+        numero_tel = st.text_input("Numéro de téléphone du parent")
+
+      adhesion = st.selectbox("Statut d'Adhésion", ["OK", "En attente"])
+
+      submitted = st.form_submit_button(
+          "Enregistrer et envoyer dans Google Drive"
       )
 
-      if choix_action == "Modifier les informations":
-        with st.form("form_modification"):
-          st.markdown(f"**Modification pour le matricule : {choix_membre}**")
-
-          m_nom_enfant = st.text_input(
-              "Nom et Prénom de l'enfant",
-              value=str(membre_actuel.get(col_enfant, "")),
-          ).upper()
-          m_date_nais = st.text_input(
-              "Date de naissance / Âge",
-              value=str(membre_actuel.get(col_date, "")),
+      if submitted:
+        if nom_enfant and nom_parent:
+          try:
+            nouvelle_ligne = [
+                matricule_auto,
+                nom_enfant,
+                date_naissance,
+                sexe,
+                ville,
+                nom_parent,
+                str(numero_tel),
+                adhesion,
+            ]
+            sheet.append_row(nouvelle_ligne)
+            st.session_state["toast_msg"] = (
+                f"✅ Succès : Enregistré ! Matricule : {matricule_auto}"
+            )
+            st.balloons()
+            st.rerun()
+          except Exception as e:
+            st.error(f"❌ Erreur lors de l'enregistrement : {e}")
+        else:
+          st.error(
+              "⚠️ Échec : Veuillez renseigner au moins le nom de l'enfant et du"
+              " parent."
           )
 
-          val_sexe = str(membre_actuel.get(col_sexe, "M")).upper()
-          index_sexe = 0 if val_sexe == "M" else 1
-          m_sexe = st.selectbox("Sexe", ["M", "F"], index=index_sexe)
+  # ONGLET 3 : MODIFIER OU SUPPRIMER UN MEMBRE
+  with tab3:
+    st.subheader(f"✏️ Modifier ou Supprimer - {choix_zone_label}")
 
-          m_ville = st.text_input(
-              "Ville / Commune", value=str(membre_actuel.get(col_ville, ""))
-          ).upper()
-          m_nom_parent = st.text_input(
-              "Nom et prénoms du parent",
-              value=str(membre_actuel.get(col_parent, "")),
-          ).upper()
-          m_tel = st.text_input(
-              "Numéro de téléphone du parent",
-              value=str(membre_actuel.get(col_tel, "")),
+    if not df_f.empty and col_membre in df_f.columns:
+      recherche_edit = st.text_input(
+          "🔍 Rechercher dans votre zone...", key="recherche_edit"
+      )
+
+      if recherche_edit:
+        mask_edit = df_f.astype(str).apply(
+            lambda row: row.str.contains(
+                recherche_edit, case=False, na=False
+            ).any(),
+            axis=1,
+        )
+        df_edit_filtered = df_f[mask_edit]
+      else:
+        df_edit_filtered = df_f
+
+      if not df_edit_filtered.empty:
+        liste_membres = df_edit_filtered[col_membre].astype(str).tolist()
+        choix_membre = st.selectbox(
+            "Sélectionner le membre",
+            liste_membres,
+            format_func=lambda m: (
+                f"{m} - "
+                f"{df_edit_filtered[df_edit_filtered[col_membre].astype(str) == m][col_enfant].values[0]}"
+                if col_enfant in df_edit_filtered.columns
+                else m
+            ),
+        )
+
+        membre_actuel = df[df[col_membre].astype(str) == choix_membre].iloc[0]
+
+        st.markdown("---")
+        choix_action = st.radio(
+            "Action à effectuer",
+            ["Modifier les informations", "Supprimer le membre"],
+            horizontal=True,
+        )
+
+        if choix_action == "Modifier les informations":
+          with st.form("form_modification"):
+            st.markdown(f"**Modification pour le matricule : {choix_membre}**")
+
+            m_nom_enfant = st.text_input(
+                "Nom et Prénom de l'enfant",
+                value=str(membre_actuel.get(col_enfant, "")),
+            ).upper()
+            m_date_nais = st.text_input(
+                "Date de naissance / Âge",
+                value=str(membre_actuel.get(col_date, "")),
+            )
+
+            val_sexe = str(membre_actuel.get(col_sexe, "M")).upper()
+            index_sexe = 0 if val_sexe == "M" else 1
+            m_sexe = st.selectbox("Sexe", ["M", "F"], index=index_sexe)
+
+            m_ville = st.text_input(
+                "Ville / Commune", value=str(membre_actuel.get(col_ville, ""))
+            ).upper()
+            m_nom_parent = st.text_input(
+                "Nom et prénoms du parent",
+                value=str(membre_actuel.get(col_parent, "")),
+            ).upper()
+            m_tel = st.text_input(
+                "Numéro de téléphone du parent",
+                value=str(membre_actuel.get(col_tel, "")),
+            )
+
+            val_adh = str(membre_actuel.get(col_adh, "OK")).upper()
+            index_adh = 0 if "OK" in val_adh else 1
+            m_adhesion = st.selectbox(
+                "Statut d'Adhésion", ["OK", "En attente"], index=index_adh
+            )
+
+            btn_modifier = st.form_submit_button(
+                "Mettre à jour les informations"
+            )
+
+            if btn_modifier:
+              try:
+                cell = sheet.find(str(choix_membre))
+                row_idx = cell.row
+
+                sheet.update_cell(row_idx, 2, m_nom_enfant)
+                sheet.update_cell(row_idx, 3, m_date_nais)
+                sheet.update_cell(row_idx, 4, m_sexe)
+                sheet.update_cell(row_idx, 5, m_ville)
+                sheet.update_cell(row_idx, 6, m_nom_parent)
+                sheet.update_cell(row_idx, 7, str(m_tel))
+                sheet.update_cell(row_idx, 8, m_adhesion)
+
+                st.session_state["toast_msg"] = (
+                    f"✅ Succès : Membre {choix_membre} modifié avec succès !"
+                )
+                st.rerun()
+              except Exception as e:
+                st.error(f"❌ Erreur lors de la modification : {e}")
+        else:
+          st.warning(
+              f"⚠️ Vous êtes sur le point de supprimer le membre **{choix_membre}"
+              f" - {membre_actuel.get(col_enfant, '')}**."
           )
-
-          val_adh = str(membre_actuel.get(col_adh, "OK")).upper()
-          index_adh = 0 if "OK" in val_adh else 1
-          m_adhesion = st.selectbox(
-              "Statut d'Adhésion", ["OK", "En attente"], index=index_adh
+          confirmer_suppression = st.checkbox(
+              "Je confirme vouloir supprimer définitivement ce membre"
           )
-
-          btn_modifier = st.form_submit_button("Mettre à jour les informations")
-
-          if btn_modifier:
-            try:
-              cell = sheet.find(str(choix_membre))
-              row_idx = cell.row
-
-              sheet.update_cell(row_idx, 2, m_nom_enfant)
-              sheet.update_cell(row_idx, 3, m_date_nais)
-              sheet.update_cell(row_idx, 4, m_sexe)
-              sheet.update_cell(row_idx, 5, m_ville)
-              sheet.update_cell(row_idx, 6, m_nom_parent)
-              sheet.update_cell(row_idx, 7, str(m_tel))
-              sheet.update_cell(row_idx, 8, m_adhesion)
-
-              st.session_state["toast_msg"] = (
-                  f"✅ Succès : Membre {choix_membre} modifié avec succès !"
+          if st.button(
+              "🗑️ Confirmer la suppression",
+              type="primary",
+              use_container_width=True,
+          ):
+            if confirmer_suppression:
+              try:
+                cell = sheet.find(str(choix_membre))
+                row_idx = cell.row
+                sheet.delete_rows(row_idx)
+                st.session_state["toast_msg"] = (
+                    f"✅ Succès : Membre {choix_membre} supprimé avec succès !"
+                )
+                st.rerun()
+              except Exception as e:
+                st.error(f"❌ Erreur lors de la suppression : {e}")
+            else:
+              st.error(
+                  "⚠️ Échec : Veuillez cocher la case de confirmation pour"
+                  " procéder à la suppression."
               )
-              st.rerun()
-            except Exception as e:
-              st.error(f"❌ Erreur lors de la modification : {e}")
       else:
         st.warning(
-            f"⚠️ Vous êtes sur le point de supprimer le membre **{choix_membre}"
-            f" - {membre_actuel.get(col_enfant, '')}**."
+            "⚠️ Aucun membre ne correspond à votre recherche dans votre zone."
         )
-        confirmer_suppression = st.checkbox(
-            "Je confirme vouloir supprimer définitivement ce membre"
-        )
-        if st.button(
-            "🗑️ Confirmer la suppression", type="primary", use_container_width=True
-        ):
-          if confirmer_suppression:
-            try:
-              cell = sheet.find(str(choix_membre))
-              row_idx = cell.row
-              sheet.delete_rows(row_idx)
-              st.session_state["toast_msg"] = (
-                  f"✅ Succès : Membre {choix_membre} supprimé avec succès !"
-              )
-              st.rerun()
-            except Exception as e:
-              st.error(f"❌ Erreur lors de la suppression : {e}")
-          else:
-            st.error(
-                "⚠️ Échec : Veuillez cocher la case de confirmation pour"
-                " procéder à la suppression."
-            )
     else:
-      st.warning("⚠️ Aucun membre ne correspond à votre recherche.")
-  else:
-    st.info("Aucun membre disponible.")
+      st.info("Aucun membre disponible dans votre zone.")
 
-# ONGLET 4 : LISTE, RECHERCHE & PAGINATION (MIN 10 LIGNES)
-with tab4:
-  st.subheader("📋 Répertoire Général des Membres")
+  # ONGLET 4 : LISTE & RECHERCHE
+  with tab4:
+    st.subheader(f"📋 Répertoire - {choix_zone_label}")
 
-  recherche = st.text_input(
-      "🔍 Rechercher un enfant, un parent, une ville ou un matricule...",
-      key="recherche_liste",
-  )
-
-  if not df.empty:
-    if recherche:
-      mask = df.astype(str).apply(
-          lambda row: row.str.contains(recherche, case=False, na=False).any(),
-          axis=1,
-      )
-      df_affiche = df[mask]
-      st.info(f"ℹ️ Résultats trouvés : {len(df_affiche)}")
-    else:
-      df_affiche = df
-
-    total_lignes = len(df_affiche)
-    if total_lignes > 0:
-      col_pg1, col_pg2 = st.columns([1, 2])
-      with col_pg1:
-        lignes_par_page = st.selectbox(
-            "Lignes par page", [10, 25, 50, 100], index=0, key="lignes_page"
-        )
-
-      total_pages = math.ceil(total_lignes / lignes_par_page)
-
-      with col_pg2:
-        page_actuelle = st.selectbox(
-            "Sélectionner la plage / page",
-            range(1, total_pages + 1),
-            format_func=lambda x: (
-                f"Affichage : { (x-1)*lignes_par_page + 1 } à"
-                f" {min(x*lignes_par_page, total_lignes)} (sur {total_lignes}"
-                " membres)"
-            ),
-            key="select_page",
-        )
-
-      debut = (page_actuelle - 1) * lignes_par_page
-      fin = min(debut + lignes_par_page, total_lignes)
-      df_page = df_affiche.iloc[debut:fin]
-
-      st.dataframe(df_page, use_container_width=True)
-    else:
-      st.dataframe(df_affiche, use_container_width=True)
-
-    st.markdown("---")
-    st.markdown("### 📥 Télécharger une copie locale")
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-      df.to_excel(writer, index=False, sheet_name="Membres")
-    excel_data = output.getvalue()
-
-    st.download_button(
-        label="📥 Télécharger la base de données actuelle (.xlsx)",
-        data=excel_data,
-        file_name="Base_de_donnee_ONG_Dieu_Pourvoira.xlsx",
-        mime=(
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        ),
+    recherche = st.text_input(
+        "🔍 Rechercher dans votre liste...", key="recherche_liste"
     )
-  else:
-    st.warning("⚠️ Aucune donnée à afficher.")
 
-# Affichage persistant des notifications de succès après rechargement de page
-if "toast_msg" in st.session_state:
-  st.toast(st.session_state["toast_msg"], icon="🎉")
-  st.success(st.session_state["toast_msg"])
-  del st.session_state["toast_msg"]
+    if not df_f.empty:
+      if recherche:
+        mask = df_f.astype(str).apply(
+            lambda row: row.str.contains(recherche, case=False, na=False).any(),
+            axis=1,
+        )
+        df_affiche = df_f[mask]
+        st.info(f"ℹ️ Résultats trouvés : {len(df_affiche)}")
+      else:
+        df_affiche = df_f
+
+      total_lignes = len(df_affiche)
+      if total_lignes > 0:
+        col_pg1, col_pg2 = st.columns([1, 2])
+        with col_pg1:
+          lignes_par_page = st.selectbox(
+              "Lignes par page", [10, 25, 50, 100], index=0, key="lignes_page"
+          )
+
+        total_pages = math.ceil(total_lignes / lignes_par_page)
+
+        with col_pg2:
+          page_actuelle = st.selectbox(
+              "Sélectionner la plage / page",
+              range(1, total_pages + 1),
+              format_func=lambda x: (
+                  f"Affichage : { (x-1)*lignes_par_page + 1 } à"
+                  f" {min(x*lignes_par_page, total_lignes)} (sur {total_lignes}"
+                  " membres)"
+              ),
+              key="select_page",
+          )
+
+        debut = (page_actuelle - 1) * lignes_par_page
+        fin = min(debut + lignes_par_page, total_lignes)
+        df_page = df_affiche.iloc[debut:fin]
+
+        cols_affichage = [
+            c for c in df_page.columns if c != "Zone_Geographique"
+        ]
+        st.dataframe(df_page[cols_affichage], use_container_width=True)
+      else:
+        st.dataframe(df_affiche, use_container_width=True)
+
+      st.markdown("---")
+      st.markdown("### 📥 Télécharger une copie locale")
+      output = BytesIO()
+      with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+        df_affiche.to_excel(writer, index=False, sheet_name="Membres_Zone")
+      excel_data = output.getvalue()
+
+      st.download_button(
+          label="📥 Télécharger la base de données (.xlsx)",
+          data=excel_data,
+          file_name=f"Base_de_donnee_{choix_zone_label.split()[1] if len(choix_zone_label.split())>1 else 'Global'}.xlsx",
+          mime=(
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+          ),
+      )
+    else:
+      st.warning("⚠️ Aucune donnée à afficher pour cette zone.")
+
+  # Affichage des notifications
+  if "toast_msg" in st.session_state:
+    st.toast(st.session_state["toast_msg"], icon="🎉")
+    st.success(st.session_state["toast_msg"])
+    del st.session_state["toast_msg"]
