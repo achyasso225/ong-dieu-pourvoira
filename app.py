@@ -99,7 +99,6 @@ try:
   spreadsheet = client.open("Base_de_donnee_ONG_Dieu_Pourvoira")
   sheet = spreadsheet.sheet1
 
-  # Lecture des membres
   data = sheet.get_all_records(head=9)
   df = pd.DataFrame(data)
   df.columns = df.columns.str.strip()
@@ -130,7 +129,6 @@ try:
     df_users = pd.DataFrame(sheet_users.get_all_records())
     df_users.columns = df_users.columns.str.strip()
   except Exception:
-    # Création d'une table par défaut si l'onglet n'existe pas encore
     df_users = pd.DataFrame([{
         "Identifiant": "admin",
         "Mot_de_passe": "admin123",
@@ -146,7 +144,7 @@ except Exception as e:
   df = pd.DataFrame()
   df_users = pd.DataFrame()
 
-# --- DÉFINITION DES ZONES D'ABIDJAN ---
+# --- DÉFINITION PRÉCISE DES ZONES ---
 ZONES_SUD = [
     "TREICHVILLE",
     "MARCORY",
@@ -177,6 +175,12 @@ ZONES_NORD = [
     "SONGON",
     "DABOU",
 ]
+ZONES_CENTRE = [
+    "COCODY",
+    "PLATEAU",
+    "BINGERVILLE",
+    "DOKUI",
+]  # Zone Centre / Résidentiel Abidjan
 
 
 def attribuer_zone(ville):
@@ -185,8 +189,10 @@ def attribuer_zone(ville):
     return "📍 Zone Sud"
   elif any(z in v for z in ZONES_NORD):
     return "📍 Zone Nord"
+  elif any(z in v for z in ZONES_CENTRE):
+    return "📍 Zone Centre"
   else:
-    return "📍 Autres / Centre"
+    return "📍 Intérieur / Autre"
 
 
 # Détection des colonnes principales
@@ -232,7 +238,7 @@ col_adh = (
 if not df.empty and col_ville in df.columns:
   df["Zone_Geographique"] = df[col_ville].apply(attribuer_zone)
 else:
-  df["Zone_Geographique"] = "📍 Autres / Centre"
+  df["Zone_Geographique"] = "📍 Intérieur / Autre"
 
 
 # --- GESTION DE LA SESSION DE CONNEXION ---
@@ -276,7 +282,6 @@ if not st.session_state["user_connected"]:
           else:
             st.error("❌ Identifiant ou mot de passe incorrect.")
         else:
-          # Mode de secours si l'onglet Utilisateurs n'est pas rempli
           if identifiant == "admin" and mot_de_passe == "admin123":
             st.session_state["user_connected"] = True
             st.session_state["user_info"] = {
@@ -293,26 +298,27 @@ else:
   user_zone = user_info.get("Zone", "🌐 Vue Globale")
   user_nom = user_info.get("Nom_Responsable", "Responsable")
 
-  # Sidebar de session
-  st.sidebar.markdown(f"### 👤 Connected : **{user_nom}**")
+  st.sidebar.markdown(f"### 👤 Connecté : **{user_nom}**")
   st.sidebar.info(f"**Zone assignée :** {user_zone}")
 
-  # Déconnexion
   if st.sidebar.button("🔒 Se déconnecter"):
     st.session_state["user_connected"] = False
     st.session_state["user_info"] = None
     st.rerun()
 
-  # Application du filtrage strict selon la Zone du responsable
+  # Filtrage rigoureux selon la zone de l'utilisateur
   if "Zone Sud" in user_zone:
     df_f = df[df["Zone_Geographique"] == "📍 Zone Sud"]
     choix_zone_label = "📍 Zone Sud"
   elif "Zone Nord" in user_zone:
     df_f = df[df["Zone_Geographique"] == "📍 Zone Nord"]
     choix_zone_label = "📍 Zone Nord"
-  elif "Autres" in user_zone or "Centre" in user_zone:
-    df_f = df[df["Zone_Geographique"] == "📍 Autres / Centre"]
-    choix_zone_label = "📍 Autres / Centre"
+  elif "Zone Centre" in user_zone:
+    df_f = df[df["Zone_Geographique"] == "📍 Zone Centre"]
+    choix_zone_label = "📍 Zone Centre"
+  elif "Intérieur" in user_zone or "Autre" in user_zone:
+    df_f = df[df["Zone_Geographique"] == "📍 Intérieur / Autre"]
+    choix_zone_label = "📍 Intérieur / Autre"
   else:
     df_f = df  # Vue globale (Direction DSI)
     choix_zone_label = "🌐 Vue Globale (DSI)"
@@ -399,6 +405,7 @@ else:
       ).upper()
 
       ville_options = [
+          "COCODY",
           "MARCORY",
           "TREICHVILLE",
           "KOUMASSI",
@@ -406,11 +413,13 @@ else:
           "YOPOUGON",
           "ADJAME",
           "ATTECOUBE",
-          "COCODY",
+          "PLATEAU",
+          "BINGERVILLE",
           "ABOISSO",
           "GRAND-BASSAM",
           "BONOUA",
           "DABOU",
+          "DIVO",
           "AUTRE",
       ]
       ville_choix = st.selectbox("Commune / Ville principale", ville_options)
