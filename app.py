@@ -118,7 +118,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- BANNÈRE D'EN-TÊTE ---
+# --- BANNIÈRE D'EN-TÊTE ---
 st.markdown(
     """
     <div class="hero-header">
@@ -185,7 +185,7 @@ try:
         "Identifiant": "admin",
         "Mot_de_passe": "admin123",
         "Nom_Responsable": "Direction DSI",
-        "Zone": "🌐 Vue Globale",
+        "Zone": "Vue Globale",
     }])
 
   # Lecture de la feuille Dons_Stock
@@ -466,7 +466,6 @@ else:
           else 0
       )
 
-      # Affichage en Cartes KPI moderne
       k1, k2, k3, k4 = st.columns(4)
       with k1:
         st.markdown(
@@ -758,7 +757,7 @@ else:
       st.info("Aucun membre disponible.")
 
   # ==========================================
-  # 4. LISTE & REPERTOIRE
+  # 4. LISTE & REPERTOIRE (AVEC PAGINATION RÉINTÉGRÉE)
   # ==========================================
   elif menu == "📋 Liste & Répertoire":
     st.subheader(f"📋 Répertoire - {choix_zone_label}")
@@ -772,14 +771,44 @@ else:
             axis=1,
         )
         df_affiche = df_f[mask]
+        st.info(f"ℹ️ Résultats trouvés : {len(df_affiche)}")
       else:
         df_affiche = df_f
 
-      with st.container(border=True):
-        st.dataframe(
-            df_affiche.drop(columns=["Zone_Geographique"], errors="ignore"),
-            use_container_width=True,
-        )
+      total_lignes = len(df_affiche)
+
+      if total_lignes > 0:
+        # CONTRÔLES DE PAGINATION
+        col_pg1, col_pg2 = st.columns([1, 2])
+        with col_pg1:
+          lignes_par_page = st.selectbox(
+              "Lignes par page", [10, 25, 50, 100], index=0, key="lignes_page"
+          )
+
+        total_pages = math.ceil(total_lignes / lignes_par_page)
+
+        with col_pg2:
+          page_actuelle = st.selectbox(
+              "Sélectionner la page / plage",
+              range(1, total_pages + 1),
+              format_func=lambda x: (
+                  f"Page {x} / {total_pages} (Membres { (x-1)*lignes_par_page + 1 } à"
+                  f" {min(x*lignes_par_page, total_lignes)} sur {total_lignes})"
+              ),
+              key="select_page",
+          )
+
+        debut = (page_actuelle - 1) * lignes_par_page
+        fin = min(debut + lignes_par_page, total_lignes)
+        df_page = df_affiche.iloc[debut:fin]
+
+        with st.container(border=True):
+          cols_affichage = [
+              c for c in df_page.columns if c != "Zone_Geographique"
+          ]
+          st.dataframe(df_page[cols_affichage], use_container_width=True)
+      else:
+        st.warning("⚠️ Aucun membre ne correspond à votre recherche.")
 
       st.markdown("---")
       output = BytesIO()
@@ -788,9 +817,9 @@ else:
       excel_data = output.getvalue()
 
       st.download_button(
-          label="📥 Exporter la liste en Excel (.xlsx)",
+          label="📥 Exporter la liste filtrée en Excel (.xlsx)",
           data=excel_data,
-          file_name="base_membres.xlsx",
+          file_name=f"Membres_{choix_zone_label.replace(' ', '_')}.xlsx",
           mime=(
               "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           ),
