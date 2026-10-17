@@ -1,3 +1,4 @@
+from datetime import datetime
 from io import BytesIO
 import math
 import gspread
@@ -123,7 +124,7 @@ try:
   if "Numéro du membre" in df.columns:
     df = df[df["Numéro du membre"].astype(str).str.startswith("ONG DP")]
 
-  # Lecture des utilisateurs / responsables depuis le 2nd onglet 'Utilisateurs'
+  # Lecture des utilisateurs / responsables depuis l'onglet 'Utilisateurs'
   try:
     sheet_users = spreadsheet.worksheet("Utilisateurs")
     df_users = pd.DataFrame(sheet_users.get_all_records())
@@ -144,7 +145,7 @@ except Exception as e:
   df = pd.DataFrame()
   df_users = pd.DataFrame()
 
-# --- DÉFINITION PRÉCISE DES ZONES ---
+# --- DÉFINITION DES ZONES & COMMUNES ---
 ZONES_SUD = [
     "TREICHVILLE",
     "MARCORY",
@@ -164,12 +165,13 @@ ZONES_SUD = [
 ]
 ZONES_NORD = [
     "YOPOUGON",
-    "ATTECOUBE",
-    "ATTÉCOUBÉ",
-    "N'DOTRE",
-    "NDOTRE",
     "ADJAME",
     "ADJAMÉ",
+    "ATTECOUBE",
+    "ATTÉCOUBÉ",
+    "ABOBO",
+    "N'DOTRE",
+    "NDOTRE",
     "WILLIAMS CIVIL",
     "WILLIAMSSVILLE",
     "SONGON",
@@ -179,8 +181,9 @@ ZONES_CENTRE = [
     "COCODY",
     "PLATEAU",
     "BINGERVILLE",
+    "ANYAMA",
     "DOKUI",
-]  # Zone Centre / Résidentiel Abidjan
+]
 
 
 def attribuer_zone(ville):
@@ -372,7 +375,7 @@ else:
     else:
       st.warning("⚠️ Aucun membre trouvé pour cette zone.")
 
-  # ONGLET 2 : FORMULAIRE D'ENREGISTREMENT
+  # ONGLET 2 : FORMULAIRE D'ENREGISTREMENT (AVEC RECHERCHE DE COMMUNE)
   with tab2:
     st.subheader("📝 Formulaire d'Enregistrement")
 
@@ -404,27 +407,51 @@ else:
           "Nom et Prénom de l'enfant (Ex: KOUASSI JEAN)"
       ).upper()
 
-      ville_options = [
-          "COCODY",
-          "MARCORY",
-          "TREICHVILLE",
-          "KOUMASSI",
-          "PORT-BOUET",
-          "YOPOUGON",
-          "ADJAME",
-          "ATTECOUBE",
-          "PLATEAU",
-          "BINGERVILLE",
+      # Liste complète et triée des communes avec recherche interactive intégrée via st.selectbox
+      liste_communes = [
           "ABOISSO",
-          "GRAND-BASSAM",
+          "ABOBO",
+          "ADIAKE",
+          "ADJAME",
+          "ADJAHUI",
+          "ALÉPÉ",
+          "ANYAMA",
+          "ASSINIE",
+          "ATTECOUBE",
+          "BINGERVILLE",
           "BONOUA",
           "DABOU",
+          "DALOA",
           "DIVO",
-          "AUTRE",
+          "DOKUI",
+          "GAGNOA",
+          "GRAND-BASSAM",
+          "GUIBEROUA",
+          "ISSIA",
+          "KOUMASSI",
+          "MARCORY",
+          "MODESTE",
+          "N'DOTRE",
+          "OUMÉ",
+          "PLATEAU",
+          "PORT-BOUET",
+          "SAN-PÉDRO",
+          "SAMO",
+          "SONGON",
+          "TREICHVILLE",
+          "WILLIAMS CIVIL",
+          "YAMOUSSOUKRO",
+          "YAOU",
+          "YOPOUGON",
+          "AUTRE (Préciser ci-dessous)",
       ]
-      ville_choix = st.selectbox("Commune / Ville principale", ville_options)
-      if ville_choix == "AUTRE":
-        ville = st.text_input("Précisez la commune/ville").upper()
+
+      ville_choix = st.selectbox(
+          "Commune / Ville (Tapez les premières lettres pour rechercher)",
+          liste_communes,
+      )
+      if ville_choix.startswith("AUTRE"):
+        ville = st.text_input("Précisez la commune / ville").upper()
       else:
         ville = ville_choix
 
@@ -447,6 +474,10 @@ else:
       if submitted:
         if nom_enfant and nom_parent:
           try:
+            # Capture de la date et de l'heure exacte de l'enregistrement pour la DSI
+            date_heure_actuelle = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            auteur_enregistrement = f"{user_nom} ({user_zone})"
+
             nouvelle_ligne = [
                 matricule_auto,
                 nom_enfant,
@@ -456,6 +487,8 @@ else:
                 nom_parent,
                 str(numero_tel),
                 adhesion,
+                date_heure_actuelle,  # Enregistre la date et l'heure
+                auteur_enregistrement,  # Enregistre qui a fait l'action
             ]
             sheet.append_row(nouvelle_ligne)
             st.session_state["toast_msg"] = (
