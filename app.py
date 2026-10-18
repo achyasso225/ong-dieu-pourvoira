@@ -153,7 +153,7 @@ st.markdown(
 )
 
 
-# --- CONNEXION AUTOMATIQUE À GOOGLE SHEETS ---
+# --- CONNEXION ET CACHE GOOGLE SHEETS (Anti-Quota 429) ---
 @st.cache_resource
 def init_connection():
   scope = [
@@ -162,8 +162,43 @@ def init_connection():
   ]
   creds_dict = dict(st.secrets["gcp_service_account"])
   creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
-  client = gspread.authorize(creds)
-  return client
+  return gspread.authorize(creds)
+
+
+@st.cache_data(ttl=30)
+def charger_donnees_depuis_sheets():
+  client = init_connection()
+  spreadsheet = client.open("Base_de_donnee_ONG_Dieu_Pourvoira")
+
+  # 1. Membres
+  sheet_membres = spreadsheet.sheet1
+  data = sheet_membres.get_all_records(head=9)
+
+  # 2. Utilisateurs
+  try:
+    df_users = pd.DataFrame(
+        spreadsheet.worksheet("Utilisateurs").get_all_records()
+    )
+  except Exception:
+    df_users = pd.DataFrame()
+
+  # 3. Stock
+  try:
+    df_stock = pd.DataFrame(
+        spreadsheet.worksheet("Dons_Stock").get_all_records()
+    )
+  except Exception:
+    df_stock = pd.DataFrame()
+
+  # 4. Distributions
+  try:
+    df_distrib = pd.DataFrame(
+        spreadsheet.worksheet("Dons_Distributions").get_all_records()
+    )
+  except Exception:
+    df_distrib = pd.DataFrame()
+
+  return data, df_users, df_stock, df_distrib
 
 
 try:
@@ -171,10 +206,16 @@ try:
   spreadsheet = client.open("Base_de_donnee_ONG_Dieu_Pourvoira")
   sheet = spreadsheet.sheet1
 
-  # Lecture des membres
-  data = sheet.get_all_records(head=head_idx if 'head_idx' in locals() else 9)
+  data, df_users, df_stock, df_distrib = charger_donnees_depuis_sheets()
   df = pd.DataFrame(data)
   df.columns = df.columns.str.strip()
+
+  if not df_users.empty:
+    df_users.columns = df_users.columns.str.strip()
+  if not df_stock.empty:
+    df_stock.columns = df_stock.columns.str.strip()
+  if not df_distrib.empty:
+    df_distrib.columns = df_distrib.columns.str.strip()
 
   col_tel_detect = (
       "Numero Tèl"
@@ -194,35 +235,6 @@ try:
 
   if "Numéro du membre" in df.columns:
     df = df[df["Numéro du membre"].astype(str).str.startswith("ONG DP")]
-
-  # Lecture des utilisateurs
-  try:
-    sheet_users = spreadsheet.worksheet("Utilisateurs")
-    df_users = pd.DataFrame(sheet_users.get_all_records())
-    df_users.columns = df_users.columns.str.strip()
-  except Exception:
-    df_users = pd.DataFrame([{
-        "Identifiant": "admin",
-        "Mot_de_passe": "admin123",
-        "Nom_Responsable": "Direction DSI",
-        "Zone": "Vue Globale",
-    }])
-
-  # Lecture Dons_Stock
-  try:
-    sheet_stock = spreadsheet.worksheet("Dons_Stock")
-    df_stock = pd.DataFrame(sheet_stock.get_all_records())
-    df_stock.columns = df_stock.columns.str.strip()
-  except Exception:
-    df_stock = pd.DataFrame()
-
-  # Lecture Dons_Distributions
-  try:
-    sheet_distrib = spreadsheet.worksheet("Dons_Distributions")
-    df_distrib = pd.DataFrame(sheet_distrib.get_all_records())
-    df_distrib.columns = df_distrib.columns.str.strip()
-  except Exception:
-    df_distrib = pd.DataFrame()
 
 except Exception as e:
   st.error(f"⚠️ Erreur de connexion à Google Sheets : {e}")
@@ -285,7 +297,7 @@ def attribuer_zone(ville):
 
 
 def obtenir_prochain_matricule(df_membres):
-  """Calcule le matricule suivant au format ONG DP 00XX en cherchant la valeur maximale existante."""
+  """Calcule le matricule suivant au format strict ONG DP 00XX (4 chiffres)."""
   if df_membres.empty or "Numéro du membre" not in df_membres.columns:
     return "ONG DP 0001"
 
@@ -300,7 +312,7 @@ def obtenir_prochain_matricule(df_membres):
   else:
     prochain_num = len(df_membres) + 1
 
-  # Alignement sur 4 chiffres pour respecter la séquence ONG DP 0001, ONG DP 0032, ONG DP 0033...
+  # Format à 4 chiffres obligatoires (ex: 0036)
   return f"ONG DP {prochain_num:04d}"
 
 
@@ -551,7 +563,7 @@ else:
       st.warning("⚠️ Aucun membre trouvé pour cette zone.")
 
   # ==========================================
-  # 2. ENREGISTRER UN MEMBRE (CORRIGÉ SUR L'ID)
+  # 2. ENREGISTRER UN MEMBRE
   # ==========================================
   elif menu == "➕ Enregistrer un Membre":
     st.subheader("📝 Nouvel Enregistrement")
@@ -603,7 +615,7 @@ else:
         "AUTRE (Préciser ci-dessous)",
     ]
 
-    # Génération du matricule automatique corrigé (Ex: ONG DP 0033)
+    # Génération du matricule automatique (ex: ONG DP 0036)
     matricule_auto = obtenir_prochain_matricule(df)
 
     with st.container(border=True):
@@ -671,6 +683,7 @@ else:
                   auteur_enregistrement,
               ]
               sheet.append_row(nouvelle_ligne)
+              st.cache_data.clear()  # Efface le cache pour forcer la mise à jour immédiate
               st.session_state["toast_msg"] = (
                   f"✅ Membre {matricule_auto} enregistré avec succès !"
               )
@@ -769,6 +782,7 @@ else:
                   sheet.update_cell(row_idx, 6, m_nom_parent)
                   sheet.update_cell(row_idx, 7, str(m_tel))
                   sheet.update_cell(row_idx, 8, m_adhesion)
+                  st.cache_data.clear()
                   st.session_state["toast_msg"] = (
                       f"✅ Membre {choix_membre} mis à jour !"
                   )
@@ -783,6 +797,7 @@ else:
                 try:
                   cell = sheet.find(str(choix_membre))
                   sheet.delete_rows(cell.row)
+                  st.cache_data.clear()
                   st.session_state["toast_msg"] = (
                       f"✅ Membre {choix_membre} supprimé !"
                   )
@@ -920,6 +935,7 @@ else:
                   f"{user_nom}",
               ]
               ws_stock.append_row(nouvelle_ligne_don)
+              st.cache_data.clear()
               st.session_state["toast_msg"] = (
                   f"✅ Don '{designation}' enregistré en stock !"
               )
@@ -1024,6 +1040,7 @@ else:
                   nouv_stock = stock_actuel - quantite_remise
                   ws_stock.update_cell(cell.row, 6, nouv_stock)
 
+                  st.cache_data.clear()
                   st.session_state["toast_msg"] = (
                       f"🎁 Don remis à {nom_e} avec succès !"
                   )
