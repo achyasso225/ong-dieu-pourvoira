@@ -606,7 +606,7 @@ else:
     with st.container(border=True):
       with st.form("form_membre_principal", clear_on_submit=True):
         prochain_num = len(df) + 1 if not df.empty else 1
-        matricule_auto = f"ONG DP {prochain_num:003d}"
+        matricule_auto = f"ONG DP {prochain_num:03d}"
 
         st.markdown("##### 👶 Informations de l'enfant")
         c1, c2 = st.columns(2)
