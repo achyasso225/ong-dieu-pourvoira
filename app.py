@@ -23,22 +23,40 @@ st.markdown(
         background-color: #0e1117;
     }
     
+    /* Bouton d'ouverture du menu en haut (Hamburger) */
+    button[aria-label*="sidebar"], 
+    [data-testid="stSidebarCollapseButton"] button,
+    [data-testid="collapsedControl"] {
+        background-color: #1a1f2c !important;
+        border: 2px solid #28a745 !important;
+        border-radius: 8px !important;
+        padding: 4px 10px !important;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.5) !important;
+    }
+    button[aria-label*="sidebar"] svg, 
+    [data-testid="stSidebarCollapseButton"] svg,
+    [data-testid="collapsedControl"] svg {
+        fill: #28a745 !important;
+        color: #28a745 !important;
+    }
+
     /* Bannière d'en-tête moderne */
     .hero-header {
         background: linear-gradient(135deg, #1e7e34 0%, #0b4d1d 100%);
         border-radius: 16px;
-        padding: 20px;
+        padding: 24px;
         color: white;
         text-align: center;
         box-shadow: 0 10px 25px rgba(0,128,0,0.2);
-        margin-bottom: 20px;
+        margin-bottom: 25px;
         border: 1px solid rgba(255,255,255,0.1);
     }
     .hero-header h1 {
-        font-size: 24px !important;
+        font-size: 26px !important;
         font-weight: 800 !important;
         color: #ffffff !important;
-        margin-bottom: 4px !important;
+        margin-bottom: 6px !important;
+        letter-spacing: 0.5px;
     }
     .hero-header p {
         font-size: 13px !important;
@@ -48,7 +66,7 @@ st.markdown(
     .hero-contact {
         font-size: 11px !important;
         color: #b2d8b2 !important;
-        margin-top: 8px !important;
+        margin-top: 10px !important;
     }
 
     /* Cartes de statistiques (KPI Cards) */
@@ -67,10 +85,39 @@ st.markdown(
         font-weight: 600;
     }
     .kpi-value {
-        font-size: 26px;
+        font-size: 28px;
         font-weight: 800;
         color: #ffffff;
         margin-top: 4px;
+    }
+
+    /* Styling de la Sidebar */
+    div[data-testid="stSidebar"] {
+        background-color: #131722 !important;
+        border-right: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .nav-btn-active button {
+        background: linear-gradient(90deg, #28a745 0%, #1e7e34 100%) !important;
+        color: white !important;
+        font-weight: bold !important;
+        border-radius: 10px !important;
+        box-shadow: 0 4px 12px rgba(40,167,69,0.3) !important;
+        border: none !important;
+    }
+    
+    .nav-btn-inactive button {
+        background-color: #1a1f2c !important;
+        color: #c5d1e0 !important;
+        border-radius: 10px !important;
+        border: 1px solid rgba(255,255,255,0.05) !important;
+        transition: all 0.3s ease !important;
+    }
+    
+    .nav-btn-inactive button:hover {
+        background-color: #252c3d !important;
+        color: white !important;
+        border-color: #28a745 !important;
     }
 
     /* Boîtes d'informations */
@@ -85,6 +132,35 @@ st.markdown(
         margin-bottom: 20px;
     }
     </style>
+""",
+    unsafe_allow_html=True,
+)
+
+# --- SCRIPT JAVASCRIPT POUR FERMER LA SIDEBAR AUTOMATIQUEMENT SUR MOBILE ---
+st.markdown(
+    """
+    <script>
+    const observer = new MutationObserver(() => {
+        const sidebar = window.parent.document.querySelector('[data-testid="stSidebar"]');
+        if (sidebar) {
+            const buttons = sidebar.querySelectorAll('button');
+            buttons.forEach(btn => {
+                if (!btn.getAttribute('data-auto-close')) {
+                    btn.setAttribute('data-auto-close', 'true');
+                    btn.addEventListener('click', () => {
+                        if (window.innerWidth <= 768) {
+                            setTimeout(() => {
+                                const mainOverlay = window.parent.document.querySelector('.main');
+                                if (mainOverlay) mainOverlay.click();
+                            }, 100);
+                        }
+                    });
+                }
+            });
+        }
+    });
+    observer.observe(window.parent.document.body, { childList: true, subtree: true });
+    </script>
 """,
     unsafe_allow_html=True,
 )
@@ -194,7 +270,7 @@ except Exception as e:
   df_stock = pd.DataFrame()
   df_distrib = pd.DataFrame()
 
-# --- DÉFINITION DES ZONES & COMMUNES ---
+# --- ZONES & COMMUNES ---
 ZONES_SUD = [
     "TREICHVILLE",
     "MARCORY",
@@ -366,7 +442,7 @@ if not st.session_state["user_connected"]:
 else:
   user_info = st.session_state["user_info"]
 
-  # Détection du rôle / zone
+  # Détection rôle / zone
   user_zone = ""
   for key in ["Zone / Rôle", "Zone", "Role", "Rôle"]:
     if key in user_info:
@@ -380,7 +456,11 @@ else:
   is_compta = "COMPTA" in user_zone.upper() or "COMPTABILITÉ" in user_zone.upper()
   is_dsi = "DSI" in user_zone.upper() or "VUE GLOBALE" in user_zone.upper()
 
-  # --- DÉTERMINATION DES MENUS SELON LE PROFIL ---
+  # --- BARRE LATÉRALE - MENU PERSONNALISÉ ---
+  st.sidebar.markdown(f"### 👤 **{user_nom}**")
+  st.sidebar.caption(f"📌 **Espace : {user_zone}**")
+  st.sidebar.markdown("---")
+
   if is_compta:
     pages = ["📦 Stock des Dons", "🎁 Remise de Dons"]
     if st.session_state["current_page"] not in pages:
@@ -402,27 +482,22 @@ else:
         "📋 Liste & Répertoire",
     ]
 
-  # --- BARRE DE NAVIGATION PRINCIPALE (EN HAUT - 100% MOBILE FRIENDLY & SANS BUG) ---
-  st.sidebar.markdown(f"### 👤 **{user_nom}**")
-  st.sidebar.caption(f"📌 **Espace : {user_zone}**")
+  st.sidebar.markdown("**NAVIGATION**")
+  for page in pages:
+    is_selected = st.session_state["current_page"] == page
+    btn_style = "nav-btn-active" if is_selected else "nav-btn-inactive"
+
+    st.sidebar.markdown(f'<div class="{btn_style}">', unsafe_allow_html=True)
+    if st.sidebar.button(page, key=f"nav_{page}", use_container_width=True):
+      st.session_state["current_page"] = page
+      st.rerun()
+    st.sidebar.markdown("</div>", unsafe_allow_html=True)
+
   st.sidebar.markdown("---")
   if st.sidebar.button("🔒 Se déconnecter", use_container_width=True):
     st.session_state["user_connected"] = False
     st.session_state["user_info"] = None
     st.rerun()
-
-  # Menu déroulant en haut de la page principale pour un accès instantané et sans superposition
-  menu = st.selectbox(
-      "📂 ☰ MENU DE NAVIGATION - Choisir un module",
-      pages,
-      index=(
-          pages.index(st.session_state["current_page"])
-          if st.session_state["current_page"] in pages
-          else 0
-      ),
-  )
-  st.session_state["current_page"] = menu
-  st.markdown("---")
 
   # Filtrage géographique
   if "Zone Sud" in user_zone or "Sud" in user_zone:
@@ -440,6 +515,8 @@ else:
   else:
     df_f = df
     choix_zone_label = "🌐 Vue Globale"
+
+  menu = st.session_state["current_page"]
 
   # ==========================================
   # 1. TABLEAU DE BORD MODERNE
@@ -562,7 +639,6 @@ else:
         "AUTRE (Préciser ci-dessous)",
     ]
 
-    # Génération du matricule automatique (ex: ONG DP 0036)
     matricule_auto = obtenir_prochain_matricule(df)
 
     with st.container(border=True):
