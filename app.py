@@ -1,6 +1,7 @@
 from datetime import datetime
 from io import BytesIO
 import math
+import re
 import gspread
 from google.oauth2.service_account import Credentials
 import pandas as pd
@@ -22,16 +23,23 @@ st.markdown(
         background-color: #0e1117;
     }
     
-    /* Transformer le bouton natif du menu en haut (hamburger/croix) en un joli petit carré stylisé */
+    /* Stylisation du bouton d'ouverture/fermeture du menu (Bouton Hamburger en haut) */
+    button[aria-label*="sidebar"], 
+    [data-testid="stSidebarCollapseButton"] button,
     [data-testid="collapsedControl"] {
         background-color: #1a1f2c !important;
         border: 2px solid #28a745 !important;
         border-radius: 8px !important;
-        padding: 4px !important;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.3) !important;
+        padding: 4px 10px !important;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.5) !important;
     }
+    
+    /* Couleur de l'icône ☰ en vert ONG */
+    button[aria-label*="sidebar"] svg, 
+    [data-testid="stSidebarCollapseButton"] svg,
     [data-testid="collapsedControl"] svg {
         fill: #28a745 !important;
+        color: #28a745 !important;
     }
 
     /* Bannière d'en-tête moderne */
@@ -85,12 +93,12 @@ st.markdown(
         margin-top: 4px;
     }
 
-    /* Boutons personnalisés de la Sidebar */
+    /* Styling de la Sidebar */
     div[data-testid="stSidebar"] {
-        background-color: #131722;
+        background-color: #131722 !important;
         border-right: 1px solid rgba(255,255,255,0.05);
     }
-    
+
     .nav-btn-active button {
         background: linear-gradient(90deg, #28a745 0%, #1e7e34 100%) !important;
         color: white !important;
@@ -130,34 +138,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- SCRIPT JAVASCRIPT POUR FERMER AUTOMATIQUEMENT LE MENU SUR MOBILE ---
-st.markdown(
-    """
-    <script>
-    // Écoute les clics sur les boutons de la barre latérale pour refermer le menu sur smartphone
-    const observer = new MutationObserver(() => {
-        const sidebarButtons = window.parent.document.querySelectorAll('[data-testid="stSidebar"] button');
-        sidebarButtons.forEach(btn => {
-            if (!btn.hasAttribute('data-auto-close-bound')) {
-                btn.setAttribute('data-auto-close-bound', 'true');
-                btn.addEventListener('click', () => {
-                    // Si on est sur un écran mobile (largeur <= 768px), on simule un clic sur l'arrière-plan pour fermer la sidebar
-                    if (window.innerWidth <= 768) {
-                        setTimeout(() => {
-                            const mainOverlay = window.parent.document.querySelector('.main');
-                            if (mainOverlay) mainOverlay.click();
-                        }, 150);
-                    }
-                });
-            }
-        });
-    });
-    observer.observe(window.parent.document.body, { childList: true, subtree: true });
-    </script>
-""",
-    unsafe_allow_html=True,
-)
-
 # --- BANNIÈRE D'EN-TÊTE ---
 st.markdown(
     """
@@ -192,7 +172,7 @@ try:
   sheet = spreadsheet.sheet1
 
   # Lecture des membres
-  data = sheet.get_all_records(head=9)
+  data = sheet.get_all_records(head=head_idx if 'head_idx' in locals() else 9)
   df = pd.DataFrame(data)
   df.columns = df.columns.str.strip()
 
@@ -228,7 +208,7 @@ try:
         "Zone": "Vue Globale",
     }])
 
-  # Lecture de la feuille Dons_Stock
+  # Lecture Dons_Stock
   try:
     sheet_stock = spreadsheet.worksheet("Dons_Stock")
     df_stock = pd.DataFrame(sheet_stock.get_all_records())
@@ -236,7 +216,7 @@ try:
   except Exception:
     df_stock = pd.DataFrame()
 
-  # Lecture de la feuille Dons_Distributions
+  # Lecture Dons_Distributions
   try:
     sheet_distrib = spreadsheet.worksheet("Dons_Distributions")
     df_distrib = pd.DataFrame(sheet_distrib.get_all_records())
@@ -302,6 +282,26 @@ def attribuer_zone(ville):
     return "Zone Centre"
   else:
     return "Intérieur / Autre"
+
+
+def obtenir_prochain_matricule(df_membres):
+  """Calcule le matricule suivant au format ONG DP 00XX en cherchant la valeur maximale existante."""
+  if df_membres.empty or "Numéro du membre" not in df_membres.columns:
+    return "ONG DP 0001"
+
+  numeros = []
+  for val in df_membres["Numéro du membre"].dropna().astype(str):
+    m = re.search(r"(\d+)", val)
+    if m:
+      numeros.append(int(m.group(1)))
+
+  if numeros:
+    prochain_num = max(numeros) + 1
+  else:
+    prochain_num = len(df_membres) + 1
+
+  # Alignement sur 4 chiffres pour respecter la séquence ONG DP 0001, ONG DP 0032, ONG DP 0033...
+  return f"ONG DP {prochain_num:04d}"
 
 
 col_membre = (
@@ -418,12 +418,12 @@ else:
   is_compta = "COMPTA" in user_zone.upper() or "COMPTABILITÉ" in user_zone.upper()
   is_dsi = "DSI" in user_zone.upper() or "VUE GLOBALE" in user_zone.upper()
 
-  # --- BARRE LATÉRALE - DESIGN MODERNE ---
+  # --- BARRE LATÉRALE DE NAVIGATION ---
   st.sidebar.markdown(f"### 👤 **{user_nom}**")
   st.sidebar.caption(f"📌 **Espace : {user_zone}**")
   st.sidebar.markdown("---")
 
-  # Liste des menus selon le profil
+  # Liste des menus
   if is_compta:
     pages = ["📦 Stock des Dons", "🎁 Remise de Dons"]
     if st.session_state["current_page"] not in pages:
@@ -445,7 +445,7 @@ else:
         "📋 Liste & Répertoire",
     ]
 
-  # Affichage sous forme de cartes/boutons interactifs
+  # Affichage sous forme de boutons interactifs
   st.sidebar.markdown("**NAVIGATION**")
   for page in pages:
     is_selected = st.session_state["current_page"] == page
@@ -463,7 +463,7 @@ else:
     st.session_state["user_info"] = None
     st.rerun()
 
-  # Détermination de la zone géographique
+  # Filtrage géographique
   if "Zone Sud" in user_zone or "Sud" in user_zone:
     df_f = df[df["Zone_Geographique"] == "Zone Sud"]
     choix_zone_label = "📍 Zone Sud"
@@ -551,7 +551,7 @@ else:
       st.warning("⚠️ Aucun membre trouvé pour cette zone.")
 
   # ==========================================
-  # 2. ENREGISTRER UN MEMBRE
+  # 2. ENREGISTRER UN MEMBRE (CORRIGÉ SUR L'ID)
   # ==========================================
   elif menu == "➕ Enregistrer un Membre":
     st.subheader("📝 Nouvel Enregistrement")
@@ -603,11 +603,11 @@ else:
         "AUTRE (Préciser ci-dessous)",
     ]
 
+    # Génération du matricule automatique corrigé (Ex: ONG DP 0033)
+    matricule_auto = obtenir_prochain_matricule(df)
+
     with st.container(border=True):
       with st.form("form_membre_principal", clear_on_submit=True):
-        prochain_num = len(df) + 1 if not df.empty else 1
-        matricule_auto = f"ONG DP {prochain_num:03d}"
-
         st.markdown("##### 👶 Informations de l'enfant")
         c1, c2 = st.columns(2)
         with c1:
