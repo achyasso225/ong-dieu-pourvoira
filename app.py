@@ -14,7 +14,7 @@ st.set_page_config(
     layout="wide",
 )
 
-# --- INJECTION CSS DESIGN MODERNE & MOBILE-FRIENDLY ---
+# --- INJECTION CSS DESIGN MODERN & MOBILE-FRIENDLY ---
 st.markdown(
     """
     <style>
@@ -38,6 +38,20 @@ st.markdown(
     [data-testid="collapsedControl"] svg {
         fill: #28a745 !important;
         color: #28a745 !important;
+    }
+
+    /* En-tête personnalisé à l'intérieur du menu latéral */
+    .sidebar-menu-title {
+        background-color: #1a1f2c;
+        border: 1px solid #28a745;
+        border-radius: 8px;
+        padding: 10px;
+        text-align: center;
+        color: #28a745;
+        font-weight: bold;
+        font-size: 16px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
     }
 
     /* Bannière d'en-tête moderne */
@@ -209,7 +223,7 @@ def charger_donnees_depuis_sheets():
   except Exception:
     df_users = pd.DataFrame()
 
-  # 3. Stock
+  # 3. Stock des Dons
   try:
     df_stock = pd.DataFrame(
         spreadsheet.worksheet("Dons_Stock").get_all_records()
@@ -217,10 +231,10 @@ def charger_donnees_depuis_sheets():
   except Exception:
     df_stock = pd.DataFrame()
 
-  # 4. Distributions
+  # 4. Remise de Dons
   try:
     df_distrib = pd.DataFrame(
-        spreadsheet.worksheet("Dons_Distributions").get_all_records()
+        spreadsheet.worksheet("Remise de Dons").get_all_records()
     )
   except Exception:
     df_distrib = pd.DataFrame()
@@ -457,6 +471,10 @@ else:
   is_dsi = "DSI" in user_zone.upper() or "VUE GLOBALE" in user_zone.upper()
 
   # --- BARRE LATÉRALE - MENU PERSONNALISÉ ---
+  st.sidebar.markdown(
+      '<div class="sidebar-menu-title">📂 MENU PRINCIPAL</div>',
+      unsafe_allow_html=True,
+  )
   st.sidebar.markdown(f"### 👤 **{user_nom}**")
   st.sidebar.caption(f"📌 **Espace : {user_zone}**")
   st.sidebar.markdown("---")
@@ -664,428 +682,4 @@ else:
         ).upper()
 
         st.markdown("---")
-        st.markdown("##### 👪 Informations du parent & Statut")
-        c3, c4 = st.columns(2)
-        with c3:
-          nom_parent = st.text_input(
-              "Nom et prénoms du parent (Ex: KOUASSI MARC)"
-          ).upper()
-          numero_tel = st.text_input("Numéro de téléphone du parent")
-        with c4:
-          adhesion = st.selectbox("Statut d'Adhésion", ["OK", "En attente"])
-
-        st.markdown("<br>", unsafe_allow_html=True)
-        submitted = st.form_submit_button(
-            "💾 Valider et enregistrer le membre", use_container_width=True
-        )
-
-        if submitted:
-          ville_finale = (
-              ville_autre
-              if ville_choix.startswith("AUTRE") and ville_autre
-              else ville_choix
-          )
-
-          if nom_enfant and nom_parent:
-            try:
-              date_heure_actuelle = datetime.now().strftime(
-                  "%Y-%m-%d %H:%M:%S"
-              )
-              auteur_enregistrement = f"{user_nom} ({user_zone})"
-
-              nouvelle_ligne = [
-                  matricule_auto,
-                  nom_enfant,
-                  date_naissance,
-                  sexe,
-                  ville_finale,
-                  nom_parent,
-                  str(numero_tel),
-                  adhesion,
-                  date_heure_actuelle,
-                  auteur_enregistrement,
-              ]
-              sheet.append_row(nouvelle_ligne)
-              st.cache_data.clear()
-              st.session_state["toast_msg"] = (
-                  f"✅ Membre {matricule_auto} enregistré avec succès !"
-              )
-              st.balloons()
-              st.rerun()
-            except Exception as e:
-              st.error(f"❌ Erreur : {e}")
-          else:
-            st.error("⚠️ Veuillez renseigner le nom de l'enfant et du parent.")
-
-  # ==========================================
-  # 3. MODIFIER / SUPPRIMER
-  # ==========================================
-  elif menu == "✏️ Modifier / Supprimer":
-    st.subheader(f"✏️ Modifier ou Supprimer - {choix_zone_label}")
-
-    if not df_f.empty and col_membre in df_f.columns:
-      recherche_edit = st.text_input(
-          "🔍 Rechercher dans votre zone...", key="recherche_edit"
-      )
-
-      if recherche_edit:
-        mask_edit = df_f.astype(str).apply(
-            lambda row: row.str.contains(
-                recherche_edit, case=False, na=False
-            ).any(),
-            axis=1,
-        )
-        df_edit_filtered = df_f[mask_edit]
-      else:
-        df_edit_filtered = df_f
-
-      if not df_edit_filtered.empty:
-        liste_membres = df_edit_filtered[col_membre].astype(str).tolist()
-        choix_membre = st.selectbox(
-            "Sélectionner le membre",
-            liste_membres,
-            format_func=lambda m: (
-                f"{m} - "
-                f"{df_edit_filtered[df_edit_filtered[col_membre].astype(str) == m][col_enfant].values[0]}"
-                if col_enfant in df_edit_filtered.columns
-                else m
-            ),
-        )
-
-        membre_actuel = df[df[col_membre].astype(str) == choix_membre].iloc[0]
-
-        st.markdown("---")
-        choix_action = st.radio(
-            "Action à effectuer",
-            ["Modifier les informations", "Supprimer le membre"],
-            horizontal=True,
-        )
-
-        with st.container(border=True):
-          if choix_action == "Modifier les informations":
-            with st.form("form_modification", clear_on_submit=True):
-              m_nom_enfant = st.text_input(
-                  "Nom et Prénom",
-                  value=str(membre_actuel.get(col_enfant, "")),
-              ).upper()
-              m_date_nais = st.text_input(
-                  "Date de naissance",
-                  value=str(membre_actuel.get(col_date, "")),
-              )
-              val_sexe = str(membre_actuel.get(col_sexe, "M")).upper()
-              m_sexe = st.selectbox(
-                  "Sexe", ["M", "F"], index=0 if val_sexe == "M" else 1
-              )
-              m_ville = st.text_input(
-                  "Ville", value=str(membre_actuel.get(col_ville, ""))
-              ).upper()
-              m_nom_parent = st.text_input(
-                  "Parent", value=str(membre_actuel.get(col_parent, ""))
-              ).upper()
-              m_tel = st.text_input(
-                  "Téléphone", value=str(membre_actuel.get(col_tel, ""))
-              )
-              val_adh = str(membre_actuel.get(col_adh, "OK")).upper()
-              m_adhesion = st.selectbox(
-                  "Adhésion",
-                  ["OK", "En attente"],
-                  index=0 if "OK" in val_adh else 1,
-              )
-
-              btn_modifier = st.form_submit_button("💾 Mettre à jour")
-
-              if btn_modifier:
-                try:
-                  cell = sheet.find(str(choix_membre))
-                  row_idx = cell.row
-                  sheet.update_cell(row_idx, 2, m_nom_enfant)
-                  sheet.update_cell(row_idx, 3, m_date_nais)
-                  sheet.update_cell(row_idx, 4, m_sexe)
-                  sheet.update_cell(row_idx, 5, m_ville)
-                  sheet.update_cell(row_idx, 6, m_nom_parent)
-                  sheet.update_cell(row_idx, 7, str(m_tel))
-                  sheet.update_cell(row_idx, 8, m_adhesion)
-                  st.cache_data.clear()
-                  st.session_state["toast_msg"] = (
-                      f"✅ Membre {choix_membre} mis à jour !"
-                  )
-                  st.rerun()
-                except Exception as e:
-                  st.error(f"❌ Erreur : {e}")
-          else:
-            st.warning(f"⚠️ Suppression définitive du membre {choix_membre}")
-            confirmer = st.checkbox("Je confirme la suppression définitive")
-            if st.button("🗑️ Confirmer la suppression", type="primary"):
-              if confirmer:
-                try:
-                  cell = sheet.find(str(choix_membre))
-                  sheet.delete_rows(cell.row)
-                  st.cache_data.clear()
-                  st.session_state["toast_msg"] = (
-                      f"✅ Membre {choix_membre} supprimé !"
-                  )
-                  st.rerun()
-                except Exception as e:
-                  st.error(f"❌ Erreur : {e}")
-              else:
-                st.error("⚠️ Cochez la case de confirmation.")
-      else:
-        st.warning("⚠️ Aucun membre trouvé.")
-    else:
-      st.info("Aucun membre disponible.")
-
-  # ==========================================
-  # 4. LISTE & REPERTOIRE (AVEC PAGINATION)
-  # ==========================================
-  elif menu == "📋 Liste & Répertoire":
-    st.subheader(f"📋 Répertoire - {choix_zone_label}")
-
-    recherche = st.text_input("🔍 Rechercher un membre...", key="recherche_liste")
-
-    if not df_f.empty:
-      if recherche:
-        mask = df_f.astype(str).apply(
-            lambda row: row.str.contains(recherche, case=False, na=False).any(),
-            axis=1,
-        )
-        df_affiche = df_f[mask]
-        st.info(f"ℹ️ Résultats trouvés : {len(df_affiche)}")
-      else:
-        df_affiche = df_f
-
-      total_lignes = len(df_affiche)
-
-      if total_lignes > 0:
-        col_pg1, col_pg2 = st.columns([1, 2])
-        with col_pg1:
-          lignes_par_page = st.selectbox(
-              "Lignes par page", [10, 25, 50, 100], index=0, key="lignes_page"
-          )
-
-        total_pages = math.ceil(total_lignes / lignes_par_page)
-
-        with col_pg2:
-          page_actuelle = st.selectbox(
-              "Sélectionner la page / plage",
-              range(1, total_pages + 1),
-              format_func=lambda x: (
-                  f"Page {x} / {total_pages} (Membres { (x-1)*lignes_par_page + 1 } à"
-                  f" {min(x*lignes_par_page, total_lignes)} sur {total_lignes})"
-              ),
-              key="select_page",
-          )
-
-        debut = (page_actuelle - 1) * lignes_par_page
-        fin = min(debut + lignes_par_page, total_lignes)
-        df_page = df_affiche.iloc[debut:fin]
-
-        with st.container(border=True):
-          cols_affichage = [
-              c for c in df_page.columns if c != "Zone_Geographique"
-          ]
-          st.dataframe(df_page[cols_affichage], use_container_width=True)
-      else:
-        st.warning("⚠️ Aucun membre ne correspond à votre recherche.")
-
-      st.markdown("---")
-      output = BytesIO()
-      with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-        df_affiche.to_excel(writer, index=False, sheet_name="Membres")
-      excel_data = output.getvalue()
-
-      st.download_button(
-          label="📥 Exporter la liste filtrée en Excel (.xlsx)",
-          data=excel_data,
-          file_name=f"Membres_{choix_zone_label.replace(' ', '_')}.xlsx",
-          mime=(
-              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-          ),
-      )
-    else:
-      st.warning("⚠️ Aucune donnée à afficher.")
-
-  # ==========================================
-  # 5. STOCK DES DONS
-  # ==========================================
-  elif menu == "📦 Stock des Dons":
-    st.subheader("📦 Stock & Réception des Dons")
-
-    with st.container(border=True):
-      with st.form("form_entree_don", clear_on_submit=True):
-        type_don = st.selectbox(
-            "Type de Don",
-            [
-                "Matériel Médical / Fauteuil",
-                "Produits d'Hygiène / Couches",
-                "Vivres / Alimentation",
-                "Vêtements",
-                "Don Financier (FCFA)",
-                "Autre",
-            ],
-        )
-        designation = st.text_input(
-            "Désignation (Ex: Fauteuils Roulants Enfant)"
-        ).upper()
-        donateur = st.text_input("Donateur / Partenaire").upper()
-        quantite_recue = st.number_input(
-            "Quantité reçue", min_value=1, value=1, step=1
-        )
-        valeur_estimee = st.number_input(
-            "Valeur estimée globale (FCFA)", min_value=0, value=0, step=5000
-        )
-
-        btn_save_don = st.form_submit_button(
-            "📥 Enregistrer en Stock", use_container_width=True
-        )
-
-        if btn_save_don:
-          if designation:
-            try:
-              ws_stock = spreadsheet.worksheet("Dons_Stock")
-              date_du_jour = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-              id_don = f"DON-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-
-              nouvelle_ligne_don = [
-                  id_don,
-                  date_du_jour,
-                  type_don,
-                  designation,
-                  quantite_recue,
-                  quantite_recue,
-                  valeur_estimee,
-                  donateur if donateur else "ANONYME",
-                  user_zone,
-                  f"{user_nom}",
-              ]
-              ws_stock.append_row(nouvelle_ligne_don)
-              st.cache_data.clear()
-              st.session_state["toast_msg"] = (
-                  f"✅ Don '{designation}' enregistré en stock !"
-              )
-              st.rerun()
-            except Exception as e:
-              st.error(f"❌ Erreur : {e}")
-          else:
-            st.error("⚠️ Saisissez une désignation.")
-
-    st.markdown("---")
-    st.markdown("### 📊 État actuel des Stocks")
-    with st.container(border=True):
-      if not df_stock.empty:
-        st.dataframe(df_stock, use_container_width=True)
-      else:
-        st.info("Aucun stock pour le moment.")
-
-  # ==========================================
-  # 6. REMISE DE DONS
-  # ==========================================
-  elif menu == "🎁 Remise de Dons" or menu == "🎁 Remise & Traçabilité":
-    st.subheader("🎁 Attribution & Remise de Don aux Enfants")
-
-    if not df.empty and not df_stock.empty:
-      if "Stock_Actuel" in df_stock.columns:
-        df_stock_dispo = df_stock[
-            pd.to_numeric(df_stock["Stock_Actuel"], errors="coerce").fillna(0)
-            > 0
-        ]
-      else:
-        df_stock_dispo = df_stock
-
-      if not df_stock_dispo.empty:
-        with st.container(border=True):
-          with st.form("form_remise_don", clear_on_submit=True):
-            liste_enfants = df[col_membre].astype(str).tolist()
-            choix_enfant_don = st.selectbox(
-                "1. Enfant bénéficiaire",
-                liste_enfants,
-                format_func=lambda m: (
-                    f"{m} - "
-                    f"{df[df[col_membre].astype(str) == m][col_enfant].values[0]}"
-                ),
-            )
-
-            liste_dons_dispo = df_stock_dispo["ID_Don"].astype(str).tolist()
-            choix_don = st.selectbox(
-                "2. Don à remettre",
-                liste_dons_dispo,
-                format_func=lambda d: (
-                    f"{d} - "
-                    f"{df_stock_dispo[df_stock_dispo['ID_Don'].astype(str) == d]['Designation'].values[0]} "
-                    f"(Reste: {df_stock_dispo[df_stock_dispo['ID_Don'].astype(str) == d]['Stock_Actuel'].values[0]})"
-                ),
-            )
-
-            quantite_remise = st.number_input(
-                "3. Quantité remise", min_value=1, value=1, step=1
-            )
-
-            btn_remettre = st.form_submit_button(
-                "🎁 Valider la Remise du Don", use_container_width=True
-            )
-
-            if btn_remettre:
-              try:
-                enfant_info = df[
-                    df[col_membre].astype(str) == choix_enfant_don
-                ].iloc[0]
-                nom_e = enfant_info.get(col_enfant, "")
-                nom_p = enfant_info.get(col_parent, "")
-
-                don_info = df_stock_dispo[
-                    df_stock_dispo["ID_Don"].astype(str) == choix_don
-                ].iloc[0]
-                designation_d = don_info.get("Designation", "")
-                stock_actuel = int(don_info.get("Stock_Actuel", 1))
-
-                if quantite_remise <= stock_actuel:
-                  ws_distrib = spreadsheet.worksheet("Dons_Distributions")
-                  ws_stock = spreadsheet.worksheet("Dons_Stock")
-
-                  id_distrib = (
-                      f"DIST-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-                  )
-                  date_remise = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-                  ligne_distrib = [
-                      id_distrib,
-                      date_remise,
-                      choix_enfant_don,
-                      nom_e,
-                      nom_p,
-                      designation_d,
-                      quantite_remise,
-                      user_zone,
-                      f"{user_nom}",
-                  ]
-                  ws_distrib.append_row(ligne_distrib)
-
-                  cell = ws_stock.find(str(choix_don))
-                  nouv_stock = stock_actuel - quantite_remise
-                  ws_stock.update_cell(cell.row, 6, nouv_stock)
-
-                  st.cache_data.clear()
-                  st.session_state["toast_msg"] = (
-                      f"🎁 Don remis à {nom_e} avec succès !"
-                  )
-                  st.rerun()
-                else:
-                  st.error(f"⚠️ Stock insuffisant (Reste : {stock_actuel})")
-              except Exception as e:
-                st.error(f"❌ Erreur : {e}")
-      else:
-        st.warning("⚠️ Aucun don disponible en stock.")
-    else:
-      st.warning("⚠️ Données insuffisantes pour effectuer une remise.")
-
-    st.markdown("---")
-    st.markdown("### 📋 Historique global des Remises")
-    with st.container(border=True):
-      if not df_distrib.empty:
-        st.dataframe(df_distrib, use_container_width=True)
-      else:
-        st.info("Aucune distribution enregistrée pour le moment.")
-
-  if "toast_msg" in st.session_state:
-    st.toast(st.session_state["toast_msg"], icon="🎉")
-    st.success(st.session_state["toast_msg"])
-    del st.session_state["toast_msg"]
+     
