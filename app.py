@@ -13,7 +13,7 @@ st.set_page_config(
     layout="wide",
 )
 
-# --- INJECTION CSS DESIGN MODERN & RESPONSIVE ---
+# --- INJECTION CSS DESIGN MODERN & MOBILE-FRIENDLY ---
 st.markdown(
     """
     <style>
@@ -22,6 +22,18 @@ st.markdown(
         background-color: #0e1117;
     }
     
+    /* Transformer le bouton natif du menu en haut (hamburger/croix) en un joli petit carré stylisé */
+    [data-testid="collapsedControl"] {
+        background-color: #1a1f2c !important;
+        border: 2px solid #28a745 !important;
+        border-radius: 8px !important;
+        padding: 4px !important;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3) !important;
+    }
+    [data-testid="collapsedControl"] svg {
+        fill: #28a745 !important;
+    }
+
     /* Bannière d'en-tête moderne */
     .hero-header {
         background: linear-gradient(135deg, #1e7e34 0%, #0b4d1d 100%);
@@ -73,7 +85,7 @@ st.markdown(
         margin-top: 4px;
     }
 
-    /* Boutons personnalisés de la Sidebar (Navigation Premium) */
+    /* Boutons personnalisés de la Sidebar */
     div[data-testid="stSidebar"] {
         background-color: #131722;
         border-right: 1px solid rgba(255,255,255,0.05);
@@ -114,6 +126,34 @@ st.markdown(
         margin-bottom: 20px;
     }
     </style>
+""",
+    unsafe_allow_html=True,
+)
+
+# --- SCRIPT JAVASCRIPT POUR FERMER AUTOMATIQUEMENT LE MENU SUR MOBILE ---
+st.markdown(
+    """
+    <script>
+    // Écoute les clics sur les boutons de la barre latérale pour refermer le menu sur smartphone
+    const observer = new MutationObserver(() => {
+        const sidebarButtons = window.parent.document.querySelectorAll('[data-testid="stSidebar"] button');
+        sidebarButtons.forEach(btn => {
+            if (!btn.hasAttribute('data-auto-close-bound')) {
+                btn.setAttribute('data-auto-close-bound', 'true');
+                btn.addEventListener('click', () => {
+                    // Si on est sur un écran mobile (largeur <= 768px), on simule un clic sur l'arrière-plan pour fermer la sidebar
+                    if (window.innerWidth <= 768) {
+                        setTimeout(() => {
+                            const mainOverlay = window.parent.document.querySelector('.main');
+                            if (mainOverlay) mainOverlay.click();
+                        }, 150);
+                    }
+                });
+            }
+        });
+    });
+    observer.observe(window.parent.document.body, { childList: true, subtree: true });
+    </script>
 """,
     unsafe_allow_html=True,
 )
@@ -757,7 +797,7 @@ else:
       st.info("Aucun membre disponible.")
 
   # ==========================================
-  # 4. LISTE & REPERTOIRE (AVEC PAGINATION RÉINTÉGRÉE)
+  # 4. LISTE & REPERTOIRE (AVEC PAGINATION)
   # ==========================================
   elif menu == "📋 Liste & Répertoire":
     st.subheader(f"📋 Répertoire - {choix_zone_label}")
@@ -778,7 +818,6 @@ else:
       total_lignes = len(df_affiche)
 
       if total_lignes > 0:
-        # CONTRÔLES DE PAGINATION
         col_pg1, col_pg2 = st.columns([1, 2])
         with col_pg1:
           lignes_par_page = st.selectbox(
