@@ -14,7 +14,7 @@ st.set_page_config(
     layout="wide",
 )
 
-# --- INJECTION CSS DESIGN MODERN & MOBILE-FRIENDLY ---
+# --- INJECTION CSS DESIGN MODERNE & MOBILE-FRIENDLY ---
 st.markdown(
     """
     <style>
@@ -968,14 +968,16 @@ else:
                   date_du_jour,
                   type_don,
                   designation,
-                  quantite_recue,
-                  quantite_recue,
-                  valeur_estimee,
+                  int(quantite_recue),
+                  int(quantite_recue),
+                  int(valeur_estimee),
                   donateur if donateur else "ANONYME",
                   user_zone,
                   f"{user_nom}",
               ]
-              ws_stock.append_row(nouvelle_ligne_don)
+              ws_stock.append_row(
+                  nouvelle_ligne_don, value_input_option="USER_ENTERED"
+              )
               st.cache_data.clear()
               st.session_state["toast_msg"] = (
                   f"✅ Don '{designation}' enregistré en stock !"
@@ -1071,11 +1073,13 @@ else:
                       nom_e,
                       nom_p,
                       designation_d,
-                      quantite_remise,
+                      int(quantite_remise),
                       user_zone,
                       f"{user_nom}",
                   ]
-                  ws_distrib.append_row(ligne_distrib)
+                  ws_distrib.append_row(
+                      ligne_distrib, value_input_option="USER_ENTERED"
+                  )
 
                   cell = ws_stock.find(str(choix_don))
                   nouv_stock = stock_actuel - quantite_remise
