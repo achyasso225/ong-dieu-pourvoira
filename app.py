@@ -853,10 +853,10 @@ else:
       st.info("Aucun membre disponible.")
 
   # ==========================================
-  # 4. LISTE & REPERTOIRE (AVEC PAGINATION)
+  # 4. LISTE & REPERTOIRE + CARTES DE MEMBRE
   # ==========================================
   elif menu == "📋 Liste & Répertoire":
-    st.subheader(f"📋 Répertoire - {choix_zone_label}")
+    st.subheader(f"📋 Répertoire & Cartes - {choix_zone_label}")
 
     recherche = st.text_input("🔍 Rechercher un membre...", key="recherche_liste")
 
@@ -871,56 +871,158 @@ else:
       else:
         df_affiche = df_f
 
-      total_lignes = len(df_affiche)
+      tab_liste, tab_cartes = st.tabs([
+          "📋 Liste Générale",
+          "🪪 Cartes d'Adhérents (Adhésion OK)",
+      ])
 
-      if total_lignes > 0:
-        col_pg1, col_pg2 = st.columns([1, 2])
-        with col_pg1:
-          lignes_par_page = st.selectbox(
-              "Lignes par page", [10, 25, 50, 100], index=0, key="lignes_page"
-          )
+      with tab_liste:
+        total_lignes = len(df_affiche)
+        if total_lignes > 0:
+          col_pg1, col_pg2 = st.columns([1, 2])
+          with col_pg1:
+            lignes_par_page = st.selectbox(
+                "Lignes par page", [10, 25, 50, 100], index=0, key="lignes_page"
+            )
 
-        total_pages = math.ceil(total_lignes / lignes_par_page)
+          total_pages = math.ceil(total_lignes / lignes_par_page)
 
-        with col_pg2:
-          page_actuelle = st.selectbox(
-              "Sélectionner la page / plage",
-              range(1, total_pages + 1),
-              format_func=lambda x: (
-                  f"Page {x} / {total_pages} (Membres { (x-1)*lignes_par_page + 1 } à"
-                  f" {min(x*lignes_par_page, total_lignes)} sur {total_lignes})"
+          with col_pg2:
+            page_actuelle = st.selectbox(
+                "Sélectionner la page",
+                range(1, total_pages + 1),
+                format_func=lambda x: f"Page {x} / {total_pages}",
+                key="select_page",
+            )
+
+          debut = (page_actuelle - 1) * lignes_par_page
+          fin = min(debut + lignes_par_page, total_lignes)
+          df_page = df_affiche.iloc[debut:fin]
+
+          with st.container(border=True):
+            cols_affichage = [
+                c for c in df_page.columns if c != "Zone_Geographique"
+            ]
+            st.dataframe(df_page[cols_affichage], use_container_width=True)
+
+          output = BytesIO()
+          with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+            df_affiche.to_excel(writer, index=False, sheet_name="Membres")
+          excel_data = output.getvalue()
+
+          st.download_button(
+              label="📥 Exporter la liste filtrée en Excel (.xlsx)",
+              data=excel_data,
+              file_name=f"Membres_{choix_zone_label.replace(' ', '_')}.xlsx",
+              mime=(
+                  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
               ),
-              key="select_page",
+          )
+        else:
+          st.warning("⚠️ Aucun membre ne correspond à votre recherche.")
+
+      with tab_cartes:
+        st.markdown("##### 🪪 Cartes d'Adhésion Prêtes à l'Impression")
+
+        if col_adh in df_affiche.columns:
+          df_ok = df_affiche[
+              df_affiche[col_adh].astype(str).str.upper().str.strip() == "OK"
+          ]
+        else:
+          df_ok = pd.DataFrame()
+
+        if not df_ok.empty:
+          st.success(
+              f"✅ {len(df_ok)} membre(s) éligible(s) pour l'impression de carte."
           )
 
-        debut = (page_actuelle - 1) * lignes_par_page
-        fin = min(debut + lignes_par_page, total_lignes)
-        df_page = df_affiche.iloc[debut:fin]
+          liste_choix_carte = df_ok[col_membre].astype(str).tolist()
+          membre_selectionne = st.selectbox(
+              "Sélectionnez le membre pour générer sa carte :",
+              liste_choix_carte,
+              format_func=lambda m: (
+                  f"{m} -"
+                  f" {df_ok[df_ok[col_membre].astype(str) == m][col_enfant].values[0]}"
+              ),
+          )
 
-        with st.container(border=True):
-          cols_affichage = [
-              c for c in df_page.columns if c != "Zone_Geographique"
-          ]
-          st.dataframe(df_page[cols_affichage], use_container_width=True)
-      else:
-        st.warning("⚠️ Aucun membre ne correspond à votre recherche.")
+          if membre_selectionne:
+            row_m = df_ok[
+                df_ok[col_membre].astype(str) == membre_selectionne
+            ].iloc[0]
 
-      st.markdown("---")
-      output = BytesIO()
-      with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-        df_affiche.to_excel(writer, index=False, sheet_name="Membres")
-      excel_data = output.getvalue()
+            nom_complet_enfant = (
+                str(row_m.get(col_enfant, "")).upper().split(" ", 1)
+            )
+            nom_enfant = nom_complet_enfant[0]
+            prenom_enfant = (
+                nom_complet_enfant[1] if len(nom_complet_enfant) > 1 else ""
+            )
 
-      st.download_button(
-          label="📥 Exporter la liste filtrée en Excel (.xlsx)",
-          data=excel_data,
-          file_name=f"Membres_{choix_zone_label.replace(' ', '_')}.xlsx",
-          mime=(
-              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-          ),
-      )
+            nom_parent = str(row_m.get(col_parent, "")).upper()
+            num_membre = str(row_m.get(col_membre, ""))
+            date_adhesion = str(
+                row_m.get(df.columns[8] if len(df.columns) > 8 else "", "")
+            ).split(" ")[0]
+            tel_parent = str(row_m.get(col_tel, ""))
+
+            html_carte = f"""
+            <div id="carte-membre" style="
+                width: 500px;
+                height: 310px;
+                background: #ffffff;
+                border-radius: 18px;
+                border: 2px solid #1e7e34;
+                padding: 18px;
+                font-family: 'Arial', sans-serif;
+                position: relative;
+                box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+                background-image: linear-gradient(135deg, rgba(40,167,69,0.05) 0%, rgba(255,127,0,0.05) 100%);
+                overflow: hidden;
+            ">
+                <div style="position: absolute; top: 0; right: 0; width: 120px; height: 120px; background: #28a745; border-radius: 0 0 0 100%; opacity: 0.85;"></div>
+                <div style="position: absolute; top: 0; right: 0; width: 90px; height: 90px; background: #ff7f00; border-radius: 0 0 0 100%;"></div>
+
+                <div style="display: flex; justify: space-between; align-items: center; margin-bottom: 10px;">
+                    <div>
+                        <h2 style="color: #1e7e34; margin: 0; font-size: 20px; font-weight: 900;">ONG</h2>
+                        <h1 style="color: #ff7f00; margin: 0; font-size: 22px; font-weight: 900; letter-spacing: 0.5px;">DIEU POURVOIRA</h1>
+                        <div style="background: #1e7e34; color: white; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; display: inline-block; margin-top: 3px;">
+                            CARTE DE MEMBRE
+                        </div>
+                    </div>
+                    <div style="width: 85px; height: 95px; border: 2px solid #1e7e34; border-radius: 10px; background: #e9ecef; display: flex; align-items: center; justify-content: center; color: #6c757d; font-size: 10px; z-index: 2; margin-right: 15px;">
+                        <span>PHOTO</span>
+                    </div>
+                </div>
+
+                <div style="font-size: 11px; color: #212529; line-height: 1.6; margin-top: 5px;">
+                    <div style="margin-bottom: 2px;"><strong>Nom de l'enfant :</strong> <span style="border-bottom: 1px dotted #6c757d; display: inline-block; width: 280px; color: #000;">{nom_enfant}</span></div>
+                    <div style="margin-bottom: 2px;"><strong>Prénom de l'enfant :</strong> <span style="border-bottom: 1px dotted #6c757d; display: inline-block; width: 265px; color: #000;">{prenom_enfant}</span></div>
+                    <div style="margin-bottom: 2px;"><strong>Nom & prénom du parent :</strong> <span style="border-bottom: 1px dotted #6c757d; display: inline-block; width: 220px; color: #000;">{nom_parent}</span></div>
+                    <div style="margin-bottom: 2px;"><strong>N° Membre :</strong> <span style="border-bottom: 1px dotted #6c757d; display: inline-block; width: 290px; color: #1e7e34; font-weight: bold;">{num_membre}</span></div>
+                    <div style="margin-bottom: 2px;"><strong>Date d'adhésion :</strong> <span style="border-bottom: 1px dotted #6c757d; display: inline-block; width: 265px; color: #000;">{date_adhesion}</span></div>
+                    <div style="margin-bottom: 2px;"><strong>Numéro du parent :</strong> <span style="border-bottom: 1px dotted #6c757d; display: inline-block; width: 255px; color: #000;">{tel_parent}</span></div>
+                </div>
+
+                <div style="position: absolute; bottom: 0; left: 0; right: 0; background: #1e7e34; color: white; padding: 6px 12px; font-size: 9px; text-align: center;">
+                    ❤️ <i>Ensemble aidons les enfants atteints de Paralysie cérébrale</i> ❤️<br>
+                    📞 <strong>Contact :</strong> +225 77 71 04 41 8 / 05 86 99 73 27
+                </div>
+            </div>
+            """
+
+            st.components.v1.html(html_carte, height=330)
+            st.button(
+                "🖨️ Imprimer la Carte",
+                on_click=lambda: st.toast(
+                    "Lancement de l'impression...", icon="🖨️"
+                ),
+            )
+        else:
+          st.warning("⚠️ Aucun membre actif (Adhésion OK) dans cette sélection.")
     else:
-      st.warning("⚠️ Aucune donnée à afficher.")
+      st.warning("⚠️ Aucune donnée disponible.")
 
   # ==========================================
   # 5. STOCK DES DONS
