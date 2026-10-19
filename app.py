@@ -2,8 +2,6 @@ from datetime import datetime
 from io import BytesIO
 import math
 import re
-import os
-import base64
 import gspread
 from google.oauth2.service_account import Credentials
 import pandas as pd
@@ -340,14 +338,21 @@ def attribuer_zone(ville):
 
 
 def obtenir_prochain_matricule(df_membres):
+  """Calcule le matricule suivant au format strict à 4 chiffres (ex: ONG DP 0036)."""
   if df_membres.empty or "Numéro du membre" not in df_membres.columns:
     return "ONG DP 0001"
+
   numeros = []
   for val in df_membres["Numéro du membre"].dropna().astype(str):
     m = re.search(r"(\d+)", val)
     if m:
       numeros.append(int(m.group(1)))
-  prochain_num = max(numeros) + 1 if numeros else len(df_membres) + 1
+
+  if numeros:
+    prochain_num = max(numeros) + 1
+  else:
+    prochain_num = len(df_membres) + 1
+
   return f"ONG DP {prochain_num:04d}"
 
 
@@ -451,6 +456,7 @@ if not st.session_state["user_connected"]:
 else:
   user_info = st.session_state["user_info"]
 
+  # Détection rôle / zone
   user_zone = ""
   for key in ["Zone / Rôle", "Zone", "Role", "Rôle"]:
     if key in user_info:
@@ -460,10 +466,11 @@ else:
     user_zone = "Vue Globale"
 
   user_nom = user_info.get("Nom_Responsable", "Utilisateur")
+
   is_compta = "COMPTA" in user_zone.upper() or "COMPTABILITÉ" in user_zone.upper()
   is_dsi = "DSI" in user_zone.upper() or "VUE GLOBALE" in user_zone.upper()
 
-  # --- BARRE LATÉRALE ---
+  # --- BARRE LATÉRALE - MENU PERSONNALISÉ ---
   st.sidebar.markdown(
       '<div class="sidebar-menu-title">📂 MENU PRINCIPAL</div>',
       unsafe_allow_html=True,
@@ -510,6 +517,7 @@ else:
     st.session_state["user_info"] = None
     st.rerun()
 
+  # Filtrage géographique
   if "Zone Sud" in user_zone or "Sud" in user_zone:
     df_f = df[df["Zone_Geographique"] == "Zone Sud"]
     choix_zone_label = "📍 Zone Sud"
@@ -529,10 +537,11 @@ else:
   menu = st.session_state["current_page"]
 
   # ==========================================
-  # 1. TABLEAU DE BORD
+  # 1. TABLEAU DE BORD MODERNE
   # ==========================================
   if menu == "📊 Tableau de Bord":
     st.subheader(f"📈 Vue Synthétique - {choix_zone_label}")
+
     if not df_f.empty:
       total_membres = len(df_f)
       total_garcons = (
@@ -554,314 +563,473 @@ else:
       k1, k2, k3, k4 = st.columns(4)
       with k1:
         st.markdown(
-            f'<div class="kpi-card"><div class="kpi-title">Membres</div><div'
+            f'<div class="kpi-card"><div'
+            ' class="kpi-title">Membres</div><div'
             f' class="kpi-value">{total_membres}</div></div>',
             unsafe_allow_html=True,
         )
       with k2:
         st.markdown(
             f'<div class="kpi-card" style="border-left-color: #17a2b8;"><div'
-            f' class="kpi-title">Adhésions OK</div><div'
+            ' class="kpi-title">Adhésions OK</div><div'
             f' class="kpi-value">{total_actifs}</div></div>',
             unsafe_allow_html=True,
         )
       with k3:
         st.markdown(
             f'<div class="kpi-card" style="border-left-color: #007bff;"><div'
-            f' class="kpi-title">Garçons</div><div'
+            ' class="kpi-title">Garçons</div><div'
             f' class="kpi-value">{total_garcons}</div></div>',
             unsafe_allow_html=True,
         )
       with k4:
         st.markdown(
             f'<div class="kpi-card" style="border-left-color: #e83e8c;"><div'
-            f' class="kpi-title">Filles</div><div'
+            ' class="kpi-title">Filles</div><div'
             f' class="kpi-value">{total_filles}</div></div>',
             unsafe_allow_html=True,
         )
+
+      st.markdown("---")
+      with st.container(border=True):
+        st.markdown("### 🕒 Derniers enfants enregistrés")
+        cols_a_afficher = [
+            c
+            for c in df_f.columns
+            if c != "Zone_Geographique"
+            and c in df.columns
+            and not df[c].isnull().all()
+        ]
+        st.dataframe(df_f[cols_a_afficher].tail(5), use_container_width=True)
     else:
-      st.warning("⚠️ Aucun membre trouvé.")
+      st.warning("⚠️ Aucun membre trouvé pour cette zone.")
 
   # ==========================================
   # 2. ENREGISTRER UN MEMBRE
   # ==========================================
   elif menu == "➕ Enregistrer un Membre":
     st.subheader("📝 Nouvel Enregistrement")
+
+    st.markdown(
+        f"""
+        <div class="info-card">
+            Saisie d'un nouvel enfant rattaché à l'espace : <strong>{choix_zone_label}</strong>.
+        </div>
+    """,
+        unsafe_allow_html=True,
+    )
+
     liste_communes = [
         "ABOISSO",
         "ABOBO",
         "ADIAKE",
         "ADJAME",
+        "ADJAHUI",
+        "ALÉPÉ",
         "ANYAMA",
+        "ASSINIE",
+        "ATTECOUBE",
+        "BINGERVILLE",
+        "BONOUA",
+        "DABOU",
+        "DALOA",
+        "DIVO",
+        "DOKUI",
+        "GAGNOA",
+        "GRAND-BASSAM",
+        "GUIBEROUA",
+        "ISSIA",
         "KOUMASSI",
         "MARCORY",
+        "MODESTE",
+        "N'DOTRE",
+        "OUMÉ",
+        "PLATEAU",
         "PORT-BOUET",
+        "SAN-PÉDRO",
+        "SAMO",
+        "SONGON",
         "TREICHVILLE",
+        "WILLIAMS CIVIL",
+        "YAMOUSSOUKRO",
+        "YAOU",
         "YOPOUGON",
+        "AUTRE (Préciser ci-dessous)",
     ]
+
     matricule_auto = obtenir_prochain_matricule(df)
+
     with st.container(border=True):
       with st.form("form_membre_principal", clear_on_submit=True):
+        st.markdown("##### 👶 Informations de l'enfant")
         c1, c2 = st.columns(2)
         with c1:
-          st.text_input(
+          numero_membre = st.text_input(
               "Numéro du membre (Auto)", value=matricule_auto, disabled=True
           )
-          nom_enfant = st.text_input("Nom et Prénom de l'enfant").upper()
+          nom_enfant = st.text_input(
+              "Nom et Prénom de l'enfant (Ex: KOUASSI JEAN)"
+          ).upper()
         with c2:
           sexe = st.selectbox("Sexe", ["M", "F"])
           date_naissance = st.text_input("Date de naissance / Âge")
-        ville_choix = st.selectbox("Commune / Ville", liste_communes)
+
+        ville_choix = st.selectbox(
+            "Commune / Ville de résidence", liste_communes
+        )
+        ville_autre = st.text_input(
+            "Si 'AUTRE' sélectionné, précisez la ville :"
+        ).upper()
+
+        st.markdown("---")
+        st.markdown("##### 👪 Informations du parent & Statut")
         c3, c4 = st.columns(2)
         with c3:
-          nom_parent = st.text_input("Nom et prénoms du parent").upper()
-          numero_tel = st.text_input("Téléphone du parent")
+          nom_parent = st.text_input(
+              "Nom et prénoms du parent (Ex: KOUASSI MARC)"
+          ).upper()
+          numero_tel = st.text_input("Numéro de téléphone du parent")
         with c4:
           adhesion = st.selectbox("Statut d'Adhésion", ["OK", "En attente"])
+
+        st.markdown("<br>", unsafe_allow_html=True)
         submitted = st.form_submit_button(
-            "💾 Valider et enregistrer", use_container_width=True
+            "💾 Valider et enregistrer le membre", use_container_width=True
         )
-        if submitted and nom_enfant and nom_parent:
-          try:
-            date_heure_actuelle = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            nouvelle_ligne = [
-                matricule_auto,
-                nom_enfant,
-                date_naissance,
-                sexe,
-                ville_choix,
-                nom_parent,
-                str(numero_tel),
-                adhesion,
-                date_heure_actuelle,
-                f"{user_nom} ({user_zone})",
-            ]
-            sheet.append_row(nouvelle_ligne)
-            st.cache_data.clear()
-            st.success(f"✅ Membre {matricule_auto} enregistré !")
-            st.rerun()
-          except Exception as e:
-            st.error(f"❌ Erreur : {e}")
+
+        if submitted:
+          ville_finale = (
+              ville_autre
+              if ville_choix.startswith("AUTRE") and ville_autre
+              else ville_choix
+          )
+
+          if nom_enfant and nom_parent:
+            try:
+              date_heure_actuelle = datetime.now().strftime(
+                  "%Y-%m-%d %H:%M:%S"
+              )
+              auteur_enregistrement = f"{user_nom} ({user_zone})"
+
+              nouvelle_ligne = [
+                  matricule_auto,
+                  nom_enfant,
+                  date_naissance,
+                  sexe,
+                  ville_finale,
+                  nom_parent,
+                  str(numero_tel),
+                  adhesion,
+                  date_heure_actuelle,
+                  auteur_enregistrement,
+              ]
+              sheet.append_row(nouvelle_ligne)
+              st.cache_data.clear()
+              st.session_state["toast_msg"] = (
+                  f"✅ Membre {matricule_auto} enregistré avec succès !"
+              )
+              st.balloons()
+              st.rerun()
+            except Exception as e:
+              st.error(f"❌ Erreur : {e}")
+          else:
+            st.error("⚠️ Veuillez renseigner le nom de l'enfant et du parent.")
 
   # ==========================================
   # 3. MODIFIER / SUPPRIMER
   # ==========================================
   elif menu == "✏️ Modifier / Supprimer":
     st.subheader(f"✏️ Modifier ou Supprimer - {choix_zone_label}")
+
     if not df_f.empty and col_membre in df_f.columns:
-      recherche_edit = st.text_input("🔍 Rechercher...", key="recherche_edit")
-      df_edit_filtered = (
-          df_f[
-              df_f.astype(str)
-              .apply(
-                  lambda row: row.str.contains(
-                      recherche_edit, case=False, na=False
-                  ).any(),
-                  axis=1,
-              )
-          ]
-          if recherche_edit
-          else df_f
+      recherche_edit = st.text_input(
+          "🔍 Rechercher dans votre zone...", key="recherche_edit"
       )
+
+      if recherche_edit:
+        mask_edit = df_f.astype(str).apply(
+            lambda row: row.str.contains(
+                recherche_edit, case=False, na=False
+            ).any(),
+            axis=1,
+        )
+        df_edit_filtered = df_f[mask_edit]
+      else:
+        df_edit_filtered = df_f
+
       if not df_edit_filtered.empty:
+        liste_membres = df_edit_filtered[col_membre].astype(str).tolist()
         choix_membre = st.selectbox(
             "Sélectionner le membre",
-            df_edit_filtered[col_membre].astype(str).tolist(),
+            liste_membres,
+            format_func=lambda m: (
+                f"{m} - "
+                f"{df_edit_filtered[df_edit_filtered[col_membre].astype(str) == m][col_enfant].values[0]}"
+                if col_enfant in df_edit_filtered.columns
+                else m
+            ),
         )
+
         membre_actuel = df[df[col_membre].astype(str) == choix_membre].iloc[0]
+
+        st.markdown("---")
+        choix_action = st.radio(
+            "Action à effectuer",
+            ["Modifier les informations", "Supprimer le membre"],
+            horizontal=True,
+        )
+
         with st.container(border=True):
-          with st.form("form_modification"):
-            m_nom_enfant = st.text_input(
-                "Nom", value=str(membre_actuel.get(col_enfant, ""))
-            ).upper()
-            m_date_nais = st.text_input(
-                "Date de naissance",
-                value=str(membre_actuel.get(col_date, "")),
-            )
-            m_ville = st.text_input(
-                "Ville", value=str(membre_actuel.get(col_ville, ""))
-            ).upper()
-            m_nom_parent = st.text_input(
-                "Parent", value=str(membre_actuel.get(col_parent, ""))
-            ).upper()
-            m_tel = st.text_input(
-                "Téléphone", value=str(membre_actuel.get(col_tel, ""))
-            )
-            m_adhesion = st.selectbox(
-                "Adhésion", ["OK", "En attente"], index=0
-            )
-            if st.form_submit_button("💾 Mettre à jour"):
-              cell = sheet.find(str(choix_membre))
-              sheet.update_cell(cell.row, 2, m_nom_enfant)
-              sheet.update_cell(cell.row, 3, m_date_nais)
-              sheet.update_cell(cell.row, 5, m_ville)
-              sheet.update_cell(cell.row, 6, m_nom_parent)
-              sheet.update_cell(cell.row, 7, str(m_tel))
-              sheet.update_cell(cell.row, 8, m_adhesion)
-              st.cache_data.clear()
-              st.success("✅ Mis à jour avec succès !")
-              st.rerun()
+          if choix_action == "Modifier les informations":
+            with st.form("form_modification", clear_on_submit=True):
+              m_nom_enfant = st.text_input(
+                  "Nom et Prénom",
+                  value=str(membre_actuel.get(col_enfant, "")),
+              ).upper()
+              m_date_nais = st.text_input(
+                  "Date de naissance",
+                  value=str(membre_actuel.get(col_date, "")),
+              )
+              val_sexe = str(membre_actuel.get(col_sexe, "M")).upper()
+              m_sexe = st.selectbox(
+                  "Sexe", ["M", "F"], index=0 if val_sexe == "M" else 1
+              )
+              m_ville = st.text_input(
+                  "Ville", value=str(membre_actuel.get(col_ville, ""))
+              ).upper()
+              m_nom_parent = st.text_input(
+                  "Parent", value=str(membre_actuel.get(col_parent, ""))
+              ).upper()
+              m_tel = st.text_input(
+                  "Téléphone", value=str(membre_actuel.get(col_tel, ""))
+              )
+              val_adh = str(membre_actuel.get(col_adh, "OK")).upper()
+              m_adhesion = st.selectbox(
+                  "Adhésion",
+                  ["OK", "En attente"],
+                  index=0 if "OK" in val_adh else 1,
+              )
+
+              btn_modifier = st.form_submit_button("💾 Mettre à jour")
+
+              if btn_modifier:
+                try:
+                  cell = sheet.find(str(choix_membre))
+                  row_idx = cell.row
+                  sheet.update_cell(row_idx, 2, m_nom_enfant)
+                  sheet.update_cell(row_idx, 3, m_date_nais)
+                  sheet.update_cell(row_idx, 4, m_sexe)
+                  sheet.update_cell(row_idx, 5, m_ville)
+                  sheet.update_cell(row_idx, 6, m_nom_parent)
+                  sheet.update_cell(row_idx, 7, str(m_tel))
+                  sheet.update_cell(row_idx, 8, m_adhesion)
+                  st.cache_data.clear()
+                  st.session_state["toast_msg"] = (
+                      f"✅ Membre {choix_membre} mis à jour !"
+                  )
+                  st.rerun()
+                except Exception as e:
+                  st.error(f"❌ Erreur : {e}")
+          else:
+            st.warning(f"⚠️ Suppression définitive du membre {choix_membre}")
+            confirmer = st.checkbox("Je confirme la suppression définitive")
+            if st.button("🗑️ Confirmer la suppression", type="primary"):
+              if confirmer:
+                try:
+                  cell = sheet.find(str(choix_membre))
+                  sheet.delete_rows(cell.row)
+                  st.cache_data.clear()
+                  st.session_state["toast_msg"] = (
+                      f"✅ Membre {choix_membre} supprimé !"
+                  )
+                  st.rerun()
+                except Exception as e:
+                  st.error(f"❌ Erreur : {e}")
+              else:
+                st.error("⚠️ Cochez la case de confirmation.")
+      else:
+        st.warning("⚠️ Aucun membre trouvé.")
+    else:
+      st.info("Aucun membre disponible.")
 
   # ==========================================
-  # 4. LISTE & REPERTOIRE + CARTE 100% IDENTIQUE
+  # 4. LISTE & REPERTOIRE + CARTES DE MEMBRE
   # ==========================================
   elif menu == "📋 Liste & Répertoire":
     st.subheader(f"📋 Répertoire & Cartes - {choix_zone_label}")
 
     recherche = st.text_input("🔍 Rechercher un membre...", key="recherche_liste")
-    df_affiche = (
-        df_f[
-            df_f.astype(str)
-            .apply(
-                lambda row: row.str.contains(
-                    recherche, case=False, na=False
-                ).any(),
-                axis=1,
-            )
-        ]
-        if recherche
-        else df_f
-    )
 
-    tab_liste, tab_cartes = st.tabs([
-        "📋 Liste Générale",
-        "🪪 Carte de Membre (Modèle Identique)",
-    ])
-
-    with tab_liste:
-      if not df_affiche.empty:
-        st.dataframe(
-            df_affiche[[c for c in df_affiche.columns if c != "Zone_Geographique"]],
-            use_container_width=True,
+    if not df_f.empty:
+      if recherche:
+        mask = df_f.astype(str).apply(
+            lambda row: row.str.contains(recherche, case=False, na=False).any(),
+            axis=1,
         )
+        df_affiche = df_f[mask]
+        st.info(f"ℹ️ Résultats trouvés : {len(df_affiche)}")
       else:
-        st.warning("Aucun membre trouvé.")
+        df_affiche = df_f
 
-    with tab_cartes:
-      st.markdown(
-          "##### 🪪 Impression de la Carte Conforme au Modèle Officiel"
-      )
+      tab_liste, tab_cartes = st.tabs([
+          "📋 Liste Générale",
+          "🪪 Cartes d'Adhérents (Adhésion OK)",
+      ])
 
-      if col_adh in df_affiche.columns:
-        df_ok = df_affiche[
-            df_affiche[col_adh].astype(str).str.upper().str.strip() == "OK"
-        ]
-      else:
-        df_ok = pd.DataFrame()
+      with tab_liste:
+        total_lignes = len(df_affiche)
+        if total_lignes > 0:
+          col_pg1, col_pg2 = st.columns([1, 2])
+          with col_pg1:
+            lignes_par_page = st.selectbox(
+                "Lignes par page", [10, 25, 50, 100], index=0, key="lignes_page"
+            )
 
-      if not df_ok.empty:
-        c_sel, c_img = st.columns([2, 1])
-        with c_sel:
-          membre_selectionne = st.selectbox(
-              "1. Sélectionnez l'enfant :",
-              df_ok[col_membre].astype(str).tolist(),
-              format_func=lambda m: (
-                  f"{m} - "
-                  f"{df_ok[df_ok[col_membre].astype(str) == m][col_enfant].values[0]}"
+          total_pages = math.ceil(total_lignes / lignes_par_page)
+
+          with col_pg2:
+            page_actuelle = st.selectbox(
+                "Sélectionner la page",
+                range(1, total_pages + 1),
+                format_func=lambda x: f"Page {x} / {total_pages}",
+                key="select_page",
+            )
+
+          debut = (page_actuelle - 1) * lignes_par_page
+          fin = min(debut + lignes_par_page, total_lignes)
+          df_page = df_affiche.iloc[debut:fin]
+
+          with st.container(border=True):
+            cols_affichage = [
+                c for c in df_page.columns if c != "Zone_Geographique"
+            ]
+            st.dataframe(df_page[cols_affichage], use_container_width=True)
+
+          output = BytesIO()
+          with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+            df_affiche.to_excel(writer, index=False, sheet_name="Membres")
+          excel_data = output.getvalue()
+
+          st.download_button(
+              label="📥 Exporter la liste filtrée en Excel (.xlsx)",
+              data=excel_data,
+              file_name=f"Membres_{choix_zone_label.replace(' ', '_')}.xlsx",
+              mime=(
+                  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
               ),
           )
-        with c_img:
-          photo_file = st.file_uploader(
-              "2. Photo de l'enfant", type=["jpg", "png", "jpeg"]
+        else:
+          st.warning("⚠️ Aucun membre ne correspond à votre recherche.")
+
+      with tab_cartes:
+        st.markdown("##### 🪪 Cartes d'Adhésion Prêtes à l'Impression")
+
+        if col_adh in df_affiche.columns:
+          df_ok = df_affiche[
+              df_affiche[col_adh].astype(str).str.upper().str.strip() == "OK"
+          ]
+        else:
+          df_ok = pd.DataFrame()
+
+        if not df_ok.empty:
+          st.success(
+              f"✅ {len(df_ok)} membre(s) éligible(s) pour l'impression de carte."
           )
 
-        if membre_selectionne:
-          row_m = df_ok[
-              df_ok[col_membre].astype(str) == membre_selectionne
-          ].iloc[0]
+          liste_choix_carte = df_ok[col_membre].astype(str).tolist()
+          membre_selectionne = st.selectbox(
+              "Sélectionnez le membre pour générer sa carte :",
+              liste_choix_carte,
+              format_func=lambda m: (
+                  f"{m} -"
+                  f" {df_ok[df_ok[col_membre].astype(str) == m][col_enfant].values[0]}"
+              ),
+          )
 
-          if photo_file is not None:
-            img_src = (
-                f"data:image/png;base64,"
-                f"{base64.b64encode(photo_file.getvalue()).decode()}"
-            )
-          else:
-            img_src = (
-                "https://via.placeholder.com/130x150/e9ecef/6c757d?text=PHOTO"
-            )
+          if membre_selectionne:
+            row_m = df_ok[
+                df_ok[col_membre].astype(str) == membre_selectionne
+            ].iloc[0]
 
-          fond_path = "fond_carte.jpg"
-          if os.path.exists(fond_path):
-            with open(fond_path, "rb") as f:
-              fond_base64 = base64.b64encode(f.read()).decode()
-            bg_style = f"background-image: url('data:image/jpeg;base64,{fond_base64}'); background-size: cover; background-position: center;"
-          else:
-            bg_style = "background-color: #ffffff; border: 2px solid #28a745;"
-            st.warning(
-                "⚠️ Astuce : Mettez l'image vierge de la carte sous le nom"
-                " 'fond_carte.jpg' dans votre dossier GitHub pour un rendu"
-                " pixel-parfait !"
+            nom_complet_enfant = (
+                str(row_m.get(col_enfant, "")).upper().split(" ", 1)
+            )
+            nom_enfant = nom_complet_enfant[0]
+            prenom_enfant = (
+                nom_complet_enfant[1] if len(nom_complet_enfant) > 1 else ""
             )
 
-          nom_complet = str(row_m.get(col_enfant, "")).upper().split(" ", 1)
-          nom_e = nom_complet[0]
-          prenom_e = nom_complet[1] if len(nom_complet) > 1 else ""
-          nom_p = str(row_m.get(col_parent, "")).upper()
-          num_m = str(row_m.get(col_membre, ""))
-          date_adh = str(
-              row_m.get(df.columns[8] if len(df.columns) > 8 else "", "")
-          ).split(" ")[0]
-          tel_p = str(row_m.get(col_tel, ""))
+            nom_parent = str(row_m.get(col_parent, "")).upper()
+            num_membre = str(row_m.get(col_membre, ""))
+            date_adhesion = str(
+                row_m.get(df.columns[8] if len(df.columns) > 8 else "", "")
+            ).split(" ")[0]
+            tel_parent = str(row_m.get(col_tel, ""))
 
-          html_carte = f"""
-                <div style="display: flex; justify-content: center; padding: 15px;">
-                    <div style="
-                        width: 620px;
-                        height: 390px;
-                        {bg_style}
-                        border-radius: 16px;
-                        position: relative;
-                        box-shadow: 0 10px 25px rgba(0,0,0,0.25);
-                        font-family: Arial, sans-serif;
-                    ">
-                        <div style="
-                            position: absolute;
-                            left: 38px;
-                            top: 48px;
-                            width: 132px;
-                            height: 152px;
-                            border-radius: 10px;
-                            overflow: hidden;
-                            background: #fff;
-                        ">
-                            <img src="{img_src}" style="width: 100%; height: 100%; object-fit: cover;">
-                        </div>
+            html_carte = f"""
+            <div id="carte-membre" style="
+                width: 500px;
+                height: 310px;
+                background: #ffffff;
+                border-radius: 18px;
+                border: 2px solid #1e7e34;
+                padding: 18px;
+                font-family: 'Arial', sans-serif;
+                position: relative;
+                box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+                background-image: linear-gradient(135deg, rgba(40,167,69,0.05) 0%, rgba(255,127,0,0.05) 100%);
+                overflow: hidden;
+            ">
+                <div style="position: absolute; top: 0; right: 0; width: 120px; height: 120px; background: #28a745; border-radius: 0 0 0 100%; opacity: 0.85;"></div>
+                <div style="position: absolute; top: 0; right: 0; width: 90px; height: 90px; background: #ff7f00; border-radius: 0 0 0 100%;"></div>
 
-                        <div style="
-                            position: absolute;
-                            left: 215px;
-                            top: 132px;
-                            width: 375px;
-                            font-size: 13px;
-                            font-weight: bold;
-                            color: #111;
-                            line-height: 24px;
-                        ">
-                            <div style="margin-bottom: 1px;"><span style="color: #000; font-weight: normal; display:inline-block; width:145px;">Nom de l'enfant :</span> <span style="font-weight: 800;">{nom_e}</span></div>
-                            <div style="margin-bottom: 1px;"><span style="color: #000; font-weight: normal; display:inline-block; width:145px;">Prénom de l'enfant :</span> <span style="font-weight: 800;">{prenom_e}</span></div>
-                            <div style="margin-bottom: 1px;"><span style="color: #000; font-weight: normal; display:inline-block; width:145px;">Nom & prénom du parent :</span> <span style="font-weight: 700; font-size: 12px;">{nom_p}</span></div>
-                            <div style="margin-bottom: 1px;"><span style="color: #000; font-weight: normal; display:inline-block; width:145px;">N° Membre :</span> <span style="color: #1e7e34; font-weight: 900;">{num_m}</span></div>
-                            <div style="margin-bottom: 1px;"><span style="color: #000; font-weight: normal; display:inline-block; width:145px;">Date d'adhésion :</span> <span style="font-weight: 700;">{date_adh}</span></div>
-                            <div><span style="color: #000; font-weight: normal; display:inline-block; width:145px;">Numéro du parent :</span> <span style="font-weight: 700;">{tel_p}</span></div>
+                <div style="display: flex; justify: space-between; align-items: center; margin-bottom: 10px;">
+                    <div>
+                        <h2 style="color: #1e7e34; margin: 0; font-size: 20px; font-weight: 900;">ONG</h2>
+                        <h1 style="color: #ff7f00; margin: 0; font-size: 22px; font-weight: 900; letter-spacing: 0.5px;">DIEU POURVOIRA</h1>
+                        <div style="background: #1e7e34; color: white; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; display: inline-block; margin-top: 3px;">
+                            CARTE DE MEMBRE
                         </div>
                     </div>
+                    <div style="width: 85px; height: 95px; border: 2px solid #1e7e34; border-radius: 10px; background: #e9ecef; display: flex; align-items: center; justify-content: center; color: #6c757d; font-size: 10px; z-index: 2; margin-right: 15px;">
+                        <span>PHOTO</span>
+                    </div>
                 </div>
-                """
 
-          st.components.v1.html(html_carte, height=430)
-          st.button(
-              "🖨️ Lancer l'impression de la carte",
-              use_container_width=True,
-              on_click=lambda: st.toast("Impression en cours...", icon="🖨️"),
-          )
-      else:
-        st.warning("⚠️ Aucun membre actif (Adhésion OK) trouvé.")
+                <div style="font-size: 11px; color: #212529; line-height: 1.6; margin-top: 5px;">
+                    <div style="margin-bottom: 2px;"><strong>Nom de l'enfant :</strong> <span style="border-bottom: 1px dotted #6c757d; display: inline-block; width: 280px; color: #000;">{nom_enfant}</span></div>
+                    <div style="margin-bottom: 2px;"><strong>Prénom de l'enfant :</strong> <span style="border-bottom: 1px dotted #6c757d; display: inline-block; width: 265px; color: #000;">{prenom_enfant}</span></div>
+                    <div style="margin-bottom: 2px;"><strong>Nom & prénom du parent :</strong> <span style="border-bottom: 1px dotted #6c757d; display: inline-block; width: 220px; color: #000;">{nom_parent}</span></div>
+                    <div style="margin-bottom: 2px;"><strong>N° Membre :</strong> <span style="border-bottom: 1px dotted #6c757d; display: inline-block; width: 290px; color: #1e7e34; font-weight: bold;">{num_membre}</span></div>
+                    <div style="margin-bottom: 2px;"><strong>Date d'adhésion :</strong> <span style="border-bottom: 1px dotted #6c757d; display: inline-block; width: 265px; color: #000;">{date_adhesion}</span></div>
+                    <div style="margin-bottom: 2px;"><strong>Numéro du parent :</strong> <span style="border-bottom: 1px dotted #6c757d; display: inline-block; width: 255px; color: #000;">{tel_parent}</span></div>
+                </div>
+
+                <div style="position: absolute; bottom: 0; left: 0; right: 0; background: #1e7e34; color: white; padding: 6px 12px; font-size: 9px; text-align: center;">
+                    ❤️ <i>Ensemble aidons les enfants atteints de Paralysie cérébrale</i> ❤️<br>
+                    📞 <strong>Contact :</strong> +225 77 71 04 41 8 / 05 86 99 73 27
+                </div>
+            </div>
+            """
+
+            st.components.v1.html(html_carte, height=330)
+            st.button(
+                "🖨️ Imprimer la Carte",
+                on_click=lambda: st.toast(
+                    "Lancement de l'impression...", icon="🖨️"
+                ),
+            )
+        else:
+          st.warning("⚠️ Aucun membre actif (Adhésion OK) dans cette sélection.")
+    else:
+      st.warning("⚠️ Aucune donnée disponible.")
 
   # ==========================================
   # 5. STOCK DES DONS
   # ==========================================
   elif menu == "📦 Stock des Dons":
     st.subheader("📦 Stock & Réception des Dons")
+
     with st.container(border=True):
       with st.form("form_entree_don", clear_on_submit=True):
         type_don = st.selectbox(
@@ -871,129 +1039,177 @@ else:
                 "Produits d'Hygiène / Couches",
                 "Vivres / Alimentation",
                 "Vêtements",
-                "Don Financier",
+                "Don Financier (FCFA)",
                 "Autre",
             ],
         )
-        designation = st.text_input("Désignation").upper()
-        donateur = st.text_input("Donateur").upper()
-        quantite_recue = st.number_input("Quantité", min_value=1, value=1)
-        valeur_estimee = st.number_input("Valeur (FCFA)", min_value=0, value=0)
-        if st.form_submit_button(
+        designation = st.text_input(
+            "Désignation (Ex: Fauteuils Roulants Enfant)"
+        ).upper()
+        donateur = st.text_input("Donateur / Partenaire").upper()
+        quantite_recue = st.number_input(
+            "Quantité reçue", min_value=1, value=1, step=1
+        )
+        valeur_estimee = st.number_input(
+            "Valeur estimée globale (FCFA)", min_value=0, value=0, step=5000
+        )
+
+        btn_save_don = st.form_submit_button(
             "📥 Enregistrer en Stock", use_container_width=True
-        ):
+        )
+
+        if btn_save_don:
           if designation:
-            ws_stock = spreadsheet.worksheet("Dons_Stock")
-            id_don = f"DON-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-            ws_stock.append_row(
-                [
-                    id_don,
-                    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    type_don,
-                    designation,
-                    int(quantite_recue),
-                    int(quantite_recue),
-                    int(valeur_estimee),
-                    donateur if donateur else "ANONYME",
-                    user_zone,
-                    user_nom,
-                ],
-                value_input_option="USER_ENTERED",
-            )
-            st.cache_data.clear()
-            st.success("✅ Don enregistré avec succès !")
-            st.rerun()
+            try:
+              ws_stock = spreadsheet.worksheet("Dons_Stock")
+              date_du_jour = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+              id_don = f"DON-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+
+              nouvelle_ligne_don = [
+                  id_don,
+                  date_du_jour,
+                  type_don,
+                  designation,
+                  int(quantite_recue),
+                  int(quantite_recue),
+                  int(valeur_estimee),
+                  donateur if donateur else "ANONYME",
+                  user_zone,
+                  f"{user_nom}",
+              ]
+              ws_stock.append_row(
+                  nouvelle_ligne_don, value_input_option="USER_ENTERED"
+              )
+              st.cache_data.clear()
+              st.session_state["toast_msg"] = (
+                  f"✅ Don '{designation}' enregistré en stock !"
+              )
+              st.rerun()
+            except Exception as e:
+              st.error(f"❌ Erreur lors de l'enregistrement : {e}")
+          else:
+            st.error("⚠️ Saisissez une désignation.")
 
     st.markdown("---")
     st.markdown("### 📊 État actuel des Stocks")
-    if not df_stock.empty:
-      st.dataframe(df_stock, use_container_width=True)
-    else:
-      st.info("Aucun stock.")
+    with st.container(border=True):
+      if not df_stock.empty:
+        st.dataframe(df_stock, use_container_width=True)
+      else:
+        st.info("Aucun stock pour le moment.")
 
   # ==========================================
   # 6. REMISE DE DONS
   # ==========================================
-  elif menu == "🎁 Remise de Dons":
+  elif menu == "🎁 Remise de Dons" or menu == "🎁 Remise & Traçabilité":
     st.subheader("🎁 Attribution & Remise de Don aux Enfants")
+
     if not df.empty and not df_stock.empty:
-      df_stock_dispo = df_stock[
-          pd.to_numeric(df_stock["Stock_Actuel"], errors="coerce").fillna(0) > 0
-      ]
+      if "Stock_Actuel" in df_stock.columns:
+        df_stock_dispo = df_stock[
+            pd.to_numeric(df_stock["Stock_Actuel"], errors="coerce").fillna(0)
+            > 0
+        ]
+      else:
+        df_stock_dispo = df_stock
+
       if not df_stock_dispo.empty:
         with st.container(border=True):
           with st.form("form_remise_don", clear_on_submit=True):
+            liste_enfants = df[col_membre].astype(str).tolist()
             choix_enfant_don = st.selectbox(
-                "Enfant bénéficiaire",
-                df[col_membre].astype(str).tolist(),
+                "1. Enfant bénéficiaire",
+                liste_enfants,
                 format_func=lambda m: (
                     f"{m} - "
                     f"{df[df[col_membre].astype(str) == m][col_enfant].values[0]}"
                 ),
             )
+
+            liste_dons_dispo = df_stock_dispo["ID_Don"].astype(str).tolist()
             choix_don = st.selectbox(
-                "Don à remettre",
-                df_stock_dispo["ID_Don"].astype(str).tolist(),
+                "2. Don à remettre",
+                liste_dons_dispo,
                 format_func=lambda d: (
                     f"{d} - "
-                    f"{df_stock_dispo[df_stock_dispo['ID_Don'].astype(str) == d]['Designation'].values[0]}"
+                    f"{df_stock_dispo[df_stock_dispo['ID_Don'].astype(str) == d]['Designation'].values[0]} "
+                    f"(Reste: {df_stock_dispo[df_stock_dispo['ID_Don'].astype(str) == d]['Stock_Actuel'].values[0]})"
                 ),
             )
+
             quantite_remise = st.number_input(
-                "Quantité remise", min_value=1, value=1
+                "3. Quantité remise", min_value=1, value=1, step=1
             )
-            if st.form_submit_button(
-                "🎁 Valider la Remise", use_container_width=True
-            ):
-              enfant_info = df[
-                  df[col_membre].astype(str) == choix_enfant_don
-              ].iloc[0]
-              don_info = df_stock_dispo[
-                  df_stock_dispo["ID_Don"].astype(str) == choix_don
-              ].iloc[0]
-              stock_actuel = int(don_info.get("Stock_Actuel", 1))
 
-              if quantite_remise <= stock_actuel:
-                ws_distrib = spreadsheet.worksheet("Remise de Dons")
-                ws_stock = spreadsheet.worksheet("Dons_Stock")
-                id_dist = f"DIST-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            btn_remettre = st.form_submit_button(
+                "🎁 Valider la Remise du Don", use_container_width=True
+            )
 
-                ws_distrib.append_row(
-                    [
-                        id_dist,
-                        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                        choix_enfant_don,
-                        enfant_info.get(col_enfant, ""),
-                        enfant_info.get(col_parent, ""),
-                        don_info.get("Designation", ""),
-                        int(quantite_remise),
-                        user_zone,
-                        user_nom,
-                    ],
-                    value_input_option="USER_ENTERED",
-                )
+            if btn_remettre:
+              try:
+                enfant_info = df[
+                    df[col_membre].astype(str) == choix_enfant_don
+                ].iloc[0]
+                nom_e = enfant_info.get(col_enfant, "")
+                nom_p = enfant_info.get(col_parent, "")
 
-                cell = ws_stock.find(str(choix_don))
-                ws_stock.update_cell(cell.row, 6, stock_actuel - quantite_remise)
-                st.cache_data.clear()
-                st.success("🎁 Don remis avec succès !")
-                st.rerun()
-              else:
-                st.error("⚠️ Stock insuffisant.")
+                don_info = df_stock_dispo[
+                    df_stock_dispo["ID_Don"].astype(str) == choix_don
+                ].iloc[0]
+                designation_d = don_info.get("Designation", "")
+                stock_actuel = int(don_info.get("Stock_Actuel", 1))
+
+                if quantite_remise <= stock_actuel:
+                  ws_distrib = spreadsheet.worksheet("Remise de Dons")
+                  ws_stock = spreadsheet.worksheet("Dons_Stock")
+
+                  id_distrib = (
+                      f"DIST-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+                  )
+                  date_remise = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+                  ligne_distrib = [
+                      id_distrib,
+                      date_remise,
+                      choix_enfant_don,
+                      nom_e,
+                      nom_p,
+                      designation_d,
+                      int(quantite_remise),
+                      user_zone,
+                      f"{user_nom}",
+                  ]
+                  ws_distrib.append_row(
+                      ligne_distrib, value_input_option="USER_ENTERED"
+                  )
+
+                  cell = ws_stock.find(str(choix_don))
+                  nouv_stock = stock_actuel - quantite_remise
+                  ws_stock.update_cell(cell.row, 6, nouv_stock)
+
+                  st.cache_data.clear()
+                  st.session_state["toast_msg"] = (
+                      f"🎁 Don remis à {nom_e} avec succès !"
+                  )
+                  st.rerun()
+                else:
+                  st.error(f"⚠️ Stock insuffisant (Reste : {stock_actuel})")
+              except Exception as e:
+                st.error(f"❌ Erreur lors de la remise : {e}")
       else:
-        st.warning("Aucun stock disponible.")
+        st.warning("⚠️ Aucun don disponible en stock.")
     else:
-      st.warning("Données insuffisantes.")
+      st.warning("⚠️ Données insuffisantes pour effectuer une remise.")
 
     st.markdown("---")
     st.markdown("### 📋 Historique global des Remises")
-    if not df_distrib.empty:
-      st.dataframe(df_distrib, use_container_width=True)
-    else:
-      st.info("Aucune distribution.")
+    with st.container(border=True):
+      if not df_distrib.empty:
+        st.dataframe(df_distrib, use_container_width=True)
+      else:
+        st.info("Aucune distribution enregistrée pour le moment.")
 
   if "toast_msg" in st.session_state:
     st.toast(st.session_state["toast_msg"], icon="🎉")
-    success_msg = st.session_state["toast_msg"]
+    st.success(st.session_state["toast_msg"])
     del st.session_state["toast_msg"]
-    st.success(success_msg)
