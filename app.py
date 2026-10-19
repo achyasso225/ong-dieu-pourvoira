@@ -1,9 +1,11 @@
+import base64
 from datetime import datetime
 from io import BytesIO
 import math
+import os
 import re
-import gspread
 from google.oauth2.service_account import Credentials
+import gspread
 import pandas as pd
 import streamlit as st
 
@@ -853,7 +855,7 @@ else:
       st.info("Aucun membre disponible.")
 
   # ==========================================
-  # 4. LISTE & REPERTOIRE + CARTES DE MEMBRE
+  # 4. LISTE & REPERTOIRE + CARTES DE MEMBRE (FOND IDENTIQUE)
   # ==========================================
   elif menu == "📋 Liste & Répertoire":
     st.subheader(f"📋 Répertoire & Cartes - {choix_zone_label}")
@@ -873,7 +875,7 @@ else:
 
       tab_liste, tab_cartes = st.tabs([
           "📋 Liste Générale",
-          "🪪 Cartes d'Adhérents (Adhésion OK)",
+          "🪪 Cartes d'Adhérents (Modèle Identique)",
       ])
 
       with tab_liste:
@@ -922,7 +924,9 @@ else:
           st.warning("⚠️ Aucun membre ne correspond à votre recherche.")
 
       with tab_cartes:
-        st.markdown("##### 🪪 Cartes d'Adhésion Prêtes à l'Impression")
+        st.markdown(
+            "##### 🪪 Impression de la Carte Conforme au Modèle Officiel"
+        )
 
         if col_adh in df_affiche.columns:
           df_ok = df_affiche[
@@ -932,95 +936,119 @@ else:
           df_ok = pd.DataFrame()
 
         if not df_ok.empty:
-          st.success(
-              f"✅ {len(df_ok)} membre(s) éligible(s) pour l'impression de carte."
-          )
-
-          liste_choix_carte = df_ok[col_membre].astype(str).tolist()
-          membre_selectionne = st.selectbox(
-              "Sélectionnez le membre pour générer sa carte :",
-              liste_choix_carte,
-              format_func=lambda m: (
-                  f"{m} -"
-                  f" {df_ok[df_ok[col_membre].astype(str) == m][col_enfant].values[0]}"
-              ),
-          )
+          c_sel, c_img = st.columns([2, 1])
+          with c_sel:
+            membre_selectionne = st.selectbox(
+                "1. Sélectionnez l'enfant :",
+                df_ok[col_membre].astype(str).tolist(),
+                format_func=lambda m: (
+                    f"{m} - "
+                    f"{df_ok[df_ok[col_membre].astype(str) == m][col_enfant].values[0]}"
+                ),
+            )
+          with c_img:
+            photo_file = st.file_uploader(
+                "2. Photo de l'enfant", type=["jpg", "png", "jpeg"]
+            )
 
           if membre_selectionne:
             row_m = df_ok[
                 df_ok[col_membre].astype(str) == membre_selectionne
             ].iloc[0]
 
-            nom_complet_enfant = (
-                str(row_m.get(col_enfant, "")).upper().split(" ", 1)
-            )
-            nom_enfant = nom_complet_enfant[0]
-            prenom_enfant = (
-                nom_complet_enfant[1] if len(nom_complet_enfant) > 1 else ""
-            )
+            # Conversion photo enfant en Base64
+            if photo_file is not None:
+              img_src = (
+                  f"data:image/png;base64,"
+                  f"{base64.b64encode(photo_file.getvalue()).decode()}"
+              )
+            else:
+              img_src = (
+                  "https://via.placeholder.com/130x150/e9ecef/6c757d?text=PHOTO"
+              )
 
-            nom_parent = str(row_m.get(col_parent, "")).upper()
-            num_membre = str(row_m.get(col_membre, ""))
-            date_adhesion = str(
+            # Charger l'image de fond 'fond_carte.jpg' depuis le dossier du projet
+            fond_path = "fond_carte.jpg"
+            if os.path.exists(fond_path):
+              with open(fond_path, "rb") as f:
+                fond_base64 = base64.b64encode(f.read()).decode()
+              bg_style = f"background-image: url('data:image/jpeg;base64,{fond_base64}'); background-size: cover; background-position: center;"
+            else:
+              bg_style = "background-color: #ffffff; border: 2px solid #28a745;"
+              st.warning(
+                  "⚠️ Astuce : Mettez l'image vierge de la carte sous le nom"
+                  " 'fond_carte.jpg' dans votre dossier de projet pour un rendu"
+                  " 100% identique !"
+              )
+
+            nom_complet = str(row_m.get(col_enfant, "")).upper().split(" ", 1)
+            nom_e = nom_complet[0]
+            prenom_e = nom_complet[1] if len(nom_complet) > 1 else ""
+            nom_p = str(row_m.get(col_parent, "")).upper()
+            num_m = str(row_m.get(col_membre, ""))
+            date_adh = str(
                 row_m.get(df.columns[8] if len(df.columns) > 8 else "", "")
             ).split(" ")[0]
-            tel_parent = str(row_m.get(col_tel, ""))
+            tel_p = str(row_m.get(col_tel, ""))
 
+            # HTML avec positionnement précis superposé sur l'image de fond
             html_carte = f"""
-            <div id="carte-membre" style="
-                width: 500px;
-                height: 310px;
-                background: #ffffff;
-                border-radius: 18px;
-                border: 2px solid #1e7e34;
-                padding: 18px;
-                font-family: 'Arial', sans-serif;
-                position: relative;
-                box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-                background-image: linear-gradient(135deg, rgba(40,167,69,0.05) 0%, rgba(255,127,0,0.05) 100%);
-                overflow: hidden;
-            ">
-                <div style="position: absolute; top: 0; right: 0; width: 120px; height: 120px; background: #28a745; border-radius: 0 0 0 100%; opacity: 0.85;"></div>
-                <div style="position: absolute; top: 0; right: 0; width: 90px; height: 90px; background: #ff7f00; border-radius: 0 0 0 100%;"></div>
+                <div style="display: flex; justify-content: center; padding: 15px;">
+                    <div style="
+                        width: 620px;
+                        height: 390px;
+                        {bg_style}
+                        border-radius: 16px;
+                        position: relative;
+                        box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+                        font-family: Arial, sans-serif;
+                    ">
+                        <!-- Photo de l'enfant (Position exacte sur le cadre de gauche) -->
+                        <div style="
+                            position: absolute;
+                            left: 38px;
+                            top: 48px;
+                            width: 132px;
+                            height: 152px;
+                            border-radius: 10px;
+                            overflow: hidden;
+                            background: #fff;
+                        ">
+                            <img src="{img_src}" style="width: 100%; height: 100%; object-fit: cover;">
+                        </div>
 
-                <div style="display: flex; justify: space-between; align-items: center; margin-bottom: 10px;">
-                    <div>
-                        <h2 style="color: #1e7e34; margin: 0; font-size: 20px; font-weight: 900;">ONG</h2>
-                        <h1 style="color: #ff7f00; margin: 0; font-size: 22px; font-weight: 900; letter-spacing: 0.5px;">DIEU POURVOIRA</h1>
-                        <div style="background: #1e7e34; color: white; padding: 2px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; display: inline-block; margin-top: 3px;">
-                            CARTE DE MEMBRE
+                        <!-- Textes positionnés exactement sur les pointillés de la carte -->
+                        <div style="
+                            position: absolute;
+                            left: 215px;
+                            top: 132px;
+                            width: 375px;
+                            font-size: 13px;
+                            font-weight: bold;
+                            color: #111;
+                            line-height: 24px;
+                        ">
+                            <div style="margin-bottom: 1px;"><span style="color: #000; font-weight: normal; display:inline-block; width:145px;">Nom de l'enfant :</span> <span style="font-weight: 800;">{nom_e}</span></div>
+                            <div style="margin-bottom: 1px;"><span style="color: #000; font-weight: normal; display:inline-block; width:145px;">Prénom de l'enfant :</span> <span style="font-weight: 800;">{prenom_e}</span></div>
+                            <div style="margin-bottom: 1px;"><span style="color: #000; font-weight: normal; display:inline-block; width:145px;">Nom & prénom du parent :</span> <span style="font-weight: 700; font-size: 12px;">{nom_p}</span></div>
+                            <div style="margin-bottom: 1px;"><span style="color: #000; font-weight: normal; display:inline-block; width:145px;">N° Membre :</span> <span style="color: #1e7e34; font-weight: 900;">{num_m}</span></div>
+                            <div style="margin-bottom: 1px;"><span style="color: #000; font-weight: normal; display:inline-block; width:145px;">Date d'adhésion :</span> <span style="font-weight: 700;">{date_adh}</span></div>
+                            <div><span style="color: #000; font-weight: normal; display:inline-block; width:145px;">Numéro du parent :</span> <span style="font-weight: 700;">{tel_p}</span></div>
                         </div>
                     </div>
-                    <div style="width: 85px; height: 95px; border: 2px solid #1e7e34; border-radius: 10px; background: #e9ecef; display: flex; align-items: center; justify-content: center; color: #6c757d; font-size: 10px; z-index: 2; margin-right: 15px;">
-                        <span>PHOTO</span>
-                    </div>
                 </div>
+                """
 
-                <div style="font-size: 11px; color: #212529; line-height: 1.6; margin-top: 5px;">
-                    <div style="margin-bottom: 2px;"><strong>Nom de l'enfant :</strong> <span style="border-bottom: 1px dotted #6c757d; display: inline-block; width: 280px; color: #000;">{nom_enfant}</span></div>
-                    <div style="margin-bottom: 2px;"><strong>Prénom de l'enfant :</strong> <span style="border-bottom: 1px dotted #6c757d; display: inline-block; width: 265px; color: #000;">{prenom_enfant}</span></div>
-                    <div style="margin-bottom: 2px;"><strong>Nom & prénom du parent :</strong> <span style="border-bottom: 1px dotted #6c757d; display: inline-block; width: 220px; color: #000;">{nom_parent}</span></div>
-                    <div style="margin-bottom: 2px;"><strong>N° Membre :</strong> <span style="border-bottom: 1px dotted #6c757d; display: inline-block; width: 290px; color: #1e7e34; font-weight: bold;">{num_membre}</span></div>
-                    <div style="margin-bottom: 2px;"><strong>Date d'adhésion :</strong> <span style="border-bottom: 1px dotted #6c757d; display: inline-block; width: 265px; color: #000;">{date_adhesion}</span></div>
-                    <div style="margin-bottom: 2px;"><strong>Numéro du parent :</strong> <span style="border-bottom: 1px dotted #6c757d; display: inline-block; width: 255px; color: #000;">{tel_parent}</span></div>
-                </div>
-
-                <div style="position: absolute; bottom: 0; left: 0; right: 0; background: #1e7e34; color: white; padding: 6px 12px; font-size: 9px; text-align: center;">
-                    ❤️ <i>Ensemble aidons les enfants atteints de Paralysie cérébrale</i> ❤️<br>
-                    📞 <strong>Contact :</strong> +225 77 71 04 41 8 / 05 86 99 73 27
-                </div>
-            </div>
-            """
-
-            st.components.v1.html(html_carte, height=330)
+            st.components.v1.html(html_carte, height=430)
             st.button(
-                "🖨️ Imprimer la Carte",
+                "🖨️ Lancer l'impression de la carte",
+                use_container_width=True,
                 on_click=lambda: st.toast(
-                    "Lancement de l'impression...", icon="🖨️"
+                    "Impression en cours...", icon="🖨️"
                 ),
             )
         else:
-          st.warning("⚠️ Aucun membre actif (Adhésion OK) dans cette sélection.")
+          st.warning("⚠️ Aucun membre actif (Adhésion OK) trouvé.")
     else:
       st.warning("⚠️ Aucune donnée disponible.")
 
