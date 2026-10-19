@@ -587,7 +587,6 @@ else:
   # ==========================================
   elif menu == "➕ Enregistrer un Membre":
     st.subheader("📝 Nouvel Enregistrement")
-    # (Code inchangée pour l'enregistrement)
     liste_communes = [
         "ABOISSO",
         "ABOBO",
@@ -704,7 +703,7 @@ else:
               st.rerun()
 
   # ==========================================
-  # 4. LISTE & REPERTOIRE + CARTE 100% IDENTIQUE (SURPOSET FOND)
+  # 4. LISTE & REPERTOIRE + CARTE 100% IDENTIQUE
   # ==========================================
   elif menu == "📋 Liste & Répertoire":
     st.subheader(f"📋 Répertoire & Cartes - {choix_zone_label}")
@@ -771,7 +770,6 @@ else:
               df_ok[col_membre].astype(str) == membre_selectionne
           ].iloc[0]
 
-          # Conversion photo enfant en Base64
           if photo_file is not None:
             img_src = (
                 f"data:image/png;base64,"
@@ -782,7 +780,6 @@ else:
                 "https://via.placeholder.com/130x150/e9ecef/6c757d?text=PHOTO"
             )
 
-          # Charger l'image de fond 'fond_carte.jpg' si elle existe dans le dossier
           fond_path = "fond_carte.jpg"
           if os.path.exists(fond_path):
             with open(fond_path, "rb") as f:
@@ -806,7 +803,6 @@ else:
           ).split(" ")[0]
           tel_p = str(row_m.get(col_tel, ""))
 
-          # HTML avec positionnement précis sur l'image de fond
           html_carte = f"""
                 <div style="display: flex; justify-content: center; padding: 15px;">
                     <div style="
@@ -818,7 +814,6 @@ else:
                         box-shadow: 0 10px 25px rgba(0,0,0,0.25);
                         font-family: Arial, sans-serif;
                     ">
-                        <!-- Photo de l'enfant (Position exacte sur le cadre gris de gauche) -->
                         <div style="
                             position: absolute;
                             left: 38px;
@@ -832,7 +827,6 @@ else:
                             <img src="{img_src}" style="width: 100%; height: 100%; object-fit: cover;">
                         </div>
 
-                        <!-- Textes positionnés exactement sur les pointillés de la carte -->
                         <div style="
                             position: absolute;
                             left: 215px;
@@ -862,8 +856,6 @@ else:
           )
       else:
         st.warning("⚠️ Aucun membre actif (Adhésion OK) trouvé.")
-    else:
-      st.warning("Aucune donnée.")
 
   # ==========================================
   # 5. STOCK DES DONS
