@@ -825,7 +825,6 @@ else:
           ).split(" ")[0]
           tel_p = str(row_m.get(col_tel, ""))
 
-          # HTML avec coordonnées parfaitement ajustées pour s'aligner après les libellés de fond
           html_carte = f"""
                 <div style="display: flex; justify-content: center; padding: 15px;">
                     <div style="
@@ -882,8 +881,6 @@ else:
           )
       else:
         st.warning("⚠️ Aucun membre actif (Adhésion OK) trouvé.")
-    else:
-      st.warning("⚠️ Aucune donnée disponible.")
 
   # ==========================================
   # 5. STOCK DES DONS
