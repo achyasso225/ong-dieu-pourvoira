@@ -855,7 +855,7 @@ else:
       st.info("Aucun membre disponible.")
 
   # ==========================================
-  # 4. LISTE & REPERTOIRE + CARTES DE MEMBRE INTÉGRÉES & THÉMATIQUES
+  # 4. LISTE & REPERTOIRE + CARTES DE MEMBRE INTÉGRÉES & THÉMATIQUES AVEC LOGO
   # ==========================================
   elif menu == "📋 Liste & Répertoire":
     st.subheader(f"📋 Répertoire & Cartes - {choix_zone_label}")
@@ -936,17 +936,16 @@ else:
           df_ok = pd.DataFrame()
 
         if not df_ok.empty:
-          # Choix du modèle de carte aux thèmes et logos de l'ONG
           modele_carte = st.radio(
               "🎨 Choisissez le modèle de carte officiel :",
               [
                   (
-                      "Modèle 1 : Classique Officiel (Vert, Blanc & Orange avec"
-                      " bandes harmonieuses)"
+                      "Modèle 1 : Classique Officiel avec Logo (Vert, Blanc &"
+                      " Orange)"
                   ),
                   (
-                      "Modèle 2 : Moderne & Épuré (Design épuré professionnel"
-                      " avec liseré)"
+                      "Modèle 2 : Moderne & Épuré avec En-tête Logo (Design"
+                      " épuré)"
                   ),
               ],
               horizontal=False,
@@ -972,6 +971,7 @@ else:
                 df_ok[col_membre].astype(str) == membre_selectionne
             ].iloc[0]
 
+            # Conversion de la photo de l'enfant
             if photo_file is not None:
               img_src = (
                   f"data:image/png;base64,"
@@ -980,6 +980,22 @@ else:
             else:
               img_src = (
                   "https://via.placeholder.com/130x150/e9ecef/6c757d?text=PHOTO"
+              )
+
+            # Conversion du logo de l'ONG (logo.png) en base64
+            logo_path = "logo.png"
+            if os.path.exists(logo_path):
+              with open(logo_path, "rb") as f_logo:
+                logo_b64 = base64.b64encode(f_logo.read()).decode()
+              logo_src = f"data:image/png;base64,{logo_b64}"
+            else:
+              # Logo générique de secours
+              logo_src = (
+                  "data:image/svg+xml;utf8,<svg"
+                  ' xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100'
+                  ' 100"><circle cx="50" cy="50" r="45" fill="%231e7e34"/><path'
+                  ' d="M50 25 L60 45 L80 45 L65 60 L70 80 L50 68 L30 80 L35 60'
+                  ' L20 45 L40 45 Z" fill="%23ff7f00"/></svg>'
               )
 
             nom_complet = str(row_m.get(col_enfant, "")).upper().split(" ", 1)
@@ -992,7 +1008,7 @@ else:
             ).split(" ")[0]
             tel_p = str(row_m.get(col_tel, ""))
 
-            # Génération HTML selon le modèle choisi
+            # HTML des cartes avec intégration du logo officiel de l'ONG
             if modele_carte.startswith("Modèle 1"):
               html_carte = f"""
                     <div style="display: flex; justify-content: center; padding: 15px;">
@@ -1007,24 +1023,24 @@ else:
                             font-family: Arial, sans-serif;
                             overflow: hidden;
                         ">
-                            <!-- Bande supérieure aux couleurs de l'ONG (Vert & Orange) -->
+                            <!-- Liseré supérieur aux couleurs officielles -->
                             <div style="position: absolute; top: 0; left: 0; right: 0; height: 14px; background: linear-gradient(90deg, #1e7e34 0%, #28a745 50%, #ff7f00 100%);"></div>
 
-                            <!-- En-tête -->
+                            <!-- En-tête officiel -->
                             <div style="text-align: center; padding-top: 20px;">
-                                <div style="font-size: 17px; font-weight: 900; color: #1e7e34; letter-spacing: 1px;">ONG DIEU POURVOIRA</div>
+                                <div style="font-size: 18px; font-weight: 900; color: #1e7e34; letter-spacing: 1px;">ONG DIEU POURVOIRA</div>
                                 <div style="background: #1e7e34; color: white; padding: 3px 20px; border-radius: 12px; font-size: 12px; font-weight: bold; display: inline-block; margin-top: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
                                     CARTE DE MEMBRE OFFICIELLE
                                 </div>
                             </div>
 
-                            <!-- Cadre photo à gauche -->
+                            <!-- Photo de l'enfant à gauche -->
                             <div style="
                                 position: absolute;
                                 left: 35px;
-                                top: 90px;
+                                top: 85px;
                                 width: 130px;
-                                height: 155px;
+                                height: 150px;
                                 border: 3px solid #1e7e34;
                                 border-radius: 10px;
                                 overflow: hidden;
@@ -1034,11 +1050,22 @@ else:
                                 <img src="{img_src}" style="width: 100%; height: 100%; object-fit: cover;">
                             </div>
 
-                            <!-- Informations alignées parfaitement sans décalage -->
+                            <!-- Logo officiel sous la photo -->
+                            <div style="
+                                position: absolute;
+                                left: 65px;
+                                top: 242px;
+                                width: 70px;
+                                height: 70px;
+                            ">
+                                <img src="{logo_src}" style="width: 100%; height: 100%; object-fit: contain;">
+                            </div>
+
+                            <!-- Détails de la carte -->
                             <div style="
                                 position: absolute;
                                 left: 185px;
-                                top: 88px;
+                                top: 85px;
                                 width: 415px;
                                 font-size: 13px;
                                 color: #212529;
@@ -1052,7 +1079,7 @@ else:
                                 <div style="border-bottom: 1px dotted #ccc; padding-bottom: 1px;"><span style="color: #6c757d; display: inline-block; width: 145px;">Contact parent :</span> <span style="font-weight: 700; color: #000;">{tel_p}</span></div>
                             </div>
 
-                            <!-- Pied de page -->
+                            <!-- Pied de page officiel -->
                             <div style="
                                 position: absolute;
                                 bottom: 0;
@@ -1085,17 +1112,21 @@ else:
                             font-family: Arial, sans-serif;
                             overflow: hidden;
                         ">
-                            <!-- En-tête Moderne Orange & Vert -->
-                            <div style="background: #1e7e34; color: white; padding: 12px; text-align: center; border-bottom: 4px solid #ff7f00;">
-                                <div style="font-size: 18px; font-weight: 900; letter-spacing: 1.5px;">ONG DIEU POURVOIRA</div>
-                                <div style="font-size: 11px; color: #e2f0d9; margin-top: 2px;">CARTE D'ADHÉRENT OFFICIELLE</div>
+                            <!-- En-tête Moderne avec Logo intégré -->
+                            <div style="background: #1e7e34; color: white; padding: 8px 15px; display: flex; align-items: center; justify-content: space-between; border-bottom: 4px solid #ff7f00;">
+                                <img src="{logo_src}" style="height: 42px; width: auto; background: #fff; padding: 2px; border-radius: 6px;">
+                                <div style="text-align: center; flex-grow: 1;">
+                                    <div style="font-size: 17px; font-weight: 900; letter-spacing: 1.5px;">ONG DIEU POURVOIRA</div>
+                                    <div style="font-size: 10px; color: #e2f0d9; font-weight: bold;">CARTE D'ADHÉRENT OFFICIELLE</div>
+                                </div>
+                                <div style="width: 42px;"></div>
                             </div>
 
                             <!-- Photo avec bordure orange -->
                             <div style="
                                 position: absolute;
                                 left: 35px;
-                                top: 95px;
+                                top: 90px;
                                 width: 130px;
                                 height: 155px;
                                 border: 3px solid #ff7f00;
@@ -1111,7 +1142,7 @@ else:
                             <div style="
                                 position: absolute;
                                 left: 185px;
-                                top: 95px;
+                                top: 90px;
                                 width: 415px;
                                 font-size: 13px;
                                 color: #212529;
