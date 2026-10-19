@@ -855,7 +855,7 @@ else:
       st.info("Aucun membre disponible.")
 
   # ==========================================
-  # 4. LISTE & REPERTOIRE + CARTES DE MEMBRE (FOND IDENTIQUE)
+  # 4. LISTE & REPERTOIRE + CARTES DE MEMBRE
   # ==========================================
   elif menu == "📋 Liste & Répertoire":
     st.subheader(f"📋 Répertoire & Cartes - {choix_zone_label}")
@@ -991,7 +991,7 @@ else:
             ).split(" ")[0]
             tel_p = str(row_m.get(col_tel, ""))
 
-            # HTML avec positionnement précis superposé sur l'image de fond
+            # HTML avec uniquement les valeurs superposées au bon endroit sur l'image de fond
             html_carte = f"""
                 <div style="display: flex; justify-content: center; padding: 15px;">
                     <div style="
@@ -1017,23 +1017,22 @@ else:
                             <img src="{img_src}" style="width: 100%; height: 100%; object-fit: cover;">
                         </div>
 
-                        <!-- Textes positionnés exactement sur les pointillés de la carte -->
+                        <!-- Uniquement les valeurs positionnées en face des pointillés de l'image de fond -->
                         <div style="
                             position: absolute;
-                            left: 215px;
-                            top: 132px;
-                            width: 375px;
+                            left: 360px;
+                            top: 130px;
+                            width: 230px;
                             font-size: 13px;
-                            font-weight: bold;
                             color: #111;
-                            line-height: 24px;
+                            line-height: 24.5px;
                         ">
-                            <div style="margin-bottom: 1px;"><span style="color: #000; font-weight: normal; display:inline-block; width:145px;">Nom de l'enfant :</span> <span style="font-weight: 800;">{nom_e}</span></div>
-                            <div style="margin-bottom: 1px;"><span style="color: #000; font-weight: normal; display:inline-block; width:145px;">Prénom de l'enfant :</span> <span style="font-weight: 800;">{prenom_e}</span></div>
-                            <div style="margin-bottom: 1px;"><span style="color: #000; font-weight: normal; display:inline-block; width:145px;">Nom & prénom du parent :</span> <span style="font-weight: 700; font-size: 12px;">{nom_p}</span></div>
-                            <div style="margin-bottom: 1px;"><span style="color: #000; font-weight: normal; display:inline-block; width:145px;">N° Membre :</span> <span style="color: #1e7e34; font-weight: 900;">{num_m}</span></div>
-                            <div style="margin-bottom: 1px;"><span style="color: #000; font-weight: normal; display:inline-block; width:145px;">Date d'adhésion :</span> <span style="font-weight: 700;">{date_adh}</span></div>
-                            <div><span style="color: #000; font-weight: normal; display:inline-block; width:145px;">Numéro du parent :</span> <span style="font-weight: 700;">{tel_p}</span></div>
+                            <div style="margin-bottom: 2px;"><span style="font-weight: 800;">{nom_e}</span></div>
+                            <div style="margin-bottom: 2px;"><span style="font-weight: 800;">{prenom_e}</span></div>
+                            <div style="margin-bottom: 2px;"><span style="font-weight: 700; font-size: 11px;">{nom_p}</span></div>
+                            <div style="margin-bottom: 2px;"><span style="color: #1e7e34; font-weight: 900;">{num_m}</span></div>
+                            <div style="margin-bottom: 2px;"><span style="font-weight: 700;">{date_adh}</span></div>
+                            <div><span style="font-weight: 700;">{tel_p}</span></div>
                         </div>
                     </div>
                 </div>
