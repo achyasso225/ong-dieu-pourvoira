@@ -458,6 +458,7 @@ if not st.session_state["user_connected"]:
 else:
   user_info = st.session_state["user_info"]
 
+  # Détection rôle / zone
   user_zone = ""
   for key in ["Zone / Rôle", "Zone", "Role", "Rôle"]:
     if key in user_info:
@@ -518,6 +519,7 @@ else:
     st.session_state["user_info"] = None
     st.rerun()
 
+  # Filtrage géographique
   if "Zone Sud" in user_zone or "Sud" in user_zone:
     df_f = df[df["Zone_Geographique"] == "Zone Sud"]
     choix_zone_label = "📍 Zone Sud"
@@ -825,7 +827,6 @@ else:
           ).split(" ")[0]
           tel_p = str(row_m.get(col_tel, ""))
 
-          # HTML avec coordonnées ajustées pour se caler parfaitement sur les pointillés
           html_carte = f"""
                 <div style="display: flex; justify-content: center; padding: 15px;">
                     <div style="
@@ -880,10 +881,8 @@ else:
                   "Impression en cours...", icon="🖨️"
               ),
           )
-        else:
-          st.warning("⚠️ Aucun membre actif (Adhésion OK) trouvé.")
-    else:
-      st.warning("⚠️ Aucune donnée disponible.")
+      else:
+        st.warning("⚠️ Aucun membre actif (Adhésion OK) trouvé.")
 
   # ==========================================
   # 5. STOCK DES DONS
