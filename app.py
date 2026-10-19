@@ -725,7 +725,7 @@ else:
               st.rerun()
 
   # ==========================================
-  # 4. LISTE & REPERTOIRE + CARTES DE MEMBRE
+  # 4. LISTE & REPERTOIRE + CARTES DE MEMBRE INTÉGRÉES
   # ==========================================
   elif menu == "📋 Liste & Répertoire":
     st.subheader(f"📋 Répertoire & Cartes - {choix_zone_label}")
@@ -747,7 +747,7 @@ else:
 
     tab_liste, tab_cartes = st.tabs([
         "📋 Liste Générale",
-        "🪪 Cartes d'Adhérents (Modèle Identique)",
+        "🪪 Cartes d'Adhérents (Design Officiel Intégré)",
     ])
 
     with tab_liste:
@@ -761,7 +761,7 @@ else:
 
     with tab_cartes:
       st.markdown(
-          "##### 🪪 Impression de la Carte Conforme au Modèle Officiel"
+          "##### 🪪 Génération de la Carte Officielle (Design Natif & Parfait)"
       )
 
       if col_adh in df_affiche.columns:
@@ -802,19 +802,6 @@ else:
                 "https://via.placeholder.com/130x150/e9ecef/6c757d?text=PHOTO"
             )
 
-          fond_path = "fond_carte.jpg"
-          if os.path.exists(fond_path):
-            with open(fond_path, "rb") as f:
-              fond_base64 = base64.b64encode(f.read()).decode()
-            bg_style = f"background-image: url('data:image/jpeg;base64,{fond_base64}'); background-size: cover; background-position: center;"
-          else:
-            bg_style = "background-color: #ffffff; border: 2px solid #28a745;"
-            st.warning(
-                "⚠️ Astuce : Mettez l'image vierge de la carte sous le nom"
-                " 'fond_carte.jpg' dans votre dossier de projet pour un rendu"
-                " 100% identique !"
-            )
-
           nom_complet = str(row_m.get(col_enfant, "")).upper().split(" ", 1)
           nom_e = nom_complet[0]
           prenom_e = nom_complet[1] if len(nom_complet) > 1 else ""
@@ -825,47 +812,80 @@ else:
           ).split(" ")[0]
           tel_p = str(row_m.get(col_tel, ""))
 
+          # Carte générée 100% en code HTML/CSS de haute précision (sans superposition d'image externe)
           html_carte = f"""
                 <div style="display: flex; justify-content: center; padding: 15px;">
                     <div style="
                         width: 620px;
                         height: 390px;
-                        {bg_style}
+                        background: #ffffff;
                         border-radius: 16px;
+                        border: 2px solid #1e7e34;
                         position: relative;
                         box-shadow: 0 10px 25px rgba(0,0,0,0.25);
                         font-family: Arial, sans-serif;
+                        overflow: hidden;
                     ">
-                        <!-- Photo de l'enfant (Position exacte sur le cadre de gauche) -->
+                        <!-- Bande supérieure décorative aux couleurs de l'ONG (Vert, Blanc, Orange) -->
+                        <div style="position: absolute; top: 0; left: 0; right: 0; height: 12px; background: linear-gradient(90deg, #1e7e34 0%, #28a745 50%, #ff7f00 100%);"></div>
+
+                        <!-- En-tête de la carte -->
+                        <div style="text-align: center; padding-top: 18px;">
+                            <div style="font-size: 16px; font-weight: 900; color: #1e7e34; letter-spacing: 1px;">ONG DIEU POURVOIRA</div>
+                            <div style="background: #1e7e34; color: white; padding: 3px 18px; border-radius: 12px; font-size: 12px; font-weight: bold; display: inline-block; margin-top: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
+                                CARTE DE MEMBRE OFFICIELLE
+                            </div>
+                        </div>
+
+                        <!-- Cadre Photo de l'enfant (À gauche) -->
                         <div style="
                             position: absolute;
-                            left: 38px;
-                            top: 48px;
-                            width: 132px;
-                            height: 152px;
+                            left: 35px;
+                            top: 85px;
+                            width: 130px;
+                            height: 155px;
+                            border: 3px solid #1e7e34;
                             border-radius: 10px;
                             overflow: hidden;
                             background: #fff;
+                            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
                         ">
                             <img src="{img_src}" style="width: 100%; height: 100%; object-fit: cover;">
                         </div>
 
-                        <!-- Valeurs positionnées précisément après les libellés imprimés de l'image de fond -->
+                        <!-- Contenu textuel structuré (À droite) -->
                         <div style="
                             position: absolute;
-                            left: 385px;
-                            top: 142px;
-                            width: 220px;
+                            left: 190px;
+                            top: 85px;
+                            width: 405px;
                             font-size: 13px;
-                            color: #111;
-                            line-height: 24px;
+                            color: #212529;
+                            line-height: 25px;
                         ">
-                            <div style="margin-bottom: 1px;"><span style="font-weight: 800;">{nom_e}</span></div>
-                            <div style="margin-bottom: 1px;"><span style="font-weight: 800;">{prenom_e}</span></div>
-                            <div style="margin-bottom: 1px;"><span style="font-weight: 700; font-size: 11px;">{nom_p}</span></div>
-                            <div style="margin-bottom: 1px;"><span style="color: #1e7e34; font-weight: 900;">{num_m}</span></div>
-                            <div style="margin-bottom: 1px;"><span style="font-weight: 700;">{date_adh}</span></div>
-                            <div><span style="font-weight: 700;">{tel_p}</span></div>
+                            <div style="border-bottom: 1px dotted #ccc; padding-bottom: 2px;"><span style="color: #6c757d; display: inline-block; width: 145px;">Nom de l'enfant :</span> <span style="font-weight: 800; color: #000;">{nom_e}</span></div>
+                            <div style="border-bottom: 1px dotted #ccc; padding-bottom: 2px;"><span style="color: #6c757d; display: inline-block; width: 145px;">Prénom de l'enfant :</span> <span style="font-weight: 800; color: #000;">{prenom_e}</span></div>
+                            <div style="border-bottom: 1px dotted #ccc; padding-bottom: 2px;"><span style="color: #6c757d; display: inline-block; width: 145px;">Parent :</span> <span style="font-weight: 700; color: #333; font-size: 12px;">{nom_p}</span></div>
+                            <div style="border-bottom: 1px dotted #ccc; padding-bottom: 2px;"><span style="color: #6c757d; display: inline-block; width: 145px;">N° Membre :</span> <span style="color: #1e7e34; font-weight: 900; font-size: 14px;">{num_m}</span></div>
+                            <div style="border-bottom: 1px dotted #ccc; padding-bottom: 2px;"><span style="color: #6c757d; display: inline-block; width: 145px;">Date d'adhésion :</span> <span style="font-weight: 700; color: #000;">{date_adh}</span></div>
+                            <div style="border-bottom: 1px dotted #ccc; padding-bottom: 2px;"><span style="color: #6c757d; display: inline-block; width: 145px;">Contact parent :</span> <span style="font-weight: 700; color: #000;">{tel_p}</span></div>
+                        </div>
+
+                        <!-- Pied de page de la carte -->
+                        <div style="
+                            position: absolute;
+                            bottom: 0;
+                            left: 0;
+                            right: 0;
+                            background: linear-gradient(90deg, #1e7e34 0%, #0b4d1d 100%);
+                            color: white;
+                            padding: 8px 12px;
+                            font-size: 10px;
+                            text-align: center;
+                            font-weight: bold;
+                        ">
+                            ❤️ Ensemble aidons les enfants atteints de Paralysie cérébrale ❤️<br>
+                            <span style="font-weight: normal; color: #e2f0d9; font-size: 9px;">📞 Contact : +225 77 71 04 41 8 / 05 86 99 73 27</span>
                         </div>
                     </div>
                 </div>
@@ -881,6 +901,8 @@ else:
           )
       else:
         st.warning("⚠️ Aucun membre actif (Adhésion OK) trouvé.")
+    else:
+      st.warning("⚠️ Aucune donnée disponible.")
 
   # ==========================================
   # 5. STOCK DES DONS
