@@ -812,7 +812,6 @@ else:
           ).split(" ")[0]
           tel_p = str(row_m.get(col_tel, ""))
 
-          # Carte générée 100% en code HTML/CSS de haute précision (sans superposition d'image externe)
           html_carte = f"""
                 <div style="display: flex; justify-content: center; padding: 15px;">
                     <div style="
@@ -826,10 +825,8 @@ else:
                         font-family: Arial, sans-serif;
                         overflow: hidden;
                     ">
-                        <!-- Bande supérieure décorative aux couleurs de l'ONG (Vert, Blanc, Orange) -->
                         <div style="position: absolute; top: 0; left: 0; right: 0; height: 12px; background: linear-gradient(90deg, #1e7e34 0%, #28a745 50%, #ff7f00 100%);"></div>
 
-                        <!-- En-tête de la carte -->
                         <div style="text-align: center; padding-top: 18px;">
                             <div style="font-size: 16px; font-weight: 900; color: #1e7e34; letter-spacing: 1px;">ONG DIEU POURVOIRA</div>
                             <div style="background: #1e7e34; color: white; padding: 3px 18px; border-radius: 12px; font-size: 12px; font-weight: bold; display: inline-block; margin-top: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
@@ -837,7 +834,6 @@ else:
                             </div>
                         </div>
 
-                        <!-- Cadre Photo de l'enfant (À gauche) -->
                         <div style="
                             position: absolute;
                             left: 35px;
@@ -853,7 +849,6 @@ else:
                             <img src="{img_src}" style="width: 100%; height: 100%; object-fit: cover;">
                         </div>
 
-                        <!-- Contenu textuel structuré (À droite) -->
                         <div style="
                             position: absolute;
                             left: 190px;
@@ -871,7 +866,6 @@ else:
                             <div style="border-bottom: 1px dotted #ccc; padding-bottom: 2px;"><span style="color: #6c757d; display: inline-block; width: 145px;">Contact parent :</span> <span style="font-weight: 700; color: #000;">{tel_p}</span></div>
                         </div>
 
-                        <!-- Pied de page de la carte -->
                         <div style="
                             position: absolute;
                             bottom: 0;
@@ -901,8 +895,6 @@ else:
           )
       else:
         st.warning("⚠️ Aucun membre actif (Adhésion OK) trouvé.")
-    else:
-      st.warning("⚠️ Aucune donnée disponible.")
 
   # ==========================================
   # 5. STOCK DES DONS
