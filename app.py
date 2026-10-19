@@ -458,7 +458,6 @@ if not st.session_state["user_connected"]:
 else:
   user_info = st.session_state["user_info"]
 
-  # Détection rôle / zone
   user_zone = ""
   for key in ["Zone / Rôle", "Zone", "Role", "Rôle"]:
     if key in user_info:
@@ -519,7 +518,6 @@ else:
     st.session_state["user_info"] = None
     st.rerun()
 
-  # Filtrage géographique
   if "Zone Sud" in user_zone or "Sud" in user_zone:
     df_f = df[df["Zone_Geographique"] == "Zone Sud"]
     choix_zone_label = "📍 Zone Sud"
@@ -827,6 +825,7 @@ else:
           ).split(" ")[0]
           tel_p = str(row_m.get(col_tel, ""))
 
+          # HTML avec coordonnées parfaitement ajustées pour s'aligner après les libellés de fond
           html_carte = f"""
                 <div style="display: flex; justify-content: center; padding: 15px;">
                     <div style="
@@ -852,12 +851,12 @@ else:
                             <img src="{img_src}" style="width: 100%; height: 100%; object-fit: cover;">
                         </div>
 
-                        <!-- Valeurs positionnées précisément en face des pointillés de l'image de fond -->
+                        <!-- Valeurs positionnées précisément après les libellés imprimés de l'image de fond -->
                         <div style="
                             position: absolute;
-                            left: 345px;
+                            left: 385px;
                             top: 142px;
-                            width: 250px;
+                            width: 220px;
                             font-size: 13px;
                             color: #111;
                             line-height: 24px;
@@ -883,6 +882,8 @@ else:
           )
       else:
         st.warning("⚠️ Aucun membre actif (Adhésion OK) trouvé.")
+    else:
+      st.warning("⚠️ Aucune donnée disponible.")
 
   # ==========================================
   # 5. STOCK DES DONS
