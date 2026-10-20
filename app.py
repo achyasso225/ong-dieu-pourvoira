@@ -1483,14 +1483,16 @@ else:
         st.info("Aucune distribution enregistrée pour le moment.")
 
   # ==========================================
-  # 7. SUIVI DES COTISATIONS & CARTES
+  # 7. SUIVI DES COTISATIONS & CARTES (AVEC MODIF / SUPPRESSION)
   # ==========================================
   elif menu == "💳 Suivi Cotisations":
     st.subheader("💳 Suivi des Cotisations et Frais de Carte")
 
-    tab_cotiz_saisie, tab_cotiz_suivi = st.tabs(
-        ["➕ Enregistrer un Paiement", "📊 Tableau de Bord & Impayés"]
-    )
+    tab_cotiz_saisie, tab_cotiz_suivi, tab_cotiz_modif = st.tabs([
+        "➕ Enregistrer un Paiement",
+        "📊 Tableau de Bord & Impayés",
+        "✏️ Modifier / Supprimer un Paiement",
+    ])
 
     with tab_cotiz_saisie:
       if not df.empty:
@@ -1582,7 +1584,6 @@ else:
       if not df_cotiz.empty:
         st.dataframe(df_cotiz, use_container_width=True)
 
-        # Export Excel cotisations
         output_c = BytesIO()
         with pd.ExcelWriter(output_c, engine="xlsxwriter") as writer:
           df_cotiz.to_excel(writer, index=False, sheet_name="Cotisations")
@@ -1597,20 +1598,109 @@ else:
             ),
         )
       else:
-        st.info(
-            "Aucune cotisation enregistrée pour le moment. (Créez un onglet"
-            " 'Cotisations' dans votre Google Sheets si ce n'est pas fait)."
-        )
+        st.info("Aucune cotisation enregistrée pour le moment.")
+
+    with tab_cotiz_modif:
+      st.markdown("### ✏️ Modifier ou Supprimer un Paiement de Cotisation")
+      if not df_cotiz.empty and "ID_Cotiz" in df_cotiz.columns:
+        with st.container(border=True):
+          choix_id_cotiz = st.selectbox(
+              "Sélectionner le paiement à modifier/supprimer",
+              df_cotiz["ID_Cotiz"].astype(str).tolist(),
+              format_func=lambda c: (
+                  f"{c} - "
+                  f"{df_cotiz[df_cotiz['ID_Cotiz'].astype(str) == c]['Nom_Enfant'].values[0]} "
+                  f"({df_cotiz[df_cotiz['ID_Cotiz'].astype(str) == c]['Type_Paiement'].values[0]} : "
+                  f"{df_cotiz[df_cotiz['ID_Cotiz'].astype(str) == c]['Montant_Verse'].values[0]} FCFA)"
+              ),
+          )
+          cotiz_ligne = df_cotiz[
+              df_cotiz["ID_Cotiz"].astype(str) == choix_id_cotiz
+          ].iloc[0]
+
+          action_cotiz = st.radio(
+              "Action sur ce paiement",
+              ["Modifier", "Supprimer définitivement"],
+              horizontal=True,
+              key="radio_act_cotiz",
+          )
+
+          if action_cotiz == "Modifier":
+            with st.form("form_modif_cotiz"):
+              nouveau_montant = st.number_input(
+                  "Montant versé (FCFA)",
+                  min_value=0,
+                  value=int(
+                      pd.to_numeric(
+                          cotiz_ligne.get("Montant_Verse", 0), errors="coerce"
+                      )
+                      or 0
+                  ),
+              )
+              nouveau_statut = st.selectbox(
+                  "Statut",
+                  ["Payé en totalité", "Avance / Partiel"],
+                  index=(
+                      0
+                      if str(cotiz_ligne.get("Statut", "")).startswith("Payé")
+                      else 1
+                  ),
+              )
+              nouveau_comm = st.text_input(
+                  "Commentaire",
+                  value=str(cotiz_ligne.get("Commentaire", "")),
+              )
+
+              if st.form_submit_button("💾 Mettre à jour le paiement"):
+                try:
+                  ws_cotiz = spreadsheet.worksheet("Cotisations")
+                  cell = ws_cotiz.find(str(choix_id_cotiz))
+                  row_idx = cell.row
+                  ws_cotiz.update_cell(row_idx, 7, int(nouveau_montant))
+                  ws_cotiz.update_cell(row_idx, 8, nouveau_statut)
+                  ws_cotiz.update_cell(row_idx, 9, nouveau_comm)
+                  st.cache_data.clear()
+                  st.session_state["toast_msg"] = (
+                      f"✅ Paiement {choix_id_cotiz} mis à jour avec succès !"
+                  )
+                  st.rerun()
+                except Exception as e:
+                  st.error(f"❌ Erreur : {e}")
+          else:
+            conf_sup_c = st.checkbox(
+                "Je confirme la suppression de ce paiement", key="chk_sup_cot"
+            )
+            if st.button(
+                "🗑️ Supprimer définitivement ce paiement", type="primary"
+            ):
+              if conf_sup_c:
+                try:
+                  ws_cotiz = spreadsheet.worksheet("Cotisations")
+                  cell = ws_cotiz.find(str(choix_id_cotiz))
+                  ws_cotiz.delete_rows(cell.row)
+                  st.cache_data.clear()
+                  st.session_state["toast_msg"] = (
+                      f"✅ Paiement {choix_id_cotiz} supprimé !"
+                  )
+                  st.rerun()
+                except Exception as e:
+                  st.error(f"❌ Erreur : {e}")
+              else:
+                st.error("⚠️ Veuillez cocher la case de confirmation.")
+      else:
+        st.info("Aucun paiement de cotisation enregistré pour le moment.")
 
   # ==========================================
-  # 8. ARTICLES & GOODIES D'ÉVÉNEMENTS
+  # 8. ARTICLES & GOODIES D'ÉVÉNEMENTS (AVEC MODIF / SUPPRESSION)
   # ==========================================
   elif menu == "🛍️ Articles & Goodies":
     st.subheader("🛍️ Gestion des Articles, T-shirts et Goodies d'Événements")
 
-    tab_art_vente, tab_art_suivi = st.tabs(
-        ["➕ Enregistrer une Vente / Attribution", "📊 Suivi & Inventaire"]
-    )
+    tab_art_vente, tab_art_suivi, tab_art_modif = st.tabs([
+        "➕ Enregistrer une Vente / Attribution",
+        "📊 Suivi & Inventaire",
+        "✏️ Modifier / Supprimer un Article",
+    ])
 
     with tab_art_vente:
       if not df.empty:
@@ -1698,7 +1788,6 @@ else:
       if not df_articles.empty:
         st.dataframe(df_articles, use_container_width=True)
 
-        # Export Excel articles
         output_a = BytesIO()
         with pd.ExcelWriter(output_a, engine="xlsxwriter") as writer:
           df_articles.to_excel(writer, index=False, sheet_name="Articles")
@@ -1713,11 +1802,120 @@ else:
             ),
         )
       else:
-        st.info(
-            "Aucun article enregistré pour le moment. (Créez un onglet"
-            " 'Articles_Evenements' dans votre Google Sheets si ce n'est pas"
-            " fait)."
-        )
+        st.info("Aucun article enregistré pour le moment.")
+
+    with tab_art_modif:
+      st.markdown("### ✏️ Modifier ou Supprimer un Article / Goodies")
+      if not df_articles.empty and "ID_Art" in df_articles.columns:
+        with st.container(border=True):
+          choix_id_art = st.selectbox(
+              "Sélectionner l'article à modifier/supprimer",
+              df_articles["ID_Art"].astype(str).tolist(),
+              format_func=lambda a: (
+                  f"{a} - "
+                  f"{df_articles[df_articles['ID_Art'].astype(str) == a]['Nom_Enfant'].values[0]} "
+                  f"({df_articles[df_articles['ID_Art'].astype(str) == a]['Nom_Article'].values[0]})"
+              ),
+          )
+          art_ligne = df_articles[
+              df_articles["ID_Art"].astype(str) == choix_id_art
+          ].iloc[0]
+
+          action_art = st.radio(
+              "Action sur cet article",
+              ["Modifier", "Supprimer définitivement"],
+              horizontal=True,
+              key="radio_act_art",
+          )
+
+          if action_art == "Modifier":
+            with st.form("form_modif_art"):
+              nouveau_nom_art = st.text_input(
+                  "Nom de l'article",
+                  value=str(art_ligne.get("Nom_Article", "")),
+              ).upper()
+              nouvelle_qte = st.number_input(
+                  "Quantité",
+                  min_value=1,
+                  value=int(
+                      pd.to_numeric(
+                          art_ligne.get("Quantite", 1), errors="coerce"
+                      )
+                      or 1
+                  ),
+              )
+              nouveau_montant_art = st.number_input(
+                  "Montant Total (FCFA)",
+                  min_value=0,
+                  value=int(
+                      pd.to_numeric(
+                          art_ligne.get("Montant_Total", 0), errors="coerce"
+                      )
+                      or 0
+                  ),
+              )
+              nouveau_stat_reg = st.selectbox(
+                  "Statut du paiement",
+                  ["Payé", "Avance", "Impayé"],
+                  index=["Payé", "Avance", "Impayé"].index(
+                      str(art_ligne.get("Statut_Reglement", "Payé"))
+                      if str(art_ligne.get("Statut_Reglement", "Payé"))
+                      in ["Payé", "Avance", "Impayé"]
+                      else 0
+                  ),
+              )
+              nouveau_stat_liv = st.selectbox(
+                  "Statut de remise",
+                  ["Livré / Remis", "En attente de retrait"],
+                  index=(
+                      0
+                      if str(
+                          art_ligne.get("Statut_Livraison", "")
+                      ).startswith("Livré")
+                      else 1
+                  ),
+              )
+
+              if st.form_submit_button("💾 Mettre à jour l'article"):
+                try:
+                  ws_art = spreadsheet.worksheet("Articles_Evenements")
+                  cell = ws_art.find(str(choix_id_art))
+                  row_idx = cell.row
+                  ws_art.update_cell(row_idx, 6, nouveau_nom_art)
+                  ws_art.update_cell(row_idx, 7, int(nouvelle_qte))
+                  ws_art.update_cell(row_idx, 8, int(nouveau_montant_art))
+                  ws_art.update_cell(row_idx, 9, nouveau_stat_reg)
+                  ws_art.update_cell(row_idx, 10, nouveau_stat_liv)
+                  st.cache_data.clear()
+                  st.session_state["toast_msg"] = (
+                      f"✅ Article {choix_id_art} mis à jour avec succès !"
+                  )
+                  st.rerun()
+                except Exception as e:
+                  st.error(f"❌ Erreur : {e}")
+          else:
+            conf_sup_a = st.checkbox(
+                "Je confirme la suppression de cet article", key="chk_sup_art"
+            )
+            if st.button(
+                "🗑️ Supprimer définitivement cet article", type="primary"
+            ):
+              if conf_sup_a:
+                try:
+                  ws_art = spreadsheet.worksheet("Articles_Evenements")
+                  cell = ws_art.find(str(choix_id_art))
+                  ws_art.delete_rows(cell.row)
+                  st.cache_data.clear()
+                  st.session_state["toast_msg"] = (
+                      f"✅ Article {choix_id_art} supprimé !"
+                  )
+                  st.rerun()
+                except Exception as e:
+                  st.error(f"❌ Erreur : {e}")
+              else:
+                st.error("⚠️ Veuillez cocher la case de confirmation.")
+      else:
+        st.info("Aucun article enregistré pour le moment.")
 
   if "toast_msg" in st.session_state:
     st.toast(st.session_state["toast_msg"], icon="🎉")
