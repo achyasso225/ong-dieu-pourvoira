@@ -241,7 +241,23 @@ def charger_donnees_depuis_sheets():
   except Exception:
     df_distrib = pd.DataFrame()
 
-  return data, df_users, df_stock, df_distrib
+  # 5. Cotisations
+  try:
+    df_cotiz = pd.DataFrame(
+        spreadsheet.worksheet("Cotisations").get_all_records()
+    )
+  except Exception:
+    df_cotiz = pd.DataFrame()
+
+  # 6. Articles & Goodies Événements
+  try:
+    df_articles = pd.DataFrame(
+        spreadsheet.worksheet("Articles_Evenements").get_all_records()
+    )
+  except Exception:
+    df_articles = pd.DataFrame()
+
+  return data, df_users, df_stock, df_distrib, df_cotiz, df_articles
 
 
 try:
@@ -249,7 +265,9 @@ try:
   spreadsheet = client.open("Base_de_donnee_ONG_Dieu_Pourvoira")
   sheet = spreadsheet.sheet1
 
-  data, df_users, df_stock, df_distrib = charger_donnees_depuis_sheets()
+  data, df_users, df_stock, df_distrib, df_cotiz, df_articles = (
+      charger_donnees_depuis_sheets()
+  )
   df = pd.DataFrame(data)
   df.columns = df.columns.str.strip()
 
@@ -259,6 +277,10 @@ try:
     df_stock.columns = df_stock.columns.str.strip()
   if not df_distrib.empty:
     df_distrib.columns = df_distrib.columns.str.strip()
+  if not df_cotiz.empty:
+    df_cotiz.columns = df_cotiz.columns.str.strip()
+  if not df_articles.empty:
+    df_articles.columns = df_articles.columns.str.strip()
 
   col_tel_detect = (
       "Numero Tèl"
@@ -285,6 +307,8 @@ except Exception as e:
   df_users = pd.DataFrame()
   df_stock = pd.DataFrame()
   df_distrib = pd.DataFrame()
+  df_cotiz = pd.DataFrame()
+  df_articles = pd.DataFrame()
 
 # --- ZONES & COMMUNES ---
 ZONES_SUD = [
@@ -482,7 +506,12 @@ else:
   st.sidebar.markdown("---")
 
   if is_compta:
-    pages = ["📦 Stock des Dons", "🎁 Remise de Dons"]
+    pages = [
+        "📦 Stock des Dons",
+        "🎁 Remise de Dons",
+        "💳 Suivi Cotisations",
+        "🛍️ Articles & Goodies",
+    ]
     if st.session_state["current_page"] not in pages:
       st.session_state["current_page"] = pages[0]
   elif is_dsi:
@@ -493,6 +522,8 @@ else:
         "📋 Liste & Répertoire",
         "📦 Stock des Dons",
         "🎁 Remise de Dons",
+        "💳 Suivi Cotisations",
+        "🛍️ Articles & Goodies",
     ]
   else:
     pages = [
@@ -500,6 +531,8 @@ else:
         "➕ Enregistrer un Membre",
         "✏️ Modifier / Supprimer",
         "📋 Liste & Répertoire",
+        "💳 Suivi Cotisations",
+        "🛍️ Articles & Goodies",
     ]
 
   st.sidebar.markdown("**NAVIGATION**")
@@ -971,7 +1004,6 @@ else:
                 df_ok[col_membre].astype(str) == membre_selectionne
             ].iloc[0]
 
-            # Conversion de la photo de l'enfant
             if photo_file is not None:
               img_src = (
                   f"data:image/png;base64,"
@@ -982,14 +1014,12 @@ else:
                   "https://via.placeholder.com/130x150/e9ecef/6c757d?text=PHOTO"
               )
 
-            # Conversion du logo de l'ONG (logo.png) en base64
             logo_path = "logo.png"
             if os.path.exists(logo_path):
               with open(logo_path, "rb") as f_logo:
                 logo_b64 = base64.b64encode(f_logo.read()).decode()
               logo_src = f"data:image/png;base64,{logo_b64}"
             else:
-              # Logo générique de secours
               logo_src = (
                   "data:image/svg+xml;utf8,<svg"
                   ' xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100'
@@ -1008,7 +1038,6 @@ else:
             ).split(" ")[0]
             tel_p = str(row_m.get(col_tel, ""))
 
-            # HTML des cartes avec intégration du logo officiel de l'ONG
             if modele_carte.startswith("Modèle 1"):
               html_carte = f"""
                     <div style="display: flex; justify-content: center; padding: 15px;">
@@ -1023,10 +1052,8 @@ else:
                             font-family: Arial, sans-serif;
                             overflow: hidden;
                         ">
-                            <!-- Liseré supérieur aux couleurs officielles -->
                             <div style="position: absolute; top: 0; left: 0; right: 0; height: 14px; background: linear-gradient(90deg, #1e7e34 0%, #28a745 50%, #ff7f00 100%);"></div>
 
-                            <!-- En-tête officiel -->
                             <div style="text-align: center; padding-top: 20px;">
                                 <div style="font-size: 18px; font-weight: 900; color: #1e7e34; letter-spacing: 1px;">ONG DIEU POURVOIRA</div>
                                 <div style="background: #1e7e34; color: white; padding: 3px 20px; border-radius: 12px; font-size: 12px; font-weight: bold; display: inline-block; margin-top: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
@@ -1034,7 +1061,6 @@ else:
                                 </div>
                             </div>
 
-                            <!-- Photo de l'enfant à gauche -->
                             <div style="
                                 position: absolute;
                                 left: 35px;
@@ -1050,7 +1076,6 @@ else:
                                 <img src="{img_src}" style="width: 100%; height: 100%; object-fit: cover;">
                             </div>
 
-                            <!-- Logo officiel sous la photo -->
                             <div style="
                                 position: absolute;
                                 left: 65px;
@@ -1061,7 +1086,6 @@ else:
                                 <img src="{logo_src}" style="width: 100%; height: 100%; object-fit: contain;">
                             </div>
 
-                            <!-- Détails de la carte -->
                             <div style="
                                 position: absolute;
                                 left: 185px;
@@ -1079,7 +1103,6 @@ else:
                                 <div style="border-bottom: 1px dotted #ccc; padding-bottom: 1px;"><span style="color: #6c757d; display: inline-block; width: 145px;">Contact parent :</span> <span style="font-weight: 700; color: #000;">{tel_p}</span></div>
                             </div>
 
-                            <!-- Pied de page officiel -->
                             <div style="
                                 position: absolute;
                                 bottom: 0;
@@ -1112,7 +1135,6 @@ else:
                             font-family: Arial, sans-serif;
                             overflow: hidden;
                         ">
-                            <!-- En-tête Moderne avec Logo intégré -->
                             <div style="background: #1e7e34; color: white; padding: 8px 15px; display: flex; align-items: center; justify-content: space-between; border-bottom: 4px solid #ff7f00;">
                                 <img src="{logo_src}" style="height: 42px; width: auto; background: #fff; padding: 2px; border-radius: 6px;">
                                 <div style="text-align: center; flex-grow: 1;">
@@ -1122,7 +1144,6 @@ else:
                                 <div style="width: 42px;"></div>
                             </div>
 
-                            <!-- Photo avec bordure orange -->
                             <div style="
                                 position: absolute;
                                 left: 35px;
@@ -1138,7 +1159,6 @@ else:
                                 <img src="{img_src}" style="width: 100%; height: 100%; object-fit: cover;">
                             </div>
 
-                            <!-- Contenu structuré -->
                             <div style="
                                 position: absolute;
                                 left: 185px;
@@ -1156,7 +1176,6 @@ else:
                                 <div style="border-bottom: 1px solid #d4edda; padding-bottom: 1px;"><span style="color: #1e7e34; font-weight: bold; display: inline-block; width: 145px;">Contact :</span> <span style="font-weight: 700; color: #000;">{tel_p}</span></div>
                             </div>
 
-                            <!-- Pied de page -->
                             <div style="
                                 position: absolute;
                                 bottom: 0;
@@ -1190,70 +1209,159 @@ else:
       st.warning("⚠️ Aucune donnée disponible.")
 
   # ==========================================
-  # 5. STOCK DES DONS
+  # 5. STOCK DES DONS (AVEC MODIFICATION/SUPPRESSION)
   # ==========================================
   elif menu == "📦 Stock des Dons":
     st.subheader("📦 Stock & Réception des Dons")
 
-    with st.container(border=True):
-      with st.form("form_entree_don", clear_on_submit=True):
-        type_don = st.selectbox(
-            "Type de Don",
-            [
-                "Matériel Médical / Fauteuil",
-                "Produits d'Hygiène / Couches",
-                "Vivres / Alimentation",
-                "Vêtements",
-                "Don Financier (FCFA)",
-                "Autre",
-            ],
-        )
-        designation = st.text_input(
-            "Désignation (Ex: Fauteuils Roulants Enfant)"
-        ).upper()
-        donateur = st.text_input("Donateur / Partenaire").upper()
-        quantite_recue = st.number_input(
-            "Quantité reçue", min_value=1, value=1, step=1
-        )
-        valeur_estimee = st.number_input(
-            "Valeur estimée globale (FCFA)", min_value=0, value=0, step=5000
-        )
+    tab_ajout_stock, tab_modif_stock = st.tabs(
+        ["➕ Enregistrer un Don", "✏️ Modifier / Supprimer un Don du Stock"]
+    )
 
-        btn_save_don = st.form_submit_button(
-            "📥 Enregistrer en Stock", use_container_width=True
-        )
+    with tab_ajout_stock:
+      with st.container(border=True):
+        with st.form("form_entree_don", clear_on_submit=True):
+          type_don = st.selectbox(
+              "Type de Don",
+              [
+                  "Matériel Médical / Fauteuil",
+                  "Produits d'Hygiène / Couches",
+                  "Vivres / Alimentation",
+                  "Vêtements",
+                  "Don Financier (FCFA)",
+                  "Autre",
+              ],
+          )
+          designation = st.text_input(
+              "Désignation (Ex: Fauteuils Roulants Enfant)"
+          ).upper()
+          donateur = st.text_input("Donateur / Partenaire").upper()
+          quantite_recue = st.number_input(
+              "Quantité reçue", min_value=1, value=1, step=1
+          )
+          valeur_estimee = st.number_input(
+              "Valeur estimée globale (FCFA)", min_value=0, value=0, step=5000
+          )
 
-        if btn_save_don:
-          if designation:
-            try:
-              ws_stock = spreadsheet.worksheet("Dons_Stock")
-              date_du_jour = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-              id_don = f"DON-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+          btn_save_don = st.form_submit_button(
+              "📥 Enregistrer en Stock", use_container_width=True
+          )
 
-              nouvelle_ligne_don = [
-                  id_don,
-                  date_du_jour,
-                  type_don,
-                  designation,
-                  int(quantite_recue),
-                  int(quantite_recue),
-                  int(valeur_estimee),
-                  donateur if donateur else "ANONYME",
-                  user_zone,
-                  f"{user_nom}",
-              ]
-              ws_stock.append_row(
-                  nouvelle_ligne_don, value_input_option="USER_ENTERED"
+          if btn_save_don:
+            if designation:
+              try:
+                ws_stock = spreadsheet.worksheet("Dons_Stock")
+                date_du_jour = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                id_don = f"DON-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+
+                nouvelle_ligne_don = [
+                    id_don,
+                    date_du_jour,
+                    type_don,
+                    designation,
+                    int(quantite_recue),
+                    int(quantite_recue),
+                    int(valeur_estimee),
+                    donateur if donateur else "ANONYME",
+                    user_zone,
+                    f"{user_nom}",
+                ]
+                ws_stock.append_row(
+                    nouvelle_ligne_don, value_input_option="USER_ENTERED"
+                )
+                st.cache_data.clear()
+                st.session_state["toast_msg"] = (
+                    f"✅ Don '{designation}' enregistré en stock !"
+                )
+                st.rerun()
+              except Exception as e:
+                st.error(f"❌ Erreur lors de l'enregistrement : {e}")
+            else:
+              st.error("⚠️ Saisissez une désignation.")
+
+    with tab_modif_stock:
+      if not df_stock.empty and "ID_Don" in df_stock.columns:
+        with st.container(border=True):
+          choix_id_don = st.selectbox(
+              "Sélectionner le Don à modifier/supprimer",
+              df_stock["ID_Don"].astype(str).tolist(),
+              format_func=lambda d: (
+                  f"{d} - "
+                  f"{df_stock[df_stock['ID_Don'].astype(str) == d]['Designation'].values[0]}"
+              ),
+          )
+          don_ligne = df_stock[
+              df_stock["ID_Don"].astype(str) == choix_id_don
+          ].iloc[0]
+
+          action_stock = st.radio(
+              "Action sur ce stock",
+              ["Modifier", "Supprimer définitivement"],
+              horizontal=True,
+          )
+
+          if action_stock == "Modifier":
+            with st.form("form_modif_stock"):
+              nouveau_des = st.text_input(
+                  "Désignation", value=str(don_ligne.get("Designation", ""))
+              ).upper()
+              nouv_stock_act = st.number_input(
+                  "Stock Actuel",
+                  min_value=0,
+                  value=int(
+                      pd.to_numeric(
+                          don_ligne.get("Stock_Actuel", 0), errors="coerce"
+                      )
+                      or 0
+                  ),
               )
-              st.cache_data.clear()
-              st.session_state["toast_msg"] = (
-                  f"✅ Don '{designation}' enregistré en stock !"
+              nouv_valeur = st.number_input(
+                  "Valeur (FCFA)",
+                  min_value=0,
+                  value=int(
+                      pd.to_numeric(
+                          don_ligne.get("Valeur_Estimee", 0), errors="coerce"
+                      )
+                      or 0
+                  ),
               )
-              st.rerun()
-            except Exception as e:
-              st.error(f"❌ Erreur lors de l'enregistrement : {e}")
+
+              if st.form_submit_button("💾 Mettre à jour le stock"):
+                try:
+                  ws_stock = spreadsheet.worksheet("Dons_Stock")
+                  cell = ws_stock.find(str(choix_id_don))
+                  row_idx = cell.row
+                  ws_stock.update_cell(row_idx, 4, nouveau_des)
+                  ws_stock.update_cell(row_idx, 6, int(nouv_stock_act))
+                  ws_stock.update_cell(row_idx, 7, int(nouv_valeur))
+                  st.cache_data.clear()
+                  st.session_state["toast_msg"] = (
+                      f"✅ Don {choix_id_don} mis à jour avec succès !"
+                  )
+                  st.rerun()
+                except Exception as e:
+                  st.error(f"❌ Erreur : {e}")
           else:
-            st.error("⚠️ Saisissez une désignation.")
+            conf_sup = st.checkbox("Je confirme la suppression de ce don")
+            if st.button(
+                "🗑️ Supprimer définitivement du stock", type="primary"
+            ):
+              if conf_sup:
+                try:
+                  ws_stock = spreadsheet.worksheet("Dons_Stock")
+                  cell = ws_stock.find(str(choix_id_don))
+                  ws_stock.delete_rows(cell.row)
+                  st.cache_data.clear()
+                  st.session_state["toast_msg"] = (
+                      f"✅ Don {choix_id_don} supprimé !"
+                  )
+                  st.rerun()
+                except Exception as e:
+                  st.error(f"❌ Erreur : {e}")
+              else:
+                st.error("⚠️ Veuillez cocher la case de confirmation.")
+      else:
+        st.info("Aucun stock enregistré pour le moment.")
 
     st.markdown("---")
     st.markdown("### 📊 État actuel des Stocks")
@@ -1266,7 +1374,7 @@ else:
   # ==========================================
   # 6. REMISE DE DONS
   # ==========================================
-  elif menu == "🎁 Remise de Dons" or menu == "🎁 Remise & Traçabilité":
+  elif menu == "🎁 Remise de Dons":
     st.subheader("🎁 Attribution & Remise de Don aux Enfants")
 
     if not df.empty and not df_stock.empty:
@@ -1373,6 +1481,243 @@ else:
         st.dataframe(df_distrib, use_container_width=True)
       else:
         st.info("Aucune distribution enregistrée pour le moment.")
+
+  # ==========================================
+  # 7. SUIVI DES COTISATIONS & CARTES
+  # ==========================================
+  elif menu == "💳 Suivi Cotisations":
+    st.subheader("💳 Suivi des Cotisations et Frais de Carte")
+
+    tab_cotiz_saisie, tab_cotiz_suivi = st.tabs(
+        ["➕ Enregistrer un Paiement", "📊 Tableau de Bord & Impayés"]
+    )
+
+    with tab_cotiz_saisie:
+      if not df.empty:
+        with st.container(border=True):
+          with st.form("form_cotisation", clear_on_submit=True):
+            st.markdown(
+                "##### 💰 Saisie d'une cotisation ou d'un frais de carte"
+            )
+            liste_membres_cotiz = df[col_membre].astype(str).tolist()
+            membre_c = st.selectbox(
+                "Membre concerné",
+                liste_membres_cotiz,
+                format_func=lambda m: (
+                    f"{m} - "
+                    f"{df[df[col_membre].astype(str) == m][col_enfant].values[0]}"
+                ),
+            )
+
+            type_paiement = st.selectbox(
+                "Type de règlement",
+                [
+                    "Frais de Carte d'Adhésion",
+                    "Cotisation - Janvier",
+                    "Cotisation - Février",
+                    "Cotisation - Mars",
+                    "Cotisation - Avril",
+                    "Cotisation - Mai",
+                    "Cotisation - Juin",
+                    "Cotisation - Juillet",
+                    "Cotisation - Août",
+                    "Cotisation - Septembre",
+                    "Cotisation - Octobre",
+                    "Cotisation - Novembre",
+                    "Cotisation - Décembre",
+                    "Cotisation - Autre / Annuelle",
+                ],
+            )
+
+            montant_verse = st.number_input(
+                "Montant versé (FCFA)", min_value=0, value=5000, step=500
+            )
+            statut_pay = st.selectbox(
+                "Statut", ["Payé en totalité", "Avance / Partiel"]
+            )
+            commentaire_cotiz = st.text_input("Commentaire (Optionnel)")
+
+            if st.form_submit_button(
+                "💾 Enregistrer le paiement", use_container_width=True
+            ):
+              try:
+                ws_cotiz = spreadsheet.worksheet("Cotisations")
+                enfant_info = df[df[col_membre].astype(str) == membre_c].iloc[0]
+                nom_e = enfant_info.get(col_enfant, "")
+                nom_p = enfant_info.get(col_parent, "")
+
+                id_cotiz = f"COT-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+                date_c = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+                ligne_cotiz = [
+                    id_cotiz,
+                    date_c,
+                    membre_c,
+                    nom_e,
+                    nom_p,
+                    type_paiement,
+                    int(montant_verse),
+                    statut_pay,
+                    commentaire_cotiz,
+                    user_nom,
+                ]
+                ws_cotiz.append_row(
+                    ligne_cotiz, value_input_option="USER_ENTERED"
+                )
+                st.cache_data.clear()
+                st.session_state["toast_msg"] = (
+                    f"✅ Paiement de {montant_verse} FCFA enregistré !"
+                )
+                st.rerun()
+              except Exception as e:
+                st.error(
+                    f"❌ Erreur (Vérifie que l'onglet 'Cotisations' existe"
+                    f" dans Google Sheets) : {e}"
+                )
+      else:
+        st.warning("⚠️ Aucun membre enregistré.")
+
+    with tab_cotiz_suivi:
+      st.markdown("### 📋 Historique & États des Cotisations")
+      if not df_cotiz.empty:
+        st.dataframe(df_cotiz, use_container_width=True)
+
+        # Export Excel cotisations
+        output_c = BytesIO()
+        with pd.ExcelWriter(output_c, engine="xlsxwriter") as writer:
+          df_cotiz.to_excel(writer, index=False, sheet_name="Cotisations")
+        excel_c_data = output_c.getvalue()
+
+        st.download_button(
+            label="📥 Exporter le rapport des cotisations (.xlsx)",
+            data=excel_c_data,
+            file_name="Rapport_Cotisations_ONG.xlsx",
+            mime=(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            ),
+        )
+      else:
+        st.info(
+            "Aucune cotisation enregistrée pour le moment. (Créez un onglet"
+            " 'Cotisations' dans votre Google Sheets si ce n'est pas fait)."
+        )
+
+  # ==========================================
+  # 8. ARTICLES & GOODIES D'ÉVÉNEMENTS
+  # ==========================================
+  elif menu == "🛍️ Articles & Goodies":
+    st.subheader("🛍️ Gestion des Articles, T-shirts et Goodies d'Événements")
+
+    tab_art_vente, tab_art_suivi = st.tabs(
+        ["➕ Enregistrer une Vente / Attribution", "📊 Suivi & Inventaire"]
+    )
+
+    with tab_art_vente:
+      if not df.empty:
+        with st.container(border=True):
+          with st.form("form_article_event", clear_on_submit=True):
+            st.markdown(
+                "##### 🏷️ Attribuer un article ou goodies à un membre"
+            )
+            liste_membres_art = df[col_membre].astype(str).tolist()
+            membre_a = st.selectbox(
+                "Membre bénéficiaire / acheteur",
+                liste_membres_art,
+                format_func=lambda m: (
+                    f"{m} - "
+                    f"{df[df[col_membre].astype(str) == m][col_enfant].values[0]}"
+                ),
+            )
+
+            nom_article = st.text_input(
+                "Nom de l'article / Goodies (Ex: T-shirt Gala 2026, Casquette,"
+                " Badge...)"
+            ).upper()
+            quantite_art = st.number_input(
+                "Quantité", min_value=1, value=1, step=1
+            )
+            montant_total = st.number_input(
+                "Montant Total (FCFA)", min_value=0, value=3000, step=500
+            )
+
+            statut_reglement = st.selectbox(
+                "Statut du paiement", ["Payé", "Avance", "Impayé"]
+            )
+            statut_livraison = st.selectbox(
+                "Statut de remise", ["Livré / Remis", "En attente de retrait"]
+            )
+
+            if st.form_submit_button(
+                "💾 Enregistrer l'article", use_container_width=True
+            ):
+              if nom_article:
+                try:
+                  ws_art = spreadsheet.worksheet("Articles_Evenements")
+                  enfant_info = df[
+                      df[col_membre].astype(str) == membre_a
+                  ].iloc[0]
+                  nom_e = enfant_info.get(col_enfant, "")
+                  nom_p = enfant_info.get(col_parent, "")
+
+                  id_art = f"ART-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+                  date_a = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+                  ligne_art = [
+                      id_art,
+                      date_a,
+                      membre_a,
+                      nom_e,
+                      nom_p,
+                      nom_article,
+                      int(quantite_art),
+                      int(montant_total),
+                      statut_reglement,
+                      statut_livraison,
+                      user_nom,
+                  ]
+                  ws_art.append_row(
+                      ligne_art, value_input_option="USER_ENTERED"
+                  )
+                  st.cache_data.clear()
+                  st.session_state["toast_msg"] = (
+                      f"✅ Article '{nom_article}' enregistré avec succès !"
+                  )
+                  st.rerun()
+                except Exception as e:
+                  st.error(
+                      f"❌ Erreur (Vérifie que l'onglet 'Articles_Evenements'"
+                      f" existe dans Google Sheets) : {e}"
+                  )
+              else:
+                st.error("⚠️ Veuillez saisir le nom de l'article.")
+      else:
+        st.warning("⚠️ Aucun membre enregistré.")
+
+    with tab_art_suivi:
+      st.markdown("### 📋 Suivi des Ventes & Goodies")
+      if not df_articles.empty:
+        st.dataframe(df_articles, use_container_width=True)
+
+        # Export Excel articles
+        output_a = BytesIO()
+        with pd.ExcelWriter(output_a, engine="xlsxwriter") as writer:
+          df_articles.to_excel(writer, index=False, sheet_name="Articles")
+        excel_a_data = output_a.getvalue()
+
+        st.download_button(
+            label="📥 Exporter le suivi des articles (.xlsx)",
+            data=excel_a_data,
+            file_name="Rapport_Articles_Evenements.xlsx",
+            mime=(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            ),
+        )
+      else:
+        st.info(
+            "Aucun article enregistré pour le moment. (Créez un onglet"
+            " 'Articles_Evenements' dans votre Google Sheets si ce n'est pas"
+            " fait)."
+        )
 
   if "toast_msg" in st.session_state:
     st.toast(st.session_state["toast_msg"], icon="🎉")
