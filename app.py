@@ -241,19 +241,48 @@ def charger_donnees_depuis_sheets():
   except Exception:
     df_distrib = pd.DataFrame()
 
-  # 5. Cotisations
+  # 5. Cotisations (Avec vérification automatique des en-têtes)
   try:
-    df_cotiz = pd.DataFrame(
-        spreadsheet.worksheet("Cotisations").get_all_records()
-    )
+    ws_cotiz = spreadsheet.worksheet("Cotisations")
+    val_cotiz = ws_cotiz.get_all_values()
+    headers_cotiz = [
+        "ID_Cotiz",
+        "Date",
+        "ID_Membre",
+        "Nom_Enfant",
+        "Nom_Parent",
+        "Type_Paiement",
+        "Montant_Verse",
+        "Statut",
+        "Commentaire",
+        "Enregistre_Par",
+    ]
+    if not val_cotiz or val_cotiz[0][0] != "ID_Cotiz":
+      ws_cotiz.insert_row(headers_cotiz, 1)
+    df_cotiz = pd.DataFrame(ws_cotiz.get_all_records())
   except Exception:
     df_cotiz = pd.DataFrame()
 
-  # 6. Articles & Goodies Événements
+  # 6. Articles & Goodies Événements (Avec vérification automatique des en-têtes)
   try:
-    df_articles = pd.DataFrame(
-        spreadsheet.worksheet("Articles_Evenements").get_all_records()
-    )
+    ws_art = spreadsheet.worksheet("Articles_Evenements")
+    val_art = ws_art.get_all_values()
+    headers_art = [
+        "ID_Art",
+        "Date",
+        "ID_Membre",
+        "Nom_Enfant",
+        "Nom_Parent",
+        "Nom_Article",
+        "Quantite",
+        "Montant_Total",
+        "Statut_Reglement",
+        "Statut_Livraison",
+        "Enregistre_Par",
+    ]
+    if not val_art or val_art[0][0] != "ID_Art":
+      ws_art.insert_row(headers_art, 1)
+    df_articles = pd.DataFrame(ws_art.get_all_records())
   except Exception:
     df_articles = pd.DataFrame()
 
@@ -1581,7 +1610,7 @@ else:
 
     with tab_cotiz_suivi:
       st.markdown("### 📋 Historique & États des Cotisations")
-      if not df_cotiz.empty:
+      if not df_cotiz.empty and "ID_Cotiz" in df_cotiz.columns:
         st.dataframe(df_cotiz, use_container_width=True)
 
         output_c = BytesIO()
@@ -1785,7 +1814,7 @@ else:
 
     with tab_art_suivi:
       st.markdown("### 📋 Suivi des Ventes & Goodies")
-      if not df_articles.empty:
+      if not df_articles.empty and "ID_Art" in df_articles.columns:
         st.dataframe(df_articles, use_container_width=True)
 
         output_a = BytesIO()
