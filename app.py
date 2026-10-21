@@ -606,68 +606,78 @@ else:
         st.subheader(f"✏️ Modifier ou Supprimer - {choix_zone_label}")
 
         if not df_f.empty and col_membre in df_f.columns:
-            liste_membres_complets = df_f[col_membre].astype(str).tolist()
-            options_select = ["-- Sélectionnez un membre dans la liste --"] + liste_membres_complets
-
-            choix_membre = st.selectbox(
-                "🔍 Sélectionner directement le membre à modifier ou supprimer", 
-                options_select, 
-                format_func=lambda m: m if m == "-- Sélectionnez un membre dans la liste --" else f"{m} - {df_f[df_f[col_membre].astype(str) == m][col_enfant].values[0]}" if col_enfant in df_f.columns else m
-            )
-
-            if choix_membre != "-- Sélectionnez un membre dans la liste --":
-                membre_actuel = df[df[col_membre].astype(str) == choix_membre].iloc[0]
-
-                st.markdown("---")
-                choix_action = st.radio("Action à effectuer", ["Modifier les informations", "Supprimer le membre"], horizontal=True)
-
-                with st.container(border=True):
-                    if choix_action == "Modifier les informations":
-                        with st.form("form_modification", clear_on_submit=True):
-                            m_nom_enfant = st.text_input("Nom et Prénom", value=str(membre_actuel.get(col_enfant, ""))).upper()
-                            m_date_nais = st.text_input("Date de naissance", value=str(membre_actuel.get(col_date, "")))
-                            val_sexe = str(membre_actuel.get(col_sexe, "M")).upper()
-                            m_sexe = st.selectbox("Sexe", ["M", "F"], index=0 if val_sexe == "M" else 1)
-                            m_ville = st.text_input("Ville", value=str(membre_actuel.get(col_ville, ""))).upper()
-                            m_nom_parent = st.text_input("Parent", value=str(membre_actuel.get(col_parent, ""))).upper()
-                            m_tel = st.text_input("Téléphone", value=str(membre_actuel.get(col_tel, "")))
-                            val_adh = str(membre_actuel.get(col_adh, "OK")).upper()
-                            m_adhesion = st.selectbox("Adhésion", ["OK", "En attente"], index=0 if "OK" in val_adh else 1)
-
-                            btn_modifier = st.form_submit_button("💾 Mettre à jour")
-                            if btn_modifier:
-                                try:
-                                    cell = sheet.find(str(choix_membre))
-                                    row_idx = cell.row
-                                    sheet.update_cell(row_idx, 2, m_nom_enfant)
-                                    sheet.update_cell(row_idx, 3, m_date_nais)
-                                    sheet.update_cell(row_idx, 4, m_sexe)
-                                    sheet.update_cell(row_idx, 5, m_ville)
-                                    sheet.update_cell(row_idx, 6, m_nom_parent)
-                                    sheet.update_cell(row_idx, 7, str(m_tel))
-                                    sheet.update_cell(row_idx, 8, m_adhesion)
-                                    st.cache_data.clear()
-                                    st.session_state["toast_msg"] = f"✅ Membre {choix_membre} mis à jour !"
-                                    st.rerun()
-                                except Exception as e:
-                                    st.error(f"❌ Erreur : {e}")
-                    else:
-                        st.warning(f"⚠️ Suppression définitive du membre {choix_membre}")
-                        confirmer = st.checkbox("Je confirme la suppression définitive")
-                        if st.button("🗑️ Confirmer la suppression", type="primary"):
-                            if confirmer:
-                                try:
-                                    cell = sheet.find(str(choix_membre))
-                                    sheet.delete_rows(cell.row)
-                                    st.cache_data.clear()
-                                    st.session_state["toast_msg"] = f"✅ Membre {choix_membre} supprimé !"
-                                    st.rerun()
-                                except Exception as e:
-                                    st.error(f"❌ Erreur : {e}")
-                            else:
-                                st.error("⚠️ Cochez la case de confirmation.")
+            recherche_edit = st.text_input("🔍 Filtrer les membres par nom, matricule ou parent...", key="search_filtre_membre")
+            if recherche_edit:
+                mask_f = df_f.astype(str).apply(lambda row: row.str.contains(recherche_edit, case=False, na=False).any(), axis=1)
+                df_filtered_select = df_f[mask_f]
             else:
-                st.info("ℹ️ Veuillez sélectionner un membre dans la liste déroulante ci-dessus pour afficher ses informations et effectuer une modification ou suppression.")
+                df_filtered_select = df_f
+
+            if not df_filtered_select.empty:
+                liste_membres_complets = df_filtered_select[col_membre].astype(str).tolist()
+                options_select = ["-- Sélectionnez un membre dans la liste --"] + liste_membres_complets
+
+                choix_membre = st.selectbox(
+                    "Sélectionner le membre", 
+                    options_select, 
+                    format_func=lambda m: m if m == "-- Sélectionnez un membre dans la liste --" else f"{m} - {df_filtered_select[df_filtered_select[col_membre].astype(str) == m][col_enfant].values[0]}" if col_enfant in df_filtered_select.columns else m
+                )
+
+                if choix_membre != "-- Sélectionnez un membre dans la liste --":
+                    membre_actuel = df[df[col_membre].astype(str) == choix_membre].iloc[0]
+
+                    st.markdown("---")
+                    choix_action = st.radio("Action à effectuer", ["Modifier les informations", "Supprimer le membre"], horizontal=True)
+
+                    with st.container(border=True):
+                        if choix_action == "Modifier les informations":
+                            with st.form("form_modification", clear_on_submit=True):
+                                m_nom_enfant = st.text_input("Nom et Prénom", value=str(membre_actuel.get(col_enfant, ""))).upper()
+                                m_date_nais = st.text_input("Date de naissance", value=str(membre_actuel.get(col_date, "")))
+                                val_sexe = str(membre_actuel.get(col_sexe, "M")).upper()
+                                m_sexe = st.selectbox("Sexe", ["M", "F"], index=0 if val_sexe == "M" else 1)
+                                m_ville = st.text_input("Ville", value=str(membre_actuel.get(col_ville, ""))).upper()
+                                m_nom_parent = st.text_input("Parent", value=str(membre_actuel.get(col_parent, ""))).upper()
+                                m_tel = st.text_input("Téléphone", value=str(membre_actuel.get(col_tel, "")))
+                                val_adh = str(membre_actuel.get(col_adh, "OK")).upper()
+                                m_adhesion = st.selectbox("Adhésion", ["OK", "En attente"], index=0 if "OK" in val_adh else 1)
+
+                                btn_modifier = st.form_submit_button("💾 Mettre à jour")
+                                if btn_modifier:
+                                    try:
+                                        cell = sheet.find(str(choix_membre))
+                                        row_idx = cell.row
+                                        sheet.update_cell(row_idx, 2, m_nom_enfant)
+                                        sheet.update_cell(row_idx, 3, m_date_nais)
+                                        sheet.update_cell(row_idx, 4, m_sexe)
+                                        sheet.update_cell(row_idx, 5, m_ville)
+                                        sheet.update_cell(row_idx, 6, m_nom_parent)
+                                        sheet.update_cell(row_idx, 7, str(m_tel))
+                                        sheet.update_cell(row_idx, 8, m_adhesion)
+                                        st.cache_data.clear()
+                                        st.session_state["toast_msg"] = f"✅ Membre {choix_membre} mis à jour !"
+                                        st.rerun()
+                                    except Exception as e:
+                                        st.error(f"❌ Erreur : {e}")
+                        else:
+                            st.warning(f"⚠️ Suppression définitive du membre {choix_membre}")
+                            confirmer = st.checkbox("Je confirme la suppression définitive")
+                            if st.button("🗑️ Confirmer la suppression", type="primary"):
+                                if confirmer:
+                                    try:
+                                        cell = sheet.find(str(choix_membre))
+                                        sheet.delete_rows(cell.row)
+                                        st.cache_data.clear()
+                                        st.session_state["toast_msg"] = f"✅ Membre {choix_membre} supprimé !"
+                                        st.rerun()
+                                    except Exception as e:
+                                        st.error(f"❌ Erreur : {e}")
+                                else:
+                                    st.error("⚠️ Cochez la case de confirmation.")
+                else:
+                    st.info("ℹ️ Veuillez sélectionner un membre dans la liste déroulante ci-dessus pour afficher ses informations.")
+            else:
+                st.warning("⚠️ Aucun membre ne correspond à votre recherche.")
         else:
             st.info("Aucun membre disponible.")
 
@@ -730,165 +740,175 @@ else:
                 if not df_ok.empty:
                     modele_carte = st.radio("🎨 Choisissez le modèle de carte officiel :", ["Modèle 1 : Classique Officiel avec Logo (Vert, Blanc & Orange)", "Modèle 2 : Moderne & Épuré avec En-tête Logo (Design épuré)"], horizontal=False)
 
-                    c_sel, c_img = st.columns([2, 1])
-                    with c_sel:
-                        membre_selectionne = st.selectbox("1. Sélectionnez l'enfant :", df_ok[col_membre].astype(str).tolist(), format_func=lambda m: f"{m} - {df_ok[df_ok[col_membre].astype(str) == m][col_enfant].values[0]}")
-                    with c_img:
-                        photo_file = st.file_uploader("2. Photo de l'enfant", type=["jpg", "png", "jpeg"])
+                    recherche_carte = st.text_input("🔍 Filtrer l'enfant pour la carte...", key="search_filtre_carte")
+                    if recherche_carte:
+                        mask_c = df_ok.astype(str).apply(lambda row: row.str.contains(recherche_carte, case=False, na=False).any(), axis=1)
+                        df_ok_filtered = df_ok[mask_c]
+                    else:
+                        df_ok_filtered = df_ok
 
-                    if membre_selectionne:
-                        row_m = df_ok[df_ok[col_membre].astype(str) == membre_selectionne].iloc[0]
-                        if photo_file is not None:
-                            img_src = f"data:image/png;base64,{base64.b64encode(photo_file.getvalue()).decode()}"
-                        else:
-                            img_src = "https://via.placeholder.com/130x150/e9ecef/6c757d?text=PHOTO"
+                    if not df_ok_filtered.empty:
+                        c_sel, c_img = st.columns([2, 1])
+                        with c_sel:
+                            membre_selectionne = st.selectbox("1. Sélectionnez l'enfant :", df_ok_filtered[col_membre].astype(str).tolist(), format_func=lambda m: f"{m} - {df_ok_filtered[df_ok_filtered[col_membre].astype(str) == m][col_enfant].values[0]}")
+                        with c_img:
+                            photo_file = st.file_uploader("2. Photo de l'enfant", type=["jpg", "png", "jpeg"])
 
-                        logo_path = "logo.png"
-                        if os.path.exists(logo_path):
-                            with open(logo_path, "rb") as f_logo:
-                                logo_b64 = base64.b64encode(f_logo.read()).decode()
-                            logo_src = f"data:image/png;base64,{logo_b64}"
-                        else:
-                            logo_src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="%231e7e34"/><path d="M50 25 L60 45 L80 45 L65 60 L70 80 L50 68 L30 80 L35 60 L20 45 L40 45 Z" fill="%23ff7f00"/></svg>'
+                        if membre_selectionne:
+                            row_m = df_ok_filtered[df_ok_filtered[col_membre].astype(str) == membre_selectionne].iloc[0]
+                            if photo_file is not None:
+                                img_src = f"data:image/png;base64,{base64.b64encode(photo_file.getvalue()).decode()}"
+                            else:
+                                img_src = "https://via.placeholder.com/130x150/e9ecef/6c757d?text=PHOTO"
 
-                        nom_complet = str(row_m.get(col_enfant, "")).upper().split(" ", 1)
-                        nom_e = nom_complet[0]
-                        prenom_e = nom_complet[1] if len(nom_complet) > 1 else ""
-                        nom_p = str(row_m.get(col_parent, "")).upper()
-                        num_m = str(row_m.get(col_membre, ""))
-                        date_adh = str(row_m.get(df.columns[8] if len(df.columns) > 8 else "", "")).split(" ")[0]
-                        tel_p = str(row_m.get(col_tel, ""))
+                            logo_path = "logo.png"
+                            if os.path.exists(logo_path):
+                                with open(logo_path, "rb") as f_logo:
+                                    logo_b64 = base64.b64encode(f_logo.read()).decode()
+                                logo_src = f"data:image/png;base64,{logo_b64}"
+                            else:
+                                logo_src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="%231e7e34"/><path d="M50 25 L60 45 L80 45 L65 60 L70 80 L50 68 L30 80 L35 60 L20 45 L40 45 Z" fill="%23ff7f00"/></svg>'
 
-                        if modele_carte.startswith("Modèle 1"):
-                            html_carte = f"""
-                            <!DOCTYPE html>
-                            <html>
-                            <head>
-                            <meta charset="utf-8">
-                            <style>
-                                @media print {{
-                                    body {{ background: none !important; }}
-                                    .no-print {{ display: none !important; }}
-                                    .card-box {{ box-shadow: none !important; border: 3px solid #1e7e34 !important; }}
-                                }}
-                                .print-btn {{
-                                    background: linear-gradient(90deg, #28a745 0%, #1e7e34 100%);
-                                    color: white;
-                                    border: none;
-                                    padding: 12px 28px;
-                                    font-size: 14px;
-                                    font-weight: bold;
-                                    border-radius: 10px;
-                                    cursor: pointer;
-                                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-                                    margin-top: 15px;
-                                    transition: all 0.3s ease;
-                                }}
-                                .print-btn:hover {{
-                                    background: linear-gradient(90deg, #1e7e34 0%, #155724 100%);
-                                }}
-                            </style>
-                            </head>
-                            <body style="background-color: transparent; font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 5px;">
-                                <div style="display: inline-block;">
-                                    <div class="card-box" style="width: 620px; height: 390px; background: #ffffff; border-radius: 16px; border: 3px solid #1e7e34; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: left; overflow: hidden;">
-                                        <div style="position: absolute; top: 0; left: 0; right: 0; height: 14px; background: linear-gradient(90deg, #1e7e34 0%, #28a745 50%, #ff7f00 100%);"></div>
-                                        <div style="text-align: center; padding-top: 20px;">
-                                            <div style="font-size: 18px; font-weight: 900; color: #1e7e34; letter-spacing: 1px;">ONG DIEU POURVOIRA</div>
-                                            <div style="background: #1e7e34; color: white; padding: 3px 20px; border-radius: 12px; font-size: 12px; font-weight: bold; display: inline-block; margin-top: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">CARTE DE MEMBRE OFFICIELLE</div>
-                                        </div>
-                                        <div style="position: absolute; left: 35px; top: 85px; width: 130px; height: 150px; border: 3px solid #1e7e34; border-radius: 10px; overflow: hidden; background: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-                                            <img src="{img_src}" style="width: 100%; height: 100%; object-fit: cover;">
-                                        </div>
-                                        <div style="position: absolute; left: 65px; top: 242px; width: 70px; height: 70px;">
-                                            <img src="{logo_src}" style="width: 100%; height: 100%; object-fit: contain;">
-                                        </div>
-                                        <div style="position: absolute; left: 185px; top: 85px; width: 415px; font-size: 13px; color: #212529; line-height: 25px;">
-                                            <div style="border-bottom: 1px dotted #ccc; padding-bottom: 1px;"><span style="color: #6c757d; display: inline-block; width: 145px;">Nom de l'enfant :</span> <span style="font-weight: 800; color: #000;">{nom_e}</span></div>
-                                            <div style="border-bottom: 1px dotted #ccc; padding-bottom: 1px;"><span style="color: #6c757d; display: inline-block; width: 145px;">Prénom de l'enfant :</span> <span style="font-weight: 800; color: #000;">{prenom_e}</span></div>
-                                            <div style="border-bottom: 1px dotted #ccc; padding-bottom: 1px;"><span style="color: #6c757d; display: inline-block; width: 145px;">Parent :</span> <span style="font-weight: 700; color: #333; font-size: 12px;">{nom_p}</span></div>
-                                            <div style="border-bottom: 1px dotted #ccc; padding-bottom: 1px;"><span style="color: #6c757d; display: inline-block; width: 145px;">N° Membre :</span> <span style="color: #1e7e34; font-weight: 900; font-size: 14px;">{num_m}</span></div>
-                                            <div style="border-bottom: 1px dotted #ccc; padding-bottom: 1px;"><span style="color: #6c757d; display: inline-block; width: 145px;">Date d'adhésion :</span> <span style="font-weight: 700; color: #000;">{date_adh}</span></div>
-                                            <div style="border-bottom: 1px dotted #ccc; padding-bottom: 1px;"><span style="color: #6c757d; display: inline-block; width: 145px;">Contact parent :</span> <span style="font-weight: 700; color: #000;">{tel_p}</span></div>
-                                        </div>
-                                        <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(90deg, #1e7e34 0%, #0b4d1d 100%); color: white; padding: 8px 12px; font-size: 10px; text-align: center; font-weight: bold;">
-                                            ❤️ Ensemble aidons les enfants atteints de Paralysie cérébrale ❤️<br>
-                                            <span style="font-weight: normal; color: #e2f0d9; font-size: 9px;">📞 Contact : +225 77 71 04 41 8 / 05 86 99 73 27</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="no-print">
-                                    <button class="print-btn" onclick="window.print()">🖨️ Lancer l'impression / Enregistrer en PDF</button>
-                                </div>
-                            </body>
-                            </html>
-                            """
-                        else:
-                            html_carte = f"""
-                            <!DOCTYPE html>
-                            <html>
-                            <head>
-                            <meta charset="utf-8">
-                            <style>
-                                @media print {{
-                                    body {{ background: none !important; }}
-                                    .no-print {{ display: none !important; }}
-                                    .card-box {{ box-shadow: none !important; border: 3px solid #ff7f00 !important; }}
-                                }}
-                                .print-btn {{
-                                    background: linear-gradient(90deg, #28a745 0%, #1e7e34 100%);
-                                    color: white;
-                                    border: none;
-                                    padding: 12px 28px;
-                                    font-size: 14px;
-                                    font-weight: bold;
-                                    border-radius: 10px;
-                                    cursor: pointer;
-                                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-                                    margin-top: 15px;
-                                    transition: all 0.3s ease;
-                                }}
-                                .print-btn:hover {{
-                                    background: linear-gradient(90deg, #1e7e34 0%, #155724 100%);
-                                }}
-                            </style>
-                            </head>
-                            <body style="background-color: transparent; font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 5px;">
-                                <div style="display: inline-block;">
-                                    <div class="card-box" style="width: 620px; height: 390px; background: linear-gradient(135deg, #f9fffb 0%, #f1f8f3 100%); border-radius: 16px; border: 3px solid #ff7f00; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: left; overflow: hidden;">
-                                        <div style="background: #1e7e34; color: white; padding: 8px 15px; display: flex; align-items: center; justify-content: space-between; border-bottom: 4px solid #ff7f00;">
-                                            <img src="{logo_src}" style="height: 42px; width: auto; background: #fff; padding: 2px; border-radius: 6px;">
-                                            <div style="text-align: center; flex-grow: 1;">
-                                                <div style="font-size: 17px; font-weight: 900; letter-spacing: 1.5px;">ONG DIEU POURVOIRA</div>
-                                                <div style="font-size: 10px; color: #e2f0d9; font-weight: bold;">CARTE D'ADHÉRENT OFFICIELLE</div>
+                            nom_complet = str(row_m.get(col_enfant, "")).upper().split(" ", 1)
+                            nom_e = nom_complet[0]
+                            prenom_e = nom_complet[1] if len(nom_complet) > 1 else ""
+                            nom_p = str(row_m.get(col_parent, "")).upper()
+                            num_m = str(row_m.get(col_membre, ""))
+                            date_adh = str(row_m.get(df.columns[8] if len(df.columns) > 8 else "", "")).split(" ")[0]
+                            tel_p = str(row_m.get(col_tel, ""))
+
+                            if modele_carte.startswith("Modèle 1"):
+                                html_carte = f"""
+                                <!DOCTYPE html>
+                                <html>
+                                <head>
+                                <meta charset="utf-8">
+                                <style>
+                                    @media print {{
+                                        body {{ background: none !important; }}
+                                        .no-print {{ display: none !important; }}
+                                        .card-box {{ box-shadow: none !important; border: 3px solid #1e7e34 !important; }}
+                                    }}
+                                    .print-btn {{
+                                        background: linear-gradient(90deg, #28a745 0%, #1e7e34 100%);
+                                        color: white;
+                                        border: none;
+                                        padding: 12px 28px;
+                                        font-size: 14px;
+                                        font-weight: bold;
+                                        border-radius: 10px;
+                                        cursor: pointer;
+                                        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                                        margin-top: 15px;
+                                        transition: all 0.3s ease;
+                                    }}
+                                    .print-btn:hover {{
+                                        background: linear-gradient(90deg, #1e7e34 0%, #155724 100%);
+                                    }}
+                                </style>
+                                </head>
+                                <body style="background-color: transparent; font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 5px;">
+                                    <div style="display: inline-block;">
+                                        <div class="card-box" style="width: 620px; height: 390px; background: #ffffff; border-radius: 16px; border: 3px solid #1e7e34; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: left; overflow: hidden;">
+                                            <div style="position: absolute; top: 0; left: 0; right: 0; height: 14px; background: linear-gradient(90deg, #1e7e34 0%, #28a745 50%, #ff7f00 100%);"></div>
+                                            <div style="text-align: center; padding-top: 20px;">
+                                                <div style="font-size: 18px; font-weight: 900; color: #1e7e34; letter-spacing: 1px;">ONG DIEU POURVOIRA</div>
+                                                <div style="background: #1e7e34; color: white; padding: 3px 20px; border-radius: 12px; font-size: 12px; font-weight: bold; display: inline-block; margin-top: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">CARTE DE MEMBRE OFFICIELLE</div>
                                             </div>
-                                            <div style="width: 42px;"></div>
-                                        </div>
-                                        <div style="position: absolute; left: 35px; top: 90px; width: 130px; height: 155px; border: 3px solid #ff7f00; border-radius: 10px; overflow: hidden; background: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.15);">
-                                            <img src="{img_src}" style="width: 100%; height: 100%; object-fit: cover;">
-                                        </div>
-                                        <div style="position: absolute; left: 185px; top: 90px; width: 415px; font-size: 13px; color: #212529; line-height: 25px;">
-                                            <div style="border-bottom: 1px solid #d4edda; padding-bottom: 1px;"><span style="color: #1e7e34; font-weight: bold; display: inline-block; width: 145px;">Nom :</span> <span style="font-weight: 800; color: #000;">{nom_e}</span></div>
-                                            <div style="border-bottom: 1px solid #d4edda; padding-bottom: 1px;"><span style="color: #1e7e34; font-weight: bold; display: inline-block; width: 145px;">Prénom :</span> <span style="font-weight: 800; color: #000;">{prenom_e}</span></div>
-                                            <div style="border-bottom: 1px solid #d4edda; padding-bottom: 1px;"><span style="color: #1e7e34; font-weight: bold; display: inline-block; width: 145px;">Parent :</span> <span style="font-weight: 700; color: #333; font-size: 12px;">{nom_p}</span></div>
-                                            <div style="border-bottom: 1px solid #d4edda; padding-bottom: 1px;"><span style="color: #1e7e34; font-weight: bold; display: inline-block; width: 145px;">N° Membre :</span> <span style="color: #ff7f00; font-weight: 900; font-size: 14px;">{num_m}</span></div>
-                                            <div style="border-bottom: 1px solid #d4edda; padding-bottom: 1px;"><span style="color: #1e7e34; font-weight: bold; display: inline-block; width: 145px;">Adhésion :</span> <span style="font-weight: 700; color: #000;">{date_adh}</span></div>
-                                            <div style="border-bottom: 1px solid #d4edda; padding-bottom: 1px;"><span style="color: #1e7e34; font-weight: bold; display: inline-block; width: 145px;">Contact :</span> <span style="font-weight: 700; color: #000;">{tel_p}</span></div>
-                                        </div>
-                                        <div style="position: absolute; bottom: 0; left: 0; right: 0; background: #1e7e34; color: white; padding: 8px 12px; font-size: 10px; text-align: center; font-weight: bold;">
-                                            ❤️ Ensemble aidons les enfants atteints de Paralysie cérébrale ❤️<br>
-                                            <span style="font-weight: normal; color: #ff7f00; font-size: 9px;">📞 Contact : +225 77 71 04 41 8 / 05 86 99 73 27</span>
+                                            <div style="position: absolute; left: 35px; top: 85px; width: 130px; height: 150px; border: 3px solid #1e7e34; border-radius: 10px; overflow: hidden; background: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                                                <img src="{img_src}" style="width: 100%; height: 100%; object-fit: cover;">
+                                            </div>
+                                            <div style="position: absolute; left: 65px; top: 242px; width: 70px; height: 70px;">
+                                                <img src="{logo_src}" style="width: 100%; height: 100%; object-fit: contain;">
+                                            </div>
+                                            <div style="position: absolute; left: 185px; top: 85px; width: 415px; font-size: 13px; color: #212529; line-height: 25px;">
+                                                <div style="border-bottom: 1px dotted #ccc; padding-bottom: 1px;"><span style="color: #6c757d; display: inline-block; width: 145px;">Nom de l'enfant :</span> <span style="font-weight: 800; color: #000;">{nom_e}</span></div>
+                                                <div style="border-bottom: 1px dotted #ccc; padding-bottom: 1px;"><span style="color: #6c757d; display: inline-block; width: 145px;">Prénom de l'enfant :</span> <span style="font-weight: 800; color: #000;">{prenom_e}</span></div>
+                                                <div style="border-bottom: 1px dotted #ccc; padding-bottom: 1px;"><span style="color: #6c757d; display: inline-block; width: 145px;">Parent :</span> <span style="font-weight: 700; color: #333; font-size: 12px;">{nom_p}</span></div>
+                                                <div style="border-bottom: 1px dotted #ccc; padding-bottom: 1px;"><span style="color: #6c757d; display: inline-block; width: 145px;">N° Membre :</span> <span style="color: #1e7e34; font-weight: 900; font-size: 14px;">{num_m}</span></div>
+                                                <div style="border-bottom: 1px dotted #ccc; padding-bottom: 1px;"><span style="color: #6c757d; display: inline-block; width: 145px;">Date d'adhésion :</span> <span style="font-weight: 700; color: #000;">{date_adh}</span></div>
+                                                <div style="border-bottom: 1px dotted #ccc; padding-bottom: 1px;"><span style="color: #6c757d; display: inline-block; width: 145px;">Contact parent :</span> <span style="font-weight: 700; color: #000;">{tel_p}</span></div>
+                                            </div>
+                                            <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(90deg, #1e7e34 0%, #0b4d1d 100%); color: white; padding: 8px 12px; font-size: 10px; text-align: center; font-weight: bold;">
+                                                ❤️ Ensemble aidons les enfants atteints de Paralysie cérébrale ❤️<br>
+                                                <span style="font-weight: normal; color: #e2f0d9; font-size: 9px;">📞 Contact : +225 77 71 04 41 8 / 05 86 99 73 27</span>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                                <div class="no-print">
-                                    <button class="print-btn" onclick="window.print()">🖨️ Lancer l'impression / Enregistrer en PDF</button>
-                                </div>
-                            </body>
-                            </html>
-                            """
+                                    <div class="no-print">
+                                        <button class="print-btn" onclick="window.print()">🖨️ Lancer l'impression / Enregistrer en PDF</button>
+                                    </div>
+                                </body>
+                                </html>
+                                """
+                            else:
+                                html_carte = f"""
+                                <!DOCTYPE html>
+                                <html>
+                                <head>
+                                <meta charset="utf-8">
+                                <style>
+                                    @media print {{
+                                        body {{ background: none !important; }}
+                                        .no-print {{ display: none !important; }}
+                                        .card-box {{ box-shadow: none !important; border: 3px solid #ff7f00 !important; }}
+                                    }}
+                                    .print-btn {{
+                                        background: linear-gradient(90deg, #28a745 0%, #1e7e34 100%);
+                                        color: white;
+                                        border: none;
+                                        padding: 12px 28px;
+                                        font-size: 14px;
+                                        font-weight: bold;
+                                        border-radius: 10px;
+                                        cursor: pointer;
+                                        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                                        margin-top: 15px;
+                                        transition: all 0.3s ease;
+                                    }}
+                                    .print-btn:hover {{
+                                        background: linear-gradient(90deg, #1e7e34 0%, #155724 100%);
+                                    }}
+                                </style>
+                                </head>
+                                <body style="background-color: transparent; font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 5px;">
+                                    <div style="display: inline-block;">
+                                        <div class="card-box" style="width: 620px; height: 390px; background: linear-gradient(135deg, #f9fffb 0%, #f1f8f3 100%); border-radius: 16px; border: 3px solid #ff7f00; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: left; overflow: hidden;">
+                                            <div style="background: #1e7e34; color: white; padding: 8px 15px; display: flex; align-items: center; justify-content: space-between; border-bottom: 4px solid #ff7f00;">
+                                                <img src="{logo_src}" style="height: 42px; width: auto; background: #fff; padding: 2px; border-radius: 6px;">
+                                                <div style="text-align: center; flex-grow: 1;">
+                                                    <div style="font-size: 17px; font-weight: 900; letter-spacing: 1.5px;">ONG DIEU POURVOIRA</div>
+                                                    <div style="font-size: 10px; color: #e2f0d9; font-weight: bold;">CARTE D'ADHÉRENT OFFICIELLE</div>
+                                                </div>
+                                                <div style="width: 42px;"></div>
+                                            </div>
+                                            <div style="position: absolute; left: 35px; top: 90px; width: 130px; height: 155px; border: 3px solid #ff7f00; border-radius: 10px; overflow: hidden; background: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.15);">
+                                                <img src="{img_src}" style="width: 100%; height: 100%; object-fit: cover;">
+                                            </div>
+                                            <div style="position: absolute; left: 185px; top: 90px; width: 415px; font-size: 13px; color: #212529; line-height: 25px;">
+                                                <div style="border-bottom: 1px solid #d4edda; padding-bottom: 1px;"><span style="color: #1e7e34; font-weight: bold; display: inline-block; width: 145px;">Nom :</span> <span style="font-weight: 800; color: #000;">{nom_e}</span></div>
+                                                <div style="border-bottom: 1px solid #d4edda; padding-bottom: 1px;"><span style="color: #1e7e34; font-weight: bold; display: inline-block; width: 145px;">Prénom :</span> <span style="font-weight: 800; color: #000;">{prenom_e}</span></div>
+                                                <div style="border-bottom: 1px solid #d4edda; padding-bottom: 1px;"><span style="color: #1e7e34; font-weight: bold; display: inline-block; width: 145px;">Parent :</span> <span style="font-weight: 700; color: #333; font-size: 12px;">{nom_p}</span></div>
+                                                <div style="border-bottom: 1px solid #d4edda; padding-bottom: 1px;"><span style="color: #1e7e34; font-weight: bold; display: inline-block; width: 145px;">N° Membre :</span> <span style="color: #ff7f00; font-weight: 900; font-size: 14px;">{num_m}</span></div>
+                                                <div style="border-bottom: 1px solid #d4edda; padding-bottom: 1px;"><span style="color: #1e7e34; font-weight: bold; display: inline-block; width: 145px;">Adhésion :</span> <span style="font-weight: 700; color: #000;">{date_adh}</span></div>
+                                                <div style="border-bottom: 1px solid #d4edda; padding-bottom: 1px;"><span style="color: #1e7e34; font-weight: bold; display: inline-block; width: 145px;">Contact :</span> <span style="font-weight: 700; color: #000;">{tel_p}</span></div>
+                                            </div>
+                                            <div style="position: absolute; bottom: 0; left: 0; right: 0; background: #1e7e34; color: white; padding: 8px 12px; font-size: 10px; text-align: center; font-weight: bold;">
+                                                ❤️ Ensemble aidons les enfants atteints de Paralysie cérébrale ❤️<br>
+                                                <span style="font-weight: normal; color: #ff7f00; font-size: 9px;">📞 Contact : +225 77 71 04 41 8 / 05 86 99 73 27</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="no-print">
+                                        <button class="print-btn" onclick="window.print()">🖨️ Lancer l'impression / Enregistrer en PDF</button>
+                                    </div>
+                                </body>
+                                </html>
+                                """
 
-                        st.components.v1.html(html_carte, height=480)
+                            st.components.v1.html(html_carte, height=480)
+                    else:
+                        st.warning("⚠️ Aucun enfant ne correspond à votre recherche.")
                 else:
                     st.warning("⚠️ Aucun membre actif (Adhésion OK) trouvé.")
         else:
@@ -930,44 +950,54 @@ else:
         with tab_modif_stock:
             if not df_stock.empty and "ID_Don" in df_stock.columns:
                 with st.container(border=True):
-                    choix_id_don = st.selectbox("Sélectionner le Don à modifier/supprimer", df_stock["ID_Don"].astype(str).tolist(), format_func=lambda d: f"{d} - {df_stock[df_stock['ID_Don'].astype(str) == d]['Designation'].values[0]}")
-                    don_ligne = df_stock[df_stock["ID_Don"].astype(str) == choix_id_don].iloc[0]
-
-                    action_stock = st.radio("Action sur ce stock", ["Modifier", "Supprimer définitivement"], horizontal=True)
-                    if action_stock == "Modifier":
-                        with st.form("form_modif_stock"):
-                            nouveau_des = st.text_input("Désignation", value=str(don_ligne.get("Designation", ""))).upper()
-                            nouv_stock_act = st.number_input("Stock Actuel", min_value=0, value=safe_int_convert(don_ligne.get("Stock_Actuel", 0)))
-                            nouv_valeur = st.number_input("Valeur (FCFA)", min_value=0, value=safe_int_convert(don_ligne.get("Valeur_Estimee", 0)))
-
-                            if st.form_submit_button("💾 Mettre à jour le stock"):
-                                try:
-                                    ws_stock = spreadsheet.worksheet("Dons_Stock")
-                                    cell = ws_stock.find(str(choix_id_don))
-                                    row_idx = cell.row
-                                    ws_stock.update_cell(row_idx, 4, nouveau_des)
-                                    ws_stock.update_cell(row_idx, 6, int(nouv_stock_act))
-                                    ws_stock.update_cell(row_idx, 7, int(nouv_valeur))
-                                    st.cache_data.clear()
-                                    st.session_state["toast_msg"] = f"✅ Don {choix_id_don} mis à jour avec succès !"
-                                    st.rerun()
-                                except Exception as e:
-                                    st.error(f"❌ Erreur : {e}")
+                    recherche_stock_mod = st.text_input("🔍 Filtrer les dons en stock par ID ou Désignation...", key="search_filtre_stock_mod")
+                    if recherche_stock_mod:
+                        mask_s = df_stock.astype(str).apply(lambda row: row.str.contains(recherche_stock_mod, case=False, na=False).any(), axis=1)
+                        df_stock_filtered = df_stock[mask_s]
                     else:
-                        conf_sup = st.checkbox("Je confirme la suppression de ce don")
-                        if st.button("🗑️ Supprimer définitivement du stock", type="primary"):
-                            if conf_sup:
-                                try:
-                                    ws_stock = spreadsheet.worksheet("Dons_Stock")
-                                    cell = ws_stock.find(str(choix_id_don))
-                                    ws_stock.delete_rows(cell.row)
-                                    st.cache_data.clear()
-                                    st.session_state["toast_msg"] = f"✅ Don {choix_id_don} supprimé !"
-                                    st.rerun()
-                                except Exception as e:
-                                    st.error(f"❌ Erreur : {e}")
-                            else:
-                                st.error("⚠️ Veuillez cocher la case de confirmation.")
+                        df_stock_filtered = df_stock
+
+                    if not df_stock_filtered.empty:
+                        choix_id_don = st.selectbox("Sélectionner le Don à modifier/supprimer", df_stock_filtered["ID_Don"].astype(str).tolist(), format_func=lambda d: f"{d} - {df_stock_filtered[df_stock_filtered['ID_Don'].astype(str) == d]['Designation'].values[0]}")
+                        don_ligne = df_stock[df_stock["ID_Don"].astype(str) == choix_id_don].iloc[0]
+
+                        action_stock = st.radio("Action sur ce stock", ["Modifier", "Supprimer définitivement"], horizontal=True)
+                        if action_stock == "Modifier":
+                            with st.form("form_modif_stock"):
+                                nouveau_des = st.text_input("Désignation", value=str(don_ligne.get("Designation", ""))).upper()
+                                nouv_stock_act = st.number_input("Stock Actuel", min_value=0, value=safe_int_convert(don_ligne.get("Stock_Actuel", 0)))
+                                nouv_valeur = st.number_input("Valeur (FCFA)", min_value=0, value=safe_int_convert(don_ligne.get("Valeur_Estimee", 0)))
+
+                                if st.form_submit_button("💾 Mettre à jour le stock"):
+                                    try:
+                                        ws_stock = spreadsheet.worksheet("Dons_Stock")
+                                        cell = ws_stock.find(str(choix_id_don))
+                                        row_idx = cell.row
+                                        ws_stock.update_cell(row_idx, 4, nouveau_des)
+                                        ws_stock.update_cell(row_idx, 6, int(nouv_stock_act))
+                                        ws_stock.update_cell(row_idx, 7, int(nouv_valeur))
+                                        st.cache_data.clear()
+                                        st.session_state["toast_msg"] = f"✅ Don {choix_id_don} mis à jour avec succès !"
+                                        st.rerun()
+                                    except Exception as e:
+                                        st.error(f"❌ Erreur : {e}")
+                        else:
+                            conf_sup = st.checkbox("Je confirme la suppression de ce don")
+                            if st.button("🗑️ Supprimer définitivement du stock", type="primary"):
+                                if conf_sup:
+                                    try:
+                                        ws_stock = spreadsheet.worksheet("Dons_Stock")
+                                        cell = ws_stock.find(str(choix_id_don))
+                                        ws_stock.delete_rows(cell.row)
+                                        st.cache_data.clear()
+                                        st.session_state["toast_msg"] = f"✅ Don {choix_id_don} supprimé !"
+                                        st.rerun()
+                                    except Exception as e:
+                                        st.error(f"❌ Erreur : {e}")
+                                else:
+                                    st.error("⚠️ Veuillez cocher la case de confirmation.")
+                    else:
+                        st.warning("⚠️ Aucun don ne correspond à votre recherche.")
             else:
                 st.info("Aucun stock enregistré pour le moment.")
 
@@ -993,46 +1023,67 @@ else:
             if not df_stock_dispo.empty:
                 with st.container(border=True):
                     with st.form("form_remise_don", clear_on_submit=True):
-                        liste_enfants = df[col_membre].astype(str).tolist()
-                        choix_enfant_don = st.selectbox("1. Enfant bénéficiaire", liste_enfants, format_func=lambda m: f"{m} - {df[df[col_membre].astype(str) == m][col_enfant].values[0]}")
+                        st.markdown("##### 🔍 Filtrer et sélectionner le bénéficiaire et le don")
+                        recherche_benef_remise = st.text_input("Filtrer l'enfant bénéficiaire (Nom, Matricule...)")
+                        recherche_don_remise = st.text_input("Filtrer le don en stock (Désignation, ID...)")
+                        
+                        # Filtrage dynamique des enfants
+                        if recherche_benef_remise:
+                            mask_eb = df.astype(str).apply(lambda row: row.str.contains(recherche_benef_remise, case=False, na=False).any(), axis=1)
+                            df_enfants_f = df[mask_eb]
+                        else:
+                            df_enfants_f = df
 
-                        liste_dons_dispo = df_stock_dispo["ID_Don"].astype(str).tolist()
-                        choix_don = st.selectbox("2. Don à remettre", liste_dons_dispo, format_func=lambda d: f"{d} - {df_stock_dispo[df_stock_dispo['ID_Don'].astype(str) == d]['Designation'].values[0]} (Reste: {df_stock_dispo[df_stock_dispo['ID_Don'].astype(str) == d]['Stock_Actuel'].values[0]})")
+                        # Filtrage dynamique des stocks dispo
+                        if recherche_don_remise:
+                            mask_db = df_stock_dispo.astype(str).apply(lambda row: row.str.contains(recherche_don_remise, case=False, na=False).any(), axis=1)
+                            df_stock_f = df_stock_dispo[mask_db]
+                        else:
+                            df_stock_f = df_stock_dispo
 
-                        quantite_remise = st.number_input("3. Quantité remise", min_value=1, value=1, step=1)
-                        btn_remettre = st.form_submit_button("🎁 Valider la Remise du Don", use_container_width=True)
+                        if not df_enfants_f.empty and not df_stock_f.empty:
+                            liste_enfants = df_enfants_f[col_membre].astype(str).tolist()
+                            choix_enfant_don = st.selectbox("1. Enfant bénéficiaire", liste_enfants, format_func=lambda m: f"{m} - {df_enfants_f[df_enfants_f[col_membre].astype(str) == m][col_enfant].values[0]}")
 
-                        if btn_remettre:
-                            try:
-                                enfant_info = df[df[col_membre].astype(str) == choix_enfant_don].iloc[0]
-                                nom_e = enfant_info.get(col_enfant, "")
-                                nom_p = enfant_info.get(col_parent, "")
+                            liste_dons_dispo = df_stock_f["ID_Don"].astype(str).tolist()
+                            choix_don = st.selectbox("2. Don à remettre", liste_dons_dispo, format_func=lambda d: f"{d} - {df_stock_f[df_stock_f['ID_Don'].astype(str) == d]['Designation'].values[0]} (Reste: {df_stock_f[df_stock_f['ID_Don'].astype(str) == d]['Stock_Actuel'].values[0]})")
 
-                                don_info = df_stock_dispo[df_stock_dispo["ID_Don"].astype(str) == choix_don].iloc[0]
-                                designation_d = don_info.get("Designation", "")
-                                stock_actuel = safe_int_convert(don_info.get("Stock_Actuel", 1))
+                            quantite_remise = st.number_input("3. Quantité remise", min_value=1, value=1, step=1)
+                            btn_remettre = st.form_submit_button("🎁 Valider la Remise du Don", use_container_width=True)
 
-                                if quantite_remise <= stock_actuel:
-                                    ws_distrib = spreadsheet.worksheet("Remise de Dons")
-                                    ws_stock = spreadsheet.worksheet("Dons_Stock")
+                            if btn_remettre:
+                                try:
+                                    enfant_info = df[df[col_membre].astype(str) == choix_enfant_don].iloc[0]
+                                    nom_e = enfant_info.get(col_enfant, "")
+                                    nom_p = enfant_info.get(col_parent, "")
 
-                                    id_distrib = f"DIST-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-                                    date_remise = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                                    don_info = df_stock_dispo[df_stock_dispo["ID_Don"].astype(str) == choix_don].iloc[0]
+                                    designation_d = don_info.get("Designation", "")
+                                    stock_actuel = safe_int_convert(don_info.get("Stock_Actuel", 1))
 
-                                    ligne_distrib = [id_distrib, date_remise, choix_enfant_don, nom_e, nom_p, designation_d, int(quantite_remise), user_zone, f"{user_nom}"]
-                                    ws_distrib.append_row(ligne_distrib, value_input_option="USER_ENTERED")
+                                    if quantite_remise <= stock_actuel:
+                                        ws_distrib = spreadsheet.worksheet("Remise de Dons")
+                                        ws_stock = spreadsheet.worksheet("Dons_Stock")
 
-                                    cell = ws_stock.find(str(choix_don))
-                                    nouv_stock = stock_actuel - quantite_remise
-                                    ws_stock.update_cell(cell.row, 6, nouv_stock)
+                                        id_distrib = f"DIST-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+                                        date_remise = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-                                    st.cache_data.clear()
-                                    st.session_state["toast_msg"] = f"🎁 Don remis à {nom_e} avec succès !"
-                                    st.rerun()
-                                else:
-                                    st.error(f"⚠️ Stock insuffisant (Reste : {stock_actuel})")
-                            except Exception as e:
-                                st.error(f"❌ Erreur lors de la remise : {e}")
+                                        ligne_distrib = [id_distrib, date_remise, choix_enfant_don, nom_e, nom_p, designation_d, int(quantite_remise), user_zone, f"{user_nom}"]
+                                        ws_distrib.append_row(ligne_distrib, value_input_option="USER_ENTERED")
+
+                                        cell = ws_stock.find(str(choix_don))
+                                        nouv_stock = stock_actuel - quantite_remise
+                                        ws_stock.update_cell(cell.row, 6, nouv_stock)
+
+                                        st.cache_data.clear()
+                                        st.session_state["toast_msg"] = f"🎁 Don remis à {nom_e} avec succès !"
+                                        st.rerun()
+                                    else:
+                                        st.error(f"⚠️ Stock insuffisant (Reste : {stock_actuel})")
+                                except Exception as e:
+                                    st.error(f"❌ Erreur lors de la remise : {e}")
+                        else:
+                            st.warning("⚠️ Aucun résultat pour vos critères de recherche dans les enfants ou les stocks.")
             else:
                 st.warning("⚠️ Aucun don disponible en stock.")
         else:
@@ -1058,37 +1109,48 @@ else:
                 with st.container(border=True):
                     with st.form("form_cotisation", clear_on_submit=True):
                         st.markdown("##### 💰 Saisie d'une cotisation ou d'un frais de carte")
-                        liste_membres_cotiz = df[col_membre].astype(str).tolist()
-                        membre_c = st.selectbox("Membre concerné", liste_membres_cotiz, format_func=lambda m: f"{m} - {df[df[col_membre].astype(str) == m][col_enfant].values[0]}")
+                        recherche_cotiz_saisie = st.text_input("🔍 Filtrer le membre concerné...")
+                        
+                        if recherche_cotiz_saisie:
+                            mask_cs = df.astype(str).apply(lambda row: row.str.contains(recherche_cotiz_saisie, case=False, na=False).any(), axis=1)
+                            df_cotiz_s_f = df[mask_cs]
+                        else:
+                            df_cotiz_s_f = df
 
-                        type_paiement = st.selectbox("Type de règlement", [
-                            "Frais de Carte d'Adhésion", "Cotisation - Janvier", "Cotisation - Février", "Cotisation - Mars",
-                            "Cotisation - Avril", "Cotisation - Mai", "Cotisation - Juin", "Cotisation - Juillet",
-                            "Cotisation - Août", "Cotisation - Septembre", "Cotisation - Octobre", "Cotisation - Novembre",
-                            "Cotisation - Décembre", "Cotisation - Autre / Annuelle"
-                        ])
+                        if not df_cotiz_s_f.empty:
+                            liste_membres_cotiz = df_cotiz_s_f[col_membre].astype(str).tolist()
+                            membre_c = st.selectbox("Membre concerné", liste_membres_cotiz, format_func=lambda m: f"{m} - {df_cotiz_s_f[df_cotiz_s_f[col_membre].astype(str) == m][col_enfant].values[0]}")
 
-                        montant_verse = st.number_input("Montant versé (FCFA)", min_value=0, value=5000, step=500)
-                        statut_pay = st.selectbox("Statut", ["Payé en totalité", "Avance / Partiel"])
-                        commentaire_cotiz = st.text_input("Commentaire (Optionnel)")
+                            type_paiement = st.selectbox("Type de règlement", [
+                                "Frais de Carte d'Adhésion", "Cotisation - Janvier", "Cotisation - Février", "Cotisation - Mars",
+                                "Cotisation - Avril", "Cotisation - Mai", "Cotisation - Juin", "Cotisation - Juillet",
+                                "Cotisation - Août", "Cotisation - Septembre", "Cotisation - Octobre", "Cotisation - Novembre",
+                                "Cotisation - Décembre", "Cotisation - Autre / Annuelle"
+                            ])
 
-                        if st.form_submit_button("💾 Enregistrer le paiement", use_container_width=True):
-                            try:
-                                ws_cotiz = spreadsheet.worksheet("Cotisations")
-                                enfant_info = df[df[col_membre].astype(str) == membre_c].iloc[0]
-                                nom_e = enfant_info.get(col_enfant, "")
-                                nom_p = enfant_info.get(col_parent, "")
+                            montant_verse = st.number_input("Montant versé (FCFA)", min_value=0, value=5000, step=500)
+                            statut_pay = st.selectbox("Statut", ["Payé en totalité", "Avance / Partiel"])
+                            commentaire_cotiz = st.text_input("Commentaire (Optionnel)")
 
-                                id_cotiz = f"COT-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-                                date_c = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                            if st.form_submit_button("💾 Enregistrer le paiement", use_container_width=True):
+                                try:
+                                    ws_cotiz = spreadsheet.worksheet("Cotisations")
+                                    enfant_info = df[df[col_membre].astype(str) == membre_c].iloc[0]
+                                    nom_e = enfant_info.get(col_enfant, "")
+                                    nom_p = enfant_info.get(col_parent, "")
 
-                                ligne_cotiz = [id_cotiz, date_c, membre_c, nom_e, nom_p, type_paiement, int(montant_verse), statut_pay, commentaire_cotiz, user_nom]
-                                ws_cotiz.append_row(ligne_cotiz, value_input_option="USER_ENTERED")
-                                st.cache_data.clear()
-                                st.session_state["toast_msg"] = f"✅ Paiement de {montant_verse} FCFA enregistré !"
-                                st.rerun()
-                            except Exception as e:
-                                st.error(f"❌ Erreur : {e}")
+                                    id_cotiz = f"COT-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+                                    date_c = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+                                    ligne_cotiz = [id_cotiz, date_c, membre_c, nom_e, nom_p, type_paiement, int(montant_verse), statut_pay, commentaire_cotiz, user_nom]
+                                    ws_cotiz.append_row(ligne_cotiz, value_input_option="USER_ENTERED")
+                                    st.cache_data.clear()
+                                    st.session_state["toast_msg"] = f"✅ Paiement de {montant_verse} FCFA enregistré !"
+                                    st.rerun()
+                                except Exception as e:
+                                    st.error(f"❌ Erreur : {e}")
+                        else:
+                            st.warning("⚠️ Aucun membre trouvé pour ce filtre.")
             else:
                 st.warning("⚠️ Aucun membre enregistré.")
 
@@ -1114,45 +1176,55 @@ else:
             st.markdown("### ✏️ Modifier ou Supprimer un Paiement de Cotisation")
             if not df_cotiz.empty and "ID_Cotiz" in df_cotiz.columns:
                 with st.container(border=True):
-                    choix_id_cotiz = st.selectbox("Sélectionner le paiement à modifier/supprimer", df_cotiz["ID_Cotiz"].astype(str).tolist(), format_func=lambda c: f"{c} - {df_cotiz[df_cotiz['ID_Cotiz'].astype(str) == c]['Nom_Enfant'].values[0]} ({df_cotiz[df_cotiz['ID_Cotiz'].astype(str) == c]['Type_Paiement'].values[0]} : {df_cotiz[df_cotiz['ID_Cotiz'].astype(str) == c]['Montant_Verse'].values[0]} FCFA)")
-                    cotiz_ligne = df_cotiz[df_cotiz["ID_Cotiz"].astype(str) == choix_id_cotiz].iloc[0]
-
-                    action_cotiz = st.radio("Action sur ce paiement", ["Modifier", "Supprimer définitivement"], horizontal=True, key="radio_act_cotiz")
-
-                    if action_cotiz == "Modifier":
-                        with st.form("form_modif_cotiz"):
-                            nouveau_montant = st.number_input("Montant versé (FCFA)", min_value=0, value=safe_int_convert(cotiz_ligne.get("Montant_Verse", 0)))
-                            nouveau_statut = st.selectbox("Statut", ["Payé en totalité", "Avance / Partiel"], index=0 if str(cotiz_ligne.get("Statut", "")).startswith("Payé") else 1)
-                            nouveau_comm = st.text_input("Commentaire", value=str(cotiz_ligne.get("Commentaire", "")))
-
-                            if st.form_submit_button("💾 Mettre à jour le paiement"):
-                                try:
-                                    ws_cotiz = spreadsheet.worksheet("Cotisations")
-                                    cell = ws_cotiz.find(str(choix_id_cotiz))
-                                    row_idx = cell.row
-                                    ws_cotiz.update_cell(row_idx, 7, int(nouveau_montant))
-                                    ws_cotiz.update_cell(row_idx, 8, nouveau_statut)
-                                    ws_cotiz.update_cell(row_idx, 9, nouveau_comm)
-                                    st.cache_data.clear()
-                                    st.session_state["toast_msg"] = f"✅ Paiement {choix_id_cotiz} mis à jour avec succès !"
-                                    st.rerun()
-                                except Exception as e:
-                                    st.error(f"❌ Erreur : {e}")
+                    recherche_cotiz_mod = st.text_input("🔍 Filtrer les paiements (Nom, ID, Type...)", key="search_filtre_cotiz_mod")
+                    if recherche_cotiz_mod:
+                        mask_cm = df_cotiz.astype(str).apply(lambda row: row.str.contains(recherche_cotiz_mod, case=False, na=False).any(), axis=1)
+                        df_cotiz_f = df_cotiz[mask_cm]
                     else:
-                        conf_sup_c = st.checkbox("Je confirme la suppression de ce paiement", key="chk_sup_cot")
-                        if st.button("🗑️ Supprimer définitivement ce paiement", type="primary"):
-                            if conf_sup_c:
-                                try:
-                                    ws_cotiz = spreadsheet.worksheet("Cotisations")
-                                    cell = ws_cotiz.find(str(choix_id_cotiz))
-                                    ws_cotiz.delete_rows(cell.row)
-                                    st.cache_data.clear()
-                                    st.session_state["toast_msg"] = f"✅ Paiement {choix_id_cotiz} supprimé !"
-                                    st.rerun()
-                                except Exception as e:
-                                    st.error(f"❌ Erreur : {e}")
-                            else:
-                                st.error("⚠️ Veuillez cocher la case de confirmation.")
+                        df_cotiz_f = df_cotiz
+
+                    if not df_cotiz_f.empty:
+                        choix_id_cotiz = st.selectbox("Sélectionner le paiement à modifier/supprimer", df_cotiz_f["ID_Cotiz"].astype(str).tolist(), format_func=lambda c: f"{c} - {df_cotiz_f[df_cotiz_f['ID_Cotiz'].astype(str) == c]['Nom_Enfant'].values[0]} ({df_cotiz_f[df_cotiz_f['ID_Cotiz'].astype(str) == c]['Type_Paiement'].values[0]} : {df_cotiz_f[df_cotiz_f['ID_Cotiz'].astype(str) == c]['Montant_Verse'].values[0]} FCFA)")
+                        cotiz_ligne = df_cotiz[df_cotiz["ID_Cotiz"].astype(str) == choix_id_cotiz].iloc[0]
+
+                        action_cotiz = st.radio("Action sur ce paiement", ["Modifier", "Supprimer définitivement"], horizontal=True, key="radio_act_cotiz")
+
+                        if action_cotiz == "Modifier":
+                            with st.form("form_modif_cotiz"):
+                                nouveau_montant = st.number_input("Montant versé (FCFA)", min_value=0, value=safe_int_convert(cotiz_ligne.get("Montant_Verse", 0)))
+                                nouveau_statut = st.selectbox("Statut", ["Payé en totalité", "Avance / Partiel"], index=0 if str(cotiz_ligne.get("Statut", "")).startswith("Payé") else 1)
+                                nouveau_comm = st.text_input("Commentaire", value=str(cotiz_ligne.get("Commentaire", "")))
+
+                                if st.form_submit_button("💾 Mettre à jour le paiement"):
+                                    try:
+                                        ws_cotiz = spreadsheet.worksheet("Cotisations")
+                                        cell = ws_cotiz.find(str(choix_id_cotiz))
+                                        row_idx = cell.row
+                                        ws_cotiz.update_cell(row_idx, 7, int(nouveau_montant))
+                                        ws_cotiz.update_cell(row_idx, 8, nouveau_statut)
+                                        ws_cotiz.update_cell(row_idx, 9, nouveau_comm)
+                                        st.cache_data.clear()
+                                        st.session_state["toast_msg"] = f"✅ Paiement {choix_id_cotiz} mis à jour avec succès !"
+                                        st.rerun()
+                                    except Exception as e:
+                                        st.error(f"❌ Erreur : {e}")
+                        else:
+                            conf_sup_c = st.checkbox("Je confirme la suppression de ce paiement", key="chk_sup_cot")
+                            if st.button("🗑️ Supprimer définitivement ce paiement", type="primary"):
+                                if conf_sup_c:
+                                    try:
+                                        ws_cotiz = spreadsheet.worksheet("Cotisations")
+                                        cell = ws_cotiz.find(str(choix_id_cotiz))
+                                        ws_cotiz.delete_rows(cell.row)
+                                        st.cache_data.clear()
+                                        st.session_state["toast_msg"] = f"✅ Paiement {choix_id_cotiz} supprimé !"
+                                        st.rerun()
+                                    except Exception as e:
+                                        st.error(f"❌ Erreur : {e}")
+                                else:
+                                    st.error("⚠️ Veuillez cocher la case de confirmation.")
+                    else:
+                        st.warning("⚠️ Aucun paiement ne correspond à votre recherche.")
             else:
                 st.info("Aucun paiement de cotisation enregistré pour le moment.")
 
@@ -1168,36 +1240,47 @@ else:
                 with st.container(border=True):
                     with st.form("form_article_event", clear_on_submit=True):
                         st.markdown("##### 🏷️ Attribuer un article ou goodies à un membre")
-                        liste_membres_art = df[col_membre].astype(str).tolist()
-                        membre_a = st.selectbox("Membre bénéficiaire / acheteur", liste_membres_art, format_func=lambda m: f"{m} - {df[df[col_membre].astype(str) == m][col_enfant].values[0]}")
+                        recherche_art_vente = st.text_input("🔍 Filtrer le membre bénéficiaire...")
 
-                        nom_article = st.text_input("Nom de l'article / Goodies (Ex: T-shirt Gala 2026, Casquette, Badge...)").upper()
-                        quantite_art = st.number_input("Quantité", min_value=1, value=1, step=1)
-                        montant_total = st.number_input("Montant Total (FCFA)", min_value=0, value=3000, step=500)
+                        if recherche_art_vente:
+                            mask_av = df.astype(str).apply(lambda row: row.str.contains(recherche_art_vente, case=False, na=False).any(), axis=1)
+                            df_art_s_f = df[mask_av]
+                        else:
+                            df_art_s_f = df
 
-                        statut_reglement = st.selectbox("Statut du paiement", ["Payé", "Avance", "Impayé"])
-                        statut_livraison = st.selectbox("Statut de remise", ["Livré / Remis", "En attente de retrait"])
+                        if not df_art_s_f.empty:
+                            liste_membres_art = df_art_s_f[col_membre].astype(str).tolist()
+                            membre_a = st.selectbox("Membre bénéficiaire / acheteur", liste_membres_art, format_func=lambda m: f"{m} - {df_art_s_f[df_art_s_f[col_membre].astype(str) == m][col_enfant].values[0]}")
 
-                        if st.form_submit_button("💾 Enregistrer l'article", use_container_width=True):
-                            if nom_article:
-                                try:
-                                    ws_art = spreadsheet.worksheet("Articles_Evenements")
-                                    enfant_info = df[df[col_membre].astype(str) == membre_a].iloc[0]
-                                    nom_e = enfant_info.get(col_enfant, "")
-                                    nom_p = enfant_info.get(col_parent, "")
+                            nom_article = st.text_input("Nom de l'article / Goodies (Ex: T-shirt Gala 2026, Casquette, Badge...)").upper()
+                            quantite_art = st.number_input("Quantité", min_value=1, value=1, step=1)
+                            montant_total = st.number_input("Montant Total (FCFA)", min_value=0, value=3000, step=500)
 
-                                    id_art = f"ART-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-                                    date_a = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                            statut_reglement = st.selectbox("Statut du paiement", ["Payé", "Avance", "Impayé"])
+                            statut_livraison = st.selectbox("Statut de remise", ["Livré / Remis", "En attente de retrait"])
 
-                                    ligne_art = [id_art, date_a, membre_a, nom_e, nom_p, nom_article, int(quantite_art), int(montant_total), statut_reglement, statut_livraison, user_nom]
-                                    ws_art.append_row(ligne_art, value_input_option="USER_ENTERED")
-                                    st.cache_data.clear()
-                                    st.session_state["toast_msg"] = f"✅ Article '{nom_article}' enregistré avec succès !"
-                                    st.rerun()
-                                except Exception as e:
-                                    st.error(f"❌ Erreur : {e}")
-                            else:
-                                st.error("⚠️ Veuillez saisir le nom de l'article.")
+                            if st.form_submit_button("💾 Enregistrer l'article", use_container_width=True):
+                                if nom_article:
+                                    try:
+                                        ws_art = spreadsheet.worksheet("Articles_Evenements")
+                                        enfant_info = df[df[col_membre].astype(str) == membre_a].iloc[0]
+                                        nom_e = enfant_info.get(col_enfant, "")
+                                        nom_p = enfant_info.get(col_parent, "")
+
+                                        id_art = f"ART-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+                                        date_a = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+                                        ligne_art = [id_art, date_a, membre_a, nom_e, nom_p, nom_article, int(quantite_art), int(montant_total), statut_reglement, statut_livraison, user_nom]
+                                        ws_art.append_row(ligne_art, value_input_option="USER_ENTERED")
+                                        st.cache_data.clear()
+                                        st.session_state["toast_msg"] = f"✅ Article '{nom_article}' enregistré avec succès !"
+                                        st.rerun()
+                                    except Exception as e:
+                                        st.error(f"❌ Erreur : {e}")
+                                else:
+                                    st.error("⚠️ Veuillez saisir le nom de l'article.")
+                        else:
+                            st.warning("⚠️ Aucun membre trouvé pour ce filtre.")
             else:
                 st.warning("⚠️ Aucun membre enregistré.")
 
@@ -1223,49 +1306,59 @@ else:
             st.markdown("### ✏️ Modifier ou Supprimer un Article / Goodies")
             if not df_articles.empty and "ID_Art" in df_articles.columns:
                 with st.container(border=True):
-                    choix_id_art = st.selectbox("Sélectionner l'article à modifier/supprimer", df_articles["ID_Art"].astype(str).tolist(), format_func=lambda a: f"{a} - {df_articles[df_articles['ID_Art'].astype(str) == a]['Nom_Enfant'].values[0]} ({df_articles[df_articles['ID_Art'].astype(str) == a]['Nom_Article'].values[0]})")
-                    art_ligne = df_articles[df_articles["ID_Art"].astype(str) == choix_id_art].iloc[0]
-
-                    action_art = st.radio("Action sur cet article", ["Modifier", "Supprimer définitivement"], horizontal=True, key="radio_act_art")
-
-                    if action_art == "Modifier":
-                        with st.form("form_modif_art"):
-                            nouveau_nom_art = st.text_input("Nom de l'article", value=str(art_ligne.get("Nom_Article", ""))).upper()
-                            nouvelle_qte = st.number_input("Quantité", min_value=1, value=safe_int_convert(art_ligne.get("Quantite", 1), default=1))
-                            nouveau_montant_art = st.number_input("Montant Total (FCFA)", min_value=0, value=safe_int_convert(art_ligne.get("Montant_Total", 0)))
-                            nouveau_stat_reg = st.selectbox("Statut du paiement", ["Payé", "Avance", "Impayé"], index=["Payé", "Avance", "Impayé"].index(str(art_ligne.get("Statut_Reglement", "Payé"))) if str(art_ligne.get("Statut_Reglement", "Payé")) in ["Payé", "Avance", "Impayé"] else 0)
-                            nouveau_stat_liv = st.selectbox("Statut de remise", ["Livré / Remis", "En attente de retrait"], index=0 if str(art_ligne.get("Statut_Livraison", "")).startswith("Livré") else 1)
-
-                            if st.form_submit_button("💾 Mettre à jour l'article"):
-                                try:
-                                    ws_art = spreadsheet.worksheet("Articles_Evenements")
-                                    cell = ws_art.find(str(choix_id_art))
-                                    row_idx = cell.row
-                                    ws_art.update_cell(row_idx, 6, nouveau_nom_art)
-                                    ws_art.update_cell(row_idx, 7, int(nouvelle_qte))
-                                    ws_art.update_cell(row_idx, 8, int(nouveau_montant_art))
-                                    ws_art.update_cell(row_idx, 9, nouveau_stat_reg)
-                                    ws_art.update_cell(row_idx, 10, nouveau_stat_liv)
-                                    st.cache_data.clear()
-                                    st.session_state["toast_msg"] = f"✅ Article {choix_id_art} mis à jour avec succès !"
-                                    st.rerun()
-                                except Exception as e:
-                                    st.error(f"❌ Erreur : {e}")
+                    recherche_art_mod = st.text_input("🔍 Filtrer les articles (Nom, Enfant, ID...)", key="search_filtre_art_mod")
+                    if recherche_art_mod:
+                        mask_am = df_articles.astype(str).apply(lambda row: row.str.contains(recherche_art_mod, case=False, na=False).any(), axis=1)
+                        df_articles_f = df_articles[mask_am]
                     else:
-                        conf_sup_a = st.checkbox("Je confirme la suppression de cet article", key="chk_sup_art")
-                        if st.button("🗑️ Supprimer définitivement cet article", type="primary"):
-                            if conf_sup_a:
-                                try:
-                                    ws_art = spreadsheet.worksheet("Articles_Evenements")
-                                    cell = ws_art.find(str(choix_id_art))
-                                    ws_art.delete_rows(cell.row)
-                                    st.cache_data.clear()
-                                    st.session_state["toast_msg"] = f"✅ Article {choix_id_art} supprimé !"
-                                    st.rerun()
-                                except Exception as e:
-                                    st.error(f"❌ Erreur : {e}")
-                            else:
-                                st.error("⚠️ Veuillez cocher la case de confirmation.")
+                        df_articles_f = df_articles
+
+                    if not df_articles_f.empty:
+                        choix_id_art = st.selectbox("Sélectionner l'article à modifier/supprimer", df_articles_f["ID_Art"].astype(str).tolist(), format_func=lambda a: f"{a} - {df_articles_f[df_articles_f['ID_Art'].astype(str) == a]['Nom_Enfant'].values[0]} ({df_articles_f[df_articles_f['ID_Art'].astype(str) == a]['Nom_Article'].values[0]})")
+                        art_ligne = df_articles[df_articles["ID_Art"].astype(str) == choix_id_art].iloc[0]
+
+                        action_art = st.radio("Action sur cet article", ["Modifier", "Supprimer définitivement"], horizontal=True, key="radio_act_art")
+
+                        if action_art == "Modifier":
+                            with st.form("form_modif_art"):
+                                nouveau_nom_art = st.text_input("Nom de l'article", value=str(art_ligne.get("Nom_Article", ""))).upper()
+                                nouvelle_qte = st.number_input("Quantité", min_value=1, value=safe_int_convert(art_ligne.get("Quantite", 1), default=1))
+                                nouveau_montant_art = st.number_input("Montant Total (FCFA)", min_value=0, value=safe_int_convert(art_ligne.get("Montant_Total", 0)))
+                                nouveau_stat_reg = st.selectbox("Statut du paiement", ["Payé", "Avance", "Impayé"], index=["Payé", "Avance", "Impayé"].index(str(art_ligne.get("Statut_Reglement", "Payé"))) if str(art_ligne.get("Statut_Reglement", "Payé")) in ["Payé", "Avance", "Impayé"] else 0)
+                                nouveau_stat_liv = st.selectbox("Statut de remise", ["Livré / Remis", "En attente de retrait"], index=0 if str(art_ligne.get("Statut_Livraison", "")).startswith("Livré") else 1)
+
+                                if st.form_submit_button("💾 Mettre à jour l'article"):
+                                    try:
+                                        ws_art = spreadsheet.worksheet("Articles_Evenements")
+                                        cell = ws_art.find(str(choix_id_art))
+                                        row_idx = cell.row
+                                        ws_art.update_cell(row_idx, 6, nouveau_nom_art)
+                                        ws_art.update_cell(row_idx, 7, int(nouvelle_qte))
+                                        ws_art.update_cell(row_idx, 8, int(nouveau_montant_art))
+                                        ws_art.update_cell(row_idx, 9, nouveau_stat_reg)
+                                        ws_art.update_cell(row_idx, 10, nouveau_stat_liv)
+                                        st.cache_data.clear()
+                                        st.session_state["toast_msg"] = f"✅ Article {choix_id_art} mis à jour avec succès !"
+                                        st.rerun()
+                                    except Exception as e:
+                                        st.error(f"❌ Erreur : {e}")
+                        else:
+                            conf_sup_a = st.checkbox("Je confirme la suppression de cet article", key="chk_sup_art")
+                            if st.button("🗑️ Supprimer définitivement cet article", type="primary"):
+                                if conf_sup_a:
+                                    try:
+                                        ws_art = spreadsheet.worksheet("Articles_Evenements")
+                                        cell = ws_art.find(str(choix_id_art))
+                                        ws_art.delete_rows(cell.row)
+                                        st.cache_data.clear()
+                                        st.session_state["toast_msg"] = f"✅ Article {choix_id_art} supprimé !"
+                                        st.rerun()
+                                    except Exception as e:
+                                        st.error(f"❌ Erreur : {e}")
+                                else:
+                                    st.error("⚠️ Veuillez cocher la case de confirmation.")
+                    else:
+                        st.warning("⚠️ Aucun article ne correspond à votre recherche.")
             else:
                 st.info("Aucun article enregistré pour le moment.")
 
