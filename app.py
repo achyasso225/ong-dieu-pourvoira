@@ -197,7 +197,6 @@ st.markdown(
 
 # --- FONCTION SECURISEE CONVERSION NUMERIQUE ---
 def safe_int_convert(val, default=0):
-    """Extrait proprement un entier à partir de tout type de données (ex: '2000 FCFA' -> 2000)."""
     if pd.isna(val) or val is None:
         return default
     val_str = str(val).strip()
@@ -554,6 +553,9 @@ else:
         st.subheader(f"✏️ Modifier ou Supprimer - {choix_zone_label}")
 
         if not df_f.empty and col_membre in df_f.columns:
+            if "recherche_edit" not in st.session_state:
+                st.session_state["recherche_edit"] = ""
+
             recherche_edit = st.text_input("🔍 Rechercher dans votre zone...", key="recherche_edit")
             if recherche_edit:
                 mask_edit = df_f.astype(str).apply(lambda row: row.str.contains(recherche_edit, case=False, na=False).any(), axis=1)
@@ -563,57 +565,69 @@ else:
 
             if not df_edit_filtered.empty:
                 liste_membres = df_edit_filtered[col_membre].astype(str).tolist()
-                choix_membre = st.selectbox("Sélectionner le membre", liste_membres, format_func=lambda m: f"{m} - {df_edit_filtered[df_edit_filtered[col_membre].astype(str) == m][col_enfant].values[0]}" if col_enfant in df_edit_filtered.columns else m)
-                membre_actuel = df[df[col_membre].astype(str) == choix_membre].iloc[0]
+                options_select = ["-- Sélectionnez un membre --"] + liste_membres
 
-                st.markdown("---")
-                choix_action = st.radio("Action à effectuer", ["Modifier les informations", "Supprimer le membre"], horizontal=True)
+                choix_membre = st.selectbox(
+                    "Sélectionner le membre", 
+                    options_select, 
+                    format_func=lambda m: m if m == "-- Sélectionnez un membre --" else f"{m} - {df_edit_filtered[df_edit_filtered[col_membre].astype(str) == m][col_enfant].values[0]}" if col_enfant in df_edit_filtered.columns else m
+                )
 
-                with st.container(border=True):
-                    if choix_action == "Modifier les informations":
-                        with st.form("form_modification", clear_on_submit=True):
-                            m_nom_enfant = st.text_input("Nom et Prénom", value=str(membre_actuel.get(col_enfant, ""))).upper()
-                            m_date_nais = st.text_input("Date de naissance", value=str(membre_actuel.get(col_date, "")))
-                            val_sexe = str(membre_actuel.get(col_sexe, "M")).upper()
-                            m_sexe = st.selectbox("Sexe", ["M", "F"], index=0 if val_sexe == "M" else 1)
-                            m_ville = st.text_input("Ville", value=str(membre_actuel.get(col_ville, ""))).upper()
-                            m_nom_parent = st.text_input("Parent", value=str(membre_actuel.get(col_parent, ""))).upper()
-                            m_tel = st.text_input("Téléphone", value=str(membre_actuel.get(col_tel, "")))
-                            val_adh = str(membre_actuel.get(col_adh, "OK")).upper()
-                            m_adhesion = st.selectbox("Adhésion", ["OK", "En attente"], index=0 if "OK" in val_adh else 1)
+                if choix_membre != "-- Sélectionnez un membre --":
+                    membre_actuel = df[df[col_membre].astype(str) == choix_membre].iloc[0]
 
-                            btn_modifier = st.form_submit_button("💾 Mettre à jour")
-                            if btn_modifier:
-                                try:
-                                    cell = sheet.find(str(choix_membre))
-                                    row_idx = cell.row
-                                    sheet.update_cell(row_idx, 2, m_nom_enfant)
-                                    sheet.update_cell(row_idx, 3, m_date_nais)
-                                    sheet.update_cell(row_idx, 4, m_sexe)
-                                    sheet.update_cell(row_idx, 5, m_ville)
-                                    sheet.update_cell(row_idx, 6, m_nom_parent)
-                                    sheet.update_cell(row_idx, 7, str(m_tel))
-                                    sheet.update_cell(row_idx, 8, m_adhesion)
-                                    st.cache_data.clear()
-                                    st.session_state["toast_msg"] = f"✅ Membre {choix_membre} mis à jour !"
-                                    st.rerun()
-                                except Exception as e:
-                                    st.error(f"❌ Erreur : {e}")
-                    else:
-                        st.warning(f"⚠️ Suppression définitive du membre {choix_membre}")
-                        confirmer = st.checkbox("Je confirme la suppression définitive")
-                        if st.button("🗑️ Confirmer la suppression", type="primary"):
-                            if confirmer:
-                                try:
-                                    cell = sheet.find(str(choix_membre))
-                                    sheet.delete_rows(cell.row)
-                                    st.cache_data.clear()
-                                    st.session_state["toast_msg"] = f"✅ Membre {choix_membre} supprimé !"
-                                    st.rerun()
-                                except Exception as e:
-                                    st.error(f"❌ Erreur : {e}")
-                            else:
-                                st.error("⚠️ Cochez la case de confirmation.")
+                    st.markdown("---")
+                    choix_action = st.radio("Action à effectuer", ["Modifier les informations", "Supprimer le membre"], horizontal=True)
+
+                    with st.container(border=True):
+                        if choix_action == "Modifier les informations":
+                            with st.form("form_modification", clear_on_submit=True):
+                                m_nom_enfant = st.text_input("Nom et Prénom", value=str(membre_actuel.get(col_enfant, ""))).upper()
+                                m_date_nais = st.text_input("Date de naissance", value=str(membre_actuel.get(col_date, "")))
+                                val_sexe = str(membre_actuel.get(col_sexe, "M")).upper()
+                                m_sexe = st.selectbox("Sexe", ["M", "F"], index=0 if val_sexe == "M" else 1)
+                                m_ville = st.text_input("Ville", value=str(membre_actuel.get(col_ville, ""))).upper()
+                                m_nom_parent = st.text_input("Parent", value=str(membre_actuel.get(col_parent, ""))).upper()
+                                m_tel = st.text_input("Téléphone", value=str(membre_actuel.get(col_tel, "")))
+                                val_adh = str(membre_actuel.get(col_adh, "OK")).upper()
+                                m_adhesion = st.selectbox("Adhésion", ["OK", "En attente"], index=0 if "OK" in val_adh else 1)
+
+                                btn_modifier = st.form_submit_button("💾 Mettre à jour")
+                                if btn_modifier:
+                                    try:
+                                        cell = sheet.find(str(choix_membre))
+                                        row_idx = cell.row
+                                        sheet.update_cell(row_idx, 2, m_nom_enfant)
+                                        sheet.update_cell(row_idx, 3, m_date_nais)
+                                        sheet.update_cell(row_idx, 4, m_sexe)
+                                        sheet.update_cell(row_idx, 5, m_ville)
+                                        sheet.update_cell(row_idx, 6, m_nom_parent)
+                                        sheet.update_cell(row_idx, 7, str(m_tel))
+                                        sheet.update_cell(row_idx, 8, m_adhesion)
+                                        st.session_state["recherche_edit"] = ""
+                                        st.cache_data.clear()
+                                        st.session_state["toast_msg"] = f"✅ Membre {choix_membre} mis à jour !"
+                                        st.rerun()
+                                    except Exception as e:
+                                        st.error(f"❌ Erreur : {e}")
+                        else:
+                            st.warning(f"⚠️ Suppression définitive du membre {choix_membre}")
+                            confirmer = st.checkbox("Je confirme la suppression définitive")
+                            if st.button("🗑️ Confirmer la suppression", type="primary"):
+                                if confirmer:
+                                    try:
+                                        cell = sheet.find(str(choix_membre))
+                                        sheet.delete_rows(cell.row)
+                                        st.session_state["recherche_edit"] = ""
+                                        st.cache_data.clear()
+                                        st.session_state["toast_msg"] = f"✅ Membre {choix_membre} supprimé !"
+                                        st.rerun()
+                                    except Exception as e:
+                                        st.error(f"❌ Erreur : {e}")
+                                else:
+                                    st.error("⚠️ Cochez la case de confirmation.")
+                else:
+                    st.info("ℹ️ Veuillez rechercher et sélectionner un membre dans la liste ci-dessus pour effectuer une modification ou une suppression.")
             else:
                 st.warning("⚠️ Aucun membre trouvé.")
         else:
@@ -709,67 +723,134 @@ else:
 
                         if modele_carte.startswith("Modèle 1"):
                             html_carte = f"""
-                            <div style="display: flex; justify-content: center; padding: 15px;">
-                                <div style="width: 620px; height: 390px; background: #ffffff; border-radius: 16px; border: 3px solid #1e7e34; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.3); font-family: Arial, sans-serif; overflow: hidden;">
-                                    <div style="position: absolute; top: 0; left: 0; right: 0; height: 14px; background: linear-gradient(90deg, #1e7e34 0%, #28a745 50%, #ff7f00 100%);"></div>
-                                    <div style="text-align: center; padding-top: 20px;">
-                                        <div style="font-size: 18px; font-weight: 900; color: #1e7e34; letter-spacing: 1px;">ONG DIEU POURVOIRA</div>
-                                        <div style="background: #1e7e34; color: white; padding: 3px 20px; border-radius: 12px; font-size: 12px; font-weight: bold; display: inline-block; margin-top: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">CARTE DE MEMBRE OFFICIELLE</div>
-                                    </div>
-                                    <div style="position: absolute; left: 35px; top: 85px; width: 130px; height: 150px; border: 3px solid #1e7e34; border-radius: 10px; overflow: hidden; background: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-                                        <img src="{img_src}" style="width: 100%; height: 100%; object-fit: cover;">
-                                    </div>
-                                    <div style="position: absolute; left: 65px; top: 242px; width: 70px; height: 70px;">
-                                        <img src="{logo_src}" style="width: 100%; height: 100%; object-fit: contain;">
-                                    </div>
-                                    <div style="position: absolute; left: 185px; top: 85px; width: 415px; font-size: 13px; color: #212529; line-height: 25px;">
-                                        <div style="border-bottom: 1px dotted #ccc; padding-bottom: 1px;"><span style="color: #6c757d; display: inline-block; width: 145px;">Nom de l'enfant :</span> <span style="font-weight: 800; color: #000;">{nom_e}</span></div>
-                                        <div style="border-bottom: 1px dotted #ccc; padding-bottom: 1px;"><span style="color: #6c757d; display: inline-block; width: 145px;">Prénom de l'enfant :</span> <span style="font-weight: 800; color: #000;">{prenom_e}</span></div>
-                                        <div style="border-bottom: 1px dotted #ccc; padding-bottom: 1px;"><span style="color: #6c757d; display: inline-block; width: 145px;">Parent :</span> <span style="font-weight: 700; color: #333; font-size: 12px;">{nom_p}</span></div>
-                                        <div style="border-bottom: 1px dotted #ccc; padding-bottom: 1px;"><span style="color: #6c757d; display: inline-block; width: 145px;">N° Membre :</span> <span style="color: #1e7e34; font-weight: 900; font-size: 14px;">{num_m}</span></div>
-                                        <div style="border-bottom: 1px dotted #ccc; padding-bottom: 1px;"><span style="color: #6c757d; display: inline-block; width: 145px;">Date d'adhésion :</span> <span style="font-weight: 700; color: #000;">{date_adh}</span></div>
-                                        <div style="border-bottom: 1px dotted #ccc; padding-bottom: 1px;"><span style="color: #6c757d; display: inline-block; width: 145px;">Contact parent :</span> <span style="font-weight: 700; color: #000;">{tel_p}</span></div>
-                                    </div>
-                                    <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(90deg, #1e7e34 0%, #0b4d1d 100%); color: white; padding: 8px 12px; font-size: 10px; text-align: center; font-weight: bold;">
-                                        ❤️ Ensemble aidons les enfants atteints de Paralysie cérébrale ❤️<br>
-                                        <span style="font-weight: normal; color: #e2f0d9; font-size: 9px;">📞 Contact : +225 77 71 04 41 8 / 05 86 99 73 27</span>
+                            <!DOCTYPE html>
+                            <html>
+                            <head>
+                            <meta charset="utf-8">
+                            <style>
+                                @media print {{
+                                    body {{ background: none !important; }}
+                                    .no-print {{ display: none !important; }}
+                                    .card-box {{ box-shadow: none !important; border: 3px solid #1e7e34 !important; }}
+                                }}
+                                .print-btn {{
+                                    background: linear-gradient(90deg, #28a745 0%, #1e7e34 100%);
+                                    color: white;
+                                    border: none;
+                                    padding: 12px 28px;
+                                    font-size: 14px;
+                                    font-weight: bold;
+                                    border-radius: 10px;
+                                    cursor: pointer;
+                                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                                    margin-top: 15px;
+                                    transition: all 0.3s ease;
+                                }}
+                                .print-btn:hover {{
+                                    background: linear-gradient(90deg, #1e7e34 0%, #155724 100%);
+                                }}
+                            </style>
+                            </head>
+                            <body style="background-color: transparent; font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 5px;">
+                                <div style="display: inline-block;">
+                                    <div class="card-box" style="width: 620px; height: 390px; background: #ffffff; border-radius: 16px; border: 3px solid #1e7e34; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: left; overflow: hidden;">
+                                        <div style="position: absolute; top: 0; left: 0; right: 0; height: 14px; background: linear-gradient(90deg, #1e7e34 0%, #28a745 50%, #ff7f00 100%);"></div>
+                                        <div style="text-align: center; padding-top: 20px;">
+                                            <div style="font-size: 18px; font-weight: 900; color: #1e7e34; letter-spacing: 1px;">ONG DIEU POURVOIRA</div>
+                                            <div style="background: #1e7e34; color: white; padding: 3px 20px; border-radius: 12px; font-size: 12px; font-weight: bold; display: inline-block; margin-top: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">CARTE DE MEMBRE OFFICIELLE</div>
+                                        </div>
+                                        <div style="position: absolute; left: 35px; top: 85px; width: 130px; height: 150px; border: 3px solid #1e7e34; border-radius: 10px; overflow: hidden; background: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                                            <img src="{img_src}" style="width: 100%; height: 100%; object-fit: cover;">
+                                        </div>
+                                        <div style="position: absolute; left: 65px; top: 242px; width: 70px; height: 70px;">
+                                            <img src="{logo_src}" style="width: 100%; height: 100%; object-fit: contain;">
+                                        </div>
+                                        <div style="position: absolute; left: 185px; top: 85px; width: 415px; font-size: 13px; color: #212529; line-height: 25px;">
+                                            <div style="border-bottom: 1px dotted #ccc; padding-bottom: 1px;"><span style="color: #6c757d; display: inline-block; width: 145px;">Nom de l'enfant :</span> <span style="font-weight: 800; color: #000;">{nom_e}</span></div>
+                                            <div style="border-bottom: 1px dotted #ccc; padding-bottom: 1px;"><span style="color: #6c757d; display: inline-block; width: 145px;">Prénom de l'enfant :</span> <span style="font-weight: 800; color: #000;">{prenom_e}</span></div>
+                                            <div style="border-bottom: 1px dotted #ccc; padding-bottom: 1px;"><span style="color: #6c757d; display: inline-block; width: 145px;">Parent :</span> <span style="font-weight: 700; color: #333; font-size: 12px;">{nom_p}</span></div>
+                                            <div style="border-bottom: 1px dotted #ccc; padding-bottom: 1px;"><span style="color: #6c757d; display: inline-block; width: 145px;">N° Membre :</span> <span style="color: #1e7e34; font-weight: 900; font-size: 14px;">{num_m}</span></div>
+                                            <div style="border-bottom: 1px dotted #ccc; padding-bottom: 1px;"><span style="color: #6c757d; display: inline-block; width: 145px;">Date d'adhésion :</span> <span style="font-weight: 700; color: #000;">{date_adh}</span></div>
+                                            <div style="border-bottom: 1px dotted #ccc; padding-bottom: 1px;"><span style="color: #6c757d; display: inline-block; width: 145px;">Contact parent :</span> <span style="font-weight: 700; color: #000;">{tel_p}</span></div>
+                                        </div>
+                                        <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(90deg, #1e7e34 0%, #0b4d1d 100%); color: white; padding: 8px 12px; font-size: 10px; text-align: center; font-weight: bold;">
+                                            ❤️ Ensemble aidons les enfants atteints de Paralysie cérébrale ❤️<br>
+                                            <span style="font-weight: normal; color: #e2f0d9; font-size: 9px;">📞 Contact : +225 77 71 04 41 8 / 05 86 99 73 27</span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                                <div class="no-print">
+                                    <button class="print-btn" onclick="window.print()">🖨️ Lancer l'impression / Enregistrer en PDF</button>
+                                </div>
+                            </body>
+                            </html>
                             """
                         else:
                             html_carte = f"""
-                            <div style="display: flex; justify-content: center; padding: 15px;">
-                                <div style="width: 620px; height: 390px; background: linear-gradient(135deg, #f9fffb 0%, #f1f8f3 100%); border-radius: 16px; border: 3px solid #ff7f00; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.3); font-family: Arial, sans-serif; overflow: hidden;">
-                                    <div style="background: #1e7e34; color: white; padding: 8px 15px; display: flex; align-items: center; justify-content: space-between; border-bottom: 4px solid #ff7f00;">
-                                        <img src="{logo_src}" style="height: 42px; width: auto; background: #fff; padding: 2px; border-radius: 6px;">
-                                        <div style="text-align: center; flex-grow: 1;">
-                                            <div style="font-size: 17px; font-weight: 900; letter-spacing: 1.5px;">ONG DIEU POURVOIRA</div>
-                                            <div style="font-size: 10px; color: #e2f0d9; font-weight: bold;">CARTE D'ADHÉRENT OFFICIELLE</div>
+                            <!DOCTYPE html>
+                            <html>
+                            <head>
+                            <meta charset="utf-8">
+                            <style>
+                                @media print {{
+                                    body {{ background: none !important; }}
+                                    .no-print {{ display: none !important; }}
+                                    .card-box {{ box-shadow: none !important; border: 3px solid #ff7f00 !important; }}
+                                }}
+                                .print-btn {{
+                                    background: linear-gradient(90deg, #28a745 0%, #1e7e34 100%);
+                                    color: white;
+                                    border: none;
+                                    padding: 12px 28px;
+                                    font-size: 14px;
+                                    font-weight: bold;
+                                    border-radius: 10px;
+                                    cursor: pointer;
+                                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                                    margin-top: 15px;
+                                    transition: all 0.3s ease;
+                                }}
+                                .print-btn:hover {{
+                                    background: linear-gradient(90deg, #1e7e34 0%, #155724 100%);
+                                }}
+                            </style>
+                            </head>
+                            <body style="background-color: transparent; font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 5px;">
+                                <div style="display: inline-block;">
+                                    <div class="card-box" style="width: 620px; height: 390px; background: linear-gradient(135deg, #f9fffb 0%, #f1f8f3 100%); border-radius: 16px; border: 3px solid #ff7f00; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: left; overflow: hidden;">
+                                        <div style="background: #1e7e34; color: white; padding: 8px 15px; display: flex; align-items: center; justify-content: space-between; border-bottom: 4px solid #ff7f00;">
+                                            <img src="{logo_src}" style="height: 42px; width: auto; background: #fff; padding: 2px; border-radius: 6px;">
+                                            <div style="text-align: center; flex-grow: 1;">
+                                                <div style="font-size: 17px; font-weight: 900; letter-spacing: 1.5px;">ONG DIEU POURVOIRA</div>
+                                                <div style="font-size: 10px; color: #e2f0d9; font-weight: bold;">CARTE D'ADHÉRENT OFFICIELLE</div>
+                                            </div>
+                                            <div style="width: 42px;"></div>
                                         </div>
-                                        <div style="width: 42px;"></div>
-                                    </div>
-                                    <div style="position: absolute; left: 35px; top: 90px; width: 130px; height: 155px; border: 3px solid #ff7f00; border-radius: 10px; overflow: hidden; background: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.15);">
-                                        <img src="{img_src}" style="width: 100%; height: 100%; object-fit: cover;">
-                                    </div>
-                                    <div style="position: absolute; left: 185px; top: 90px; width: 415px; font-size: 13px; color: #212529; line-height: 25px;">
-                                        <div style="border-bottom: 1px solid #d4edda; padding-bottom: 1px;"><span style="color: #1e7e34; font-weight: bold; display: inline-block; width: 145px;">Nom :</span> <span style="font-weight: 800; color: #000;">{nom_e}</span></div>
-                                        <div style="border-bottom: 1px solid #d4edda; padding-bottom: 1px;"><span style="color: #1e7e34; font-weight: bold; display: inline-block; width: 145px;">Prénom :</span> <span style="font-weight: 800; color: #000;">{prenom_e}</span></div>
-                                        <div style="border-bottom: 1px solid #d4edda; padding-bottom: 1px;"><span style="color: #1e7e34; font-weight: bold; display: inline-block; width: 145px;">Parent :</span> <span style="font-weight: 700; color: #333; font-size: 12px;">{nom_p}</span></div>
-                                        <div style="border-bottom: 1px solid #d4edda; padding-bottom: 1px;"><span style="color: #1e7e34; font-weight: bold; display: inline-block; width: 145px;">N° Membre :</span> <span style="color: #ff7f00; font-weight: 900; font-size: 14px;">{num_m}</span></div>
-                                        <div style="border-bottom: 1px solid #d4edda; padding-bottom: 1px;"><span style="color: #1e7e34; font-weight: bold; display: inline-block; width: 145px;">Adhésion :</span> <span style="font-weight: 700; color: #000;">{date_adh}</span></div>
-                                        <div style="border-bottom: 1px solid #d4edda; padding-bottom: 1px;"><span style="color: #1e7e34; font-weight: bold; display: inline-block; width: 145px;">Contact :</span> <span style="font-weight: 700; color: #000;">{tel_p}</span></div>
-                                    </div>
-                                    <div style="position: absolute; bottom: 0; left: 0; right: 0; background: #1e7e34; color: white; padding: 8px 12px; font-size: 10px; text-align: center; font-weight: bold;">
-                                        ❤️ Ensemble aidons les enfants atteints de Paralysie cérébrale ❤️<br>
-                                        <span style="font-weight: normal; color: #ff7f00; font-size: 9px;">📞 Contact : +225 77 71 04 41 8 / 05 86 99 73 27</span>
+                                        <div style="position: absolute; left: 35px; top: 90px; width: 130px; height: 155px; border: 3px solid #ff7f00; border-radius: 10px; overflow: hidden; background: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.15);">
+                                            <img src="{img_src}" style="width: 100%; height: 100%; object-fit: cover;">
+                                        </div>
+                                        <div style="position: absolute; left: 185px; top: 90px; width: 415px; font-size: 13px; color: #212529; line-height: 25px;">
+                                            <div style="border-bottom: 1px solid #d4edda; padding-bottom: 1px;"><span style="color: #1e7e34; font-weight: bold; display: inline-block; width: 145px;">Nom :</span> <span style="font-weight: 800; color: #000;">{nom_e}</span></div>
+                                            <div style="border-bottom: 1px solid #d4edda; padding-bottom: 1px;"><span style="color: #1e7e34; font-weight: bold; display: inline-block; width: 145px;">Prénom :</span> <span style="font-weight: 800; color: #000;">{prenom_e}</span></div>
+                                            <div style="border-bottom: 1px solid #d4edda; padding-bottom: 1px;"><span style="color: #1e7e34; font-weight: bold; display: inline-block; width: 145px;">Parent :</span> <span style="font-weight: 700; color: #333; font-size: 12px;">{nom_p}</span></div>
+                                            <div style="border-bottom: 1px solid #d4edda; padding-bottom: 1px;"><span style="color: #1e7e34; font-weight: bold; display: inline-block; width: 145px;">N° Membre :</span> <span style="color: #ff7f00; font-weight: 900; font-size: 14px;">{num_m}</span></div>
+                                            <div style="border-bottom: 1px solid #d4edda; padding-bottom: 1px;"><span style="color: #1e7e34; font-weight: bold; display: inline-block; width: 145px;">Adhésion :</span> <span style="font-weight: 700; color: #000;">{date_adh}</span></div>
+                                            <div style="border-bottom: 1px solid #d4edda; padding-bottom: 1px;"><span style="color: #1e7e34; font-weight: bold; display: inline-block; width: 145px;">Contact :</span> <span style="font-weight: 700; color: #000;">{tel_p}</span></div>
+                                        </div>
+                                        <div style="position: absolute; bottom: 0; left: 0; right: 0; background: #1e7e34; color: white; padding: 8px 12px; font-size: 10px; text-align: center; font-weight: bold;">
+                                            ❤️ Ensemble aidons les enfants atteints de Paralysie cérébrale ❤️<br>
+                                            <span style="font-weight: normal; color: #ff7f00; font-size: 9px;">📞 Contact : +225 77 71 04 41 8 / 05 86 99 73 27</span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                                <div class="no-print">
+                                    <button class="print-btn" onclick="window.print()">🖨️ Lancer l'impression / Enregistrer en PDF</button>
+                                </div>
+                            </body>
+                            </html>
                             """
 
-                        st.components.v1.html(html_carte, height=430)
-                        st.button("🖨️ Lancer l'impression de la carte", use_container_width=True, on_click=lambda: st.toast("Impression en cours...", icon="🖨️"))
+                        st.components.v1.html(html_carte, height=480)
                 else:
                     st.warning("⚠️ Aucun membre actif (Adhésion OK) trouvé.")
         else:
