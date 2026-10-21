@@ -16,51 +16,53 @@ st.set_page_config(
     layout="wide",
 )
 
-# --- CHARGEMENT DE L'IMAGE DE FOND EN BASE64 ---
+# --- CHARGEMENT DE L'IMAGE EN BASE64 ---
 def get_image_base64(path):
     if os.path.exists(path):
         with open(path, "rb") as f:
             return f"data:image/png;base64,{base64.b64encode(f.read()).decode()}"
     return None
 
-# Cherche le fichier sous l'un des deux noms possibles
 banner_path = "banner_connection.png" if os.path.exists("banner_connection.png") else "banner_connexion.png"
 banner_b64 = get_image_base64(banner_path)
 
-# --- INJECTION CSS STRICT - PROPOSITION 3 ---
+# Si l'image n'est pas trouvée, fallback CSS
+bg_card_style = f"background-image: url('{banner_b64}'); background-size: 100% auto; background-repeat: no-repeat; background-position: top center;" if banner_b64 else "background-color: #fdf8f0;"
+
+# --- INJECTION CSS STRICT - CARTE PROPOSITION 3 AVEC FOND DE CARTE ---
 st.markdown(
-    """
+    f"""
     <style>
     /* 1. FOND DE PAGE GLOBAL BEIGE CHAUD */
-    .stApp {
-        background-color: #f7f3e9 !important;
+    .stApp {{
+        background-color: #f5f0e6 !important;
         color: #2c3e50 !important;
-    }
+    }}
     
-    /* 2. STYLE DES INPUTS (Saisie en Blanc avec Bordure Douce) */
-    div[data-baseweb="input"] {
+    /* 2. STYLE DES INPUTS (Champs Blancs, Texte Sombre) */
+    div[data-baseweb="input"] {{
         background-color: #ffffff !important;
-        border: 1px solid #e0d8cc !important;
+        border: 1px solid #dcd6cd !important;
         border-radius: 8px !important;
-    }
-    div[data-baseweb="input"] input {
+    }}
+    div[data-baseweb="input"] input {{
         color: #1a1a1a !important;
         background-color: #ffffff !important;
         font-weight: 500 !important;
-    }
-    div[data-baseweb="input"]:focus-within {
+    }}
+    div[data-baseweb="input"]:focus-within {{
         border-color: #2e8b42 !important;
         box-shadow: 0 0 0 1px #2e8b42 !important;
-    }
+    }}
 
-    label[data-testid="stWidgetLabel"] {
+    label[data-testid="stWidgetLabel"] {{
         color: #2c3e50 !important;
         font-weight: 700 !important;
         font-size: 14px !important;
-    }
+    }}
 
-    /* 3. BOUTON SE CONNECTER (VERT EXACT PROPOSITION 3) */
-    div.stButton > button, div[data-testid="stFormSubmitButton"] > button {
+    /* 3. BOUTON SE CONNECTER (VERT PROPOSITION 3) */
+    div.stButton > button, div[data-testid="stFormSubmitButton"] > button {{
         background-color: #2e8b42 !important;
         color: #ffffff !important;
         font-weight: bold !important;
@@ -71,48 +73,56 @@ st.markdown(
         box-shadow: 0 3px 8px rgba(46,139,66,0.2) !important;
         width: 100% !important;
         transition: all 0.2s ease !important;
-    }
-    div.stButton > button:hover, div[data-testid="stFormSubmitButton"] > button:hover {
+    }}
+    div.stButton > button:hover, div[data-testid="stFormSubmitButton"] > button:hover {{
         background-color: #236f33 !important;
         color: #ffffff !important;
-    }
+    }}
 
-    /* 4. CARTE CENTRALE DESIGN PROPOSITION 3 */
-    .prop3-card-wrapper {
-        max-width: 420px;
-        margin: 10px auto;
-        background-color: #fdf8f0;
-        border-radius: 16px;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    /* 4. CONTENEUR AVEC L'IMAGE EN FOND (PROPOSITION 3) */
+    .prop3-login-card {{
+        width: 420px;
+        max-width: 95%;
+        margin: 20px auto;
+        border-radius: 20px;
+        box-shadow: 0 12px 32px rgba(0,0,0,0.12);
         overflow: hidden;
-        border: 1px solid #e8e0d0;
-    }
+        border: 1px solid #e2dacb;
+        {bg_card_style}
+        padding-top: 240px; /* Espace réservé pour l'illustration en haut */
+        padding-left: 25px;
+        padding-right: 25px;
+        padding-bottom: 20px;
+        background-color: #fdf8f0;
+    }}
 
-    .prop3-card-header {
-        background-color: #2e8b42;
-        padding: 20px 15px;
+    .prop3-title-text {{
         text-align: center;
-        color: white;
-    }
+        font-weight: 800;
+        color: #2c3e50;
+        font-size: 20px;
+        margin-bottom: 15px;
+        letter-spacing: 0.5px;
+    }}
 
-    .prop3-footer-coords {
+    .prop3-footer-coords {{
         text-align: center;
         padding-top: 15px;
         margin-top: 15px;
-        border-top: 1px solid #e6dec8;
+        border-top: 1px dashed #d8cfbe;
         font-size: 12px;
         color: #555555;
         line-height: 20px;
-    }
+    }}
 
     /* 5. STYLES BARRE LATÉRALE & INTERFACE CONNECTÉE */
-    button[aria-label*="sidebar"], [data-testid="stSidebarCollapseButton"] button {
+    button[aria-label*="sidebar"], [data-testid="stSidebarCollapseButton"] button {{
         background-color: #ffffff !important;
         border: 2px solid #2e8b42 !important;
         border-radius: 8px !important;
-    }
+    }}
 
-    .sidebar-menu-title {
+    .sidebar-menu-title {{
         background-color: #ffffff;
         border: 1px solid #2e8b42;
         border-radius: 8px;
@@ -120,29 +130,29 @@ st.markdown(
         text-align: center;
         color: #236f33;
         font-weight: bold;
-    }
+    }}
 
-    .hero-header {
+    .hero-header {{
         background: linear-gradient(135deg, #236f33 0%, #2e8b42 100%);
         border-radius: 16px;
         padding: 20px;
         color: white;
         text-align: center;
         margin-bottom: 20px;
-    }
+    }}
 
-    div[data-testid="stSidebar"] {
+    div[data-testid="stSidebar"] {{
         background-color: #efe8da !important;
-    }
+    }}
 
-    .nav-btn-active button {
+    .nav-btn-active button {{
         background-color: #2e8b42 !important;
         color: white !important;
-    }
-    .nav-btn-inactive button {
+    }}
+    .nav-btn-inactive button {{
         background-color: #ffffff !important;
         color: #2c3e50 !important;
-    }
+    }}
     </style>
 """,
     unsafe_allow_html=True,
@@ -331,67 +341,54 @@ if "current_page" not in st.session_state:
     st.session_state["current_page"] = "📊 Tableau de Bord"
 
 # ==========================================
-# --- ÉCRAN DE CONNEXION (PROPOSITION 3 EXACTE) ---
+# --- ÉCRAN DE CONNEXION (IMAGE EN FOND DE CARTE) ---
 # ==========================================
 if not st.session_state["user_connected"]:
     col_c1, col_c2, col_c3 = st.columns([1, 1.8, 1])
 
     with col_c2:
-        # En-tête avec l'image de la bannière (banner_connection.png)
-        if banner_b64:
-            st.markdown(f'''
-                <div style="text-align: center; border-radius: 16px 16px 0 0; overflow: hidden; margin-bottom: -10px;">
-                    <img src="{banner_b64}" style="width: 100%; height: auto; display: block;">
-                </div>
-            ''', unsafe_allow_html=True)
-        else:
-            st.markdown('''
-                <div class="prop3-card-header">
-                    <h2 style="margin:0; font-weight:800; font-size:22px;">ONG DIEU POURVOIRA</h2>
-                    <p style="margin:4px 0 0 0; font-size:12px; opacity:0.9;">Ensemble aidons les enfants atteints de Paralysie cérébrale</p>
-                </div>
-            ''', unsafe_allow_html=True)
-
-        with st.container(border=True):
-            st.markdown("<h3 style='text-align:center; font-weight:800; color:#2c3e50; font-size:18px; margin-bottom:15px;'>ONG DIEU POURVOIRA</h3>", unsafe_allow_html=True)
+        # Ouverture du conteneur stylisé qui porte l'image banner_connection.png en FOND
+        st.markdown('<div class="prop3-login-card">', unsafe_allow_html=True)
+        st.markdown('<div class="prop3-title-text">ONG DIEU POURVOIRA</div>', unsafe_allow_html=True)
+        
+        with st.form("form_connexion_prop3"):
+            identifiant = st.text_input("Identifiant utilisateur", placeholder="Ex: asso")
+            mot_de_passe = st.text_input("Mot de passe", type="password", placeholder="Votre mot de passe")
             
-            with st.form("form_connexion_prop3"):
-                identifiant = st.text_input("Identifiant utilisateur", placeholder="Ex: asso")
-                mot_de_passe = st.text_input("Mot de passe", type="password", placeholder="Votre mot de passe")
-                
-                st.markdown("<br>", unsafe_allow_html=True)
-                btn_connexion = st.form_submit_button("Se connecter")
+            st.markdown("<br>", unsafe_allow_html=True)
+            btn_connexion = st.form_submit_button("Se connecter")
 
-                if btn_connexion:
-                    if not df_users.empty and "Identifiant" in df_users.columns:
-                        match = df_users[(df_users["Identifiant"].astype(str) == identifiant.strip()) & (df_users["Mot_de_passe"].astype(str) == mot_de_passe.strip())]
-                        if not match.empty:
-                            st.session_state["user_connected"] = True
-                            st.session_state["user_info"] = match.iloc[0].to_dict()
-                            st.toast(f"Bienvenue {st.session_state['user_info'].get('Nom_Responsable', '')} !", icon="👋")
-                            st.rerun()
-                        else:
-                            st.error("❌ Identifiant ou mot de passe incorrect.")
+            if btn_connexion:
+                if not df_users.empty and "Identifiant" in df_users.columns:
+                    match = df_users[(df_users["Identifiant"].astype(str) == identifiant.strip()) & (df_users["Mot_de_passe"].astype(str) == mot_de_passe.strip())]
+                    if not match.empty:
+                        st.session_state["user_connected"] = True
+                        st.session_state["user_info"] = match.iloc[0].to_dict()
+                        st.toast(f"Bienvenue {st.session_state['user_info'].get('Nom_Responsable', '')} !", icon="👋")
+                        st.rerun()
                     else:
-                        if identifiant == "admin" and mot_de_passe == "admin123":
-                            st.session_state["user_connected"] = True
-                            st.session_state["user_info"] = {"Nom_Responsable": "Direction DSI", "Zone": "Vue Globale"}
-                            st.rerun()
-                        else:
-                            st.error("❌ Identifiant ou mot de passe incorrect.")
+                        st.error("❌ Identifiant ou mot de passe incorrect.")
+                else:
+                    if identifiant == "admin" and mot_de_passe == "admin123":
+                        st.session_state["user_connected"] = True
+                        st.session_state["user_info"] = {"Nom_Responsable": "Direction DSI", "Zone": "Vue Globale"}
+                        st.rerun()
+                    else:
+                        st.error("❌ Identifiant ou mot de passe incorrect.")
 
-            # COORDONNÉES JUSTE EN BAS DE SE CONNECTER
-            st.markdown(
-                """
-                <div class="prop3-footer-coords">
-                    📌 <strong>Coordonnées de l'ONG</strong><br>
-                    📞 <strong>Téléphone :</strong> +225 77 71 04 41 8 / 05 86 99 73 27<br>
-                    ✉️ <strong>Email :</strong> dieupourvoira187@gmail.com<br>
-                    📍 <strong>Adresse :</strong> 08 BP 2945 ABIDJAN 08
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+        # COORDONNÉES PLACÉES JUSTE EN BAS DE SE CONNECTER
+        st.markdown(
+            """
+            <div class="prop3-footer-coords">
+                📌 <strong>Coordonnées de l'ONG</strong><br>
+                📞 <strong>Téléphone :</strong> +225 77 71 04 41 8 / 05 86 99 73 27<br>
+                ✉️ <strong>Email :</strong> dieupourvoira187@gmail.com<br>
+                📍 <strong>Adresse :</strong> 08 BP 2945 ABIDJAN 08
+            </div>
+            </div> <!-- Fermeture .prop3-login-card -->
+            """,
+            unsafe_allow_html=True,
+        )
 
 # ==========================================
 # --- APPLICATION PRINCIPALE CONNECTÉE ---
