@@ -16,34 +16,100 @@ st.set_page_config(
     layout="wide",
 )
 
-# --- INJECTION CSS DESIGN LUMINEUX ET MODERNE (PROPOSITION 3) ---
+# --- INJECTION CSS STRICT - PROPOSITION 3 (LUMINEUX, CHALEUREUX & LISIBLE) ---
 st.markdown(
     """
     <style>
-    /* Styles Globaux - Fond clair et chaleureux */
+    /* 1. FOND DE PAGE GLOBAL */
     .stApp {
-        background-color: #fdfbf7;
-        color: #2c3e50;
+        background-color: #f7f3ec !important;
+        color: #2c3e50 !important;
     }
     
-    /* Bouton d'ouverture du menu en haut (Hamburger) */
-    button[aria-label*="sidebar"], 
-    [data-testid="stSidebarCollapseButton"] button,
-    [data-testid="collapsedControl"] {
+    /* 2. OVERRIDE STRICT DES INPUTS STREAMLIT (Correction des boîtes noires) */
+    div[data-baseweb="input"] {
+        background-color: #ffffff !important;
+        border: 1px solid #dcd6cd !important;
+        border-radius: 8px !important;
+    }
+    div[data-baseweb="input"] input {
+        color: #1a1a1a !important;
+        background-color: #ffffff !important;
+        font-weight: 500 !important;
+    }
+    div[data-baseweb="input"]:focus-within {
+        border-color: #28a745 !important;
+        box-shadow: 0 0 0 1px #28a745 !important;
+    }
+
+    /* LABELS DES CHAMPS DE SAISIE */
+    label[data-testid="stWidgetLabel"] {
+        color: #2c3e50 !important;
+        font-weight: 700 !important;
+        font-size: 14px !important;
+    }
+
+    /* 3. BOUTONS STYLISÉS (PROPOSITION 3) */
+    div.stButton > button, div[data-testid="stFormSubmitButton"] > button {
+        background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%) !important;
+        color: #ffffff !important;
+        font-weight: bold !important;
+        font-size: 16px !important;
+        border-radius: 10px !important;
+        border: none !important;
+        padding: 10px 24px !important;
+        box-shadow: 0 4px 12px rgba(40,167,69,0.3) !important;
+        width: 100% !important;
+    }
+    div.stButton > button:hover, div[data-testid="stFormSubmitButton"] > button:hover {
+        background: linear-gradient(135deg, #1e7e34 0%, #155724 100%) !important;
+        color: #ffffff !important;
+    }
+
+    /* 4. CARTE DE CONNEXION PRINCIPALE */
+    .prop3-card-container {
+        max-width: 450px;
+        margin: 20px auto;
+        background: #fffdf9;
+        border-radius: 20px;
+        box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+        border: 1px solid #eae3d5;
+        overflow: hidden;
+    }
+
+    .prop3-illustration-header {
+        background: linear-gradient(180deg, #238b38 0%, #2e9f43 60%, #fffdf9 100%);
+        padding: 25px 20px 10px 20px;
+        text-align: center;
+    }
+
+    .prop3-brand-title {
+        color: #1a1a1a;
+        font-size: 22px;
+        font-weight: 900;
+        text-align: center;
+        letter-spacing: 0.8px;
+        margin-top: 10px;
+        margin-bottom: 15px;
+    }
+
+    .prop3-footer-coords {
+        background-color: #fcf8f2;
+        padding: 15px;
+        border-top: 1px dashed #e2dacd;
+        text-align: center;
+        font-size: 12px;
+        color: #555;
+        line-height: 20px;
+    }
+
+    /* 5. STYLES BARRE LATÉRALE & COMPOSANTS DASHBOARD */
+    button[aria-label*="sidebar"], [data-testid="stSidebarCollapseButton"] button {
         background-color: #ffffff !important;
         border: 2px solid #28a745 !important;
         border-radius: 8px !important;
-        padding: 4px 10px !important;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.08) !important;
-    }
-    button[aria-label*="sidebar"] svg, 
-    [data-testid="stSidebarCollapseButton"] svg,
-    [data-testid="collapsedControl"] svg {
-        fill: #28a745 !important;
-        color: #28a745 !important;
     }
 
-    /* En-tête personnalisé à l'intérieur du menu latéral */
     .sidebar-menu-title {
         background-color: #ffffff;
         border: 1px solid #28a745;
@@ -52,138 +118,35 @@ st.markdown(
         text-align: center;
         color: #1e7e34;
         font-weight: bold;
-        font-size: 16px;
-        margin-bottom: 15px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
 
-    /* Bannière d'en-tête moderne */
     .hero-header {
         background: linear-gradient(135deg, #1e7e34 0%, #28a745 100%);
         border-radius: 16px;
-        padding: 24px;
-        color: white;
-        text-align: center;
-        box-shadow: 0 8px 20px rgba(40,167,69,0.15);
-        margin-bottom: 25px;
-        border: 1px solid rgba(255,255,255,0.2);
-    }
-    .hero-header h1 {
-        font-size: 26px !important;
-        font-weight: 800 !important;
-        color: #ffffff !important;
-        margin-bottom: 6px !important;
-        letter-spacing: 0.5px;
-    }
-    .hero-header p {
-        font-size: 14px !important;
-        color: #f1f8f3 !important;
-        margin: 0 !important;
-    }
-    .hero-contact {
-        font-size: 12px !important;
-        color: #e2f0d9 !important;
-        margin-top: 10px !important;
-    }
-
-    /* Carte de Connexion Style Proposition 3 */
-    .login-card-header {
-        background: linear-gradient(135deg, #1e7e34 0%, #28a745 100%);
-        border-radius: 16px 16px 0 0;
         padding: 20px;
-        text-align: center;
         color: white;
-    }
-    .login-card-header h2 {
-        color: #ffffff !important;
-        font-weight: 800;
-        margin: 0;
-        font-size: 22px;
-    }
-    .login-card-header p {
-        color: #e2f0d9 !important;
-        font-size: 12px;
-        margin-top: 4px;
-    }
-
-    .login-footer-coords {
         text-align: center;
-        margin-top: 20px;
-        padding-top: 15px;
-        border-top: 1px dashed #dcd6cd;
-        font-size: 12px;
-        color: #555555;
-        line-height: 20px;
+        margin-bottom: 20px;
     }
 
-    /* Cartes de statistiques (KPI Cards) */
-    .kpi-card {
-        background-color: #ffffff;
-        border-radius: 12px;
-        padding: 16px;
-        border-left: 5px solid #28a745;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        margin-bottom: 15px;
-    }
-    .kpi-title {
-        font-size: 12px;
-        color: #6c757d;
-        text-transform: uppercase;
-        font-weight: 600;
-    }
-    .kpi-value {
-        font-size: 28px;
-        font-weight: 800;
-        color: #1e7e34;
-        margin-top: 4px;
-    }
-
-    /* Styling de la Sidebar */
     div[data-testid="stSidebar"] {
-        background-color: #f4efe6 !important;
-        border-right: 1px solid rgba(0,0,0,0.05);
+        background-color: #f2ece1 !important;
     }
 
     .nav-btn-active button {
-        background: linear-gradient(90deg, #28a745 0%, #1e7e34 100%) !important;
+        background: #28a745 !important;
         color: white !important;
-        font-weight: bold !important;
-        border-radius: 10px !important;
-        box-shadow: 0 4px 12px rgba(40,167,69,0.2) !important;
-        border: none !important;
     }
-    
     .nav-btn-inactive button {
         background-color: #ffffff !important;
         color: #2c3e50 !important;
-        border-radius: 10px !important;
-        border: 1px solid rgba(0,0,0,0.08) !important;
-        transition: all 0.3s ease !important;
-    }
-    
-    .nav-btn-inactive button:hover {
-        background-color: #e8f5e9 !important;
-        color: #1e7e34 !important;
-        border-color: #28a745 !important;
-    }
-
-    /* Boîtes d'informations */
-    .info-card {
-        background: #fff8f0;
-        border: 1px solid #ffe0b2;
-        border-left: 4px solid #ff7f00;
-        border-radius: 8px;
-        padding: 12px 16px;
-        font-size: 13px;
-        color: #4a3b32;
-        margin-bottom: 20px;
     }
     </style>
 """,
     unsafe_allow_html=True,
 )
 
-# --- SCRIPT JAVASCRIPT POUR FERMER LA SIDEBAR AUTOMATIQUEMENT SUR MOBILE ---
+# --- SCRIPT JAVASCRIPT FERMETURE AUTOMATIQUE SIDEBAR MOBILE ---
 st.markdown(
     """
     <script>
@@ -212,7 +175,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- FONCTION SECURISEE CONVERSION NUMERIQUE ---
+# --- FONCTION SÉCURISÉE CONVERSION NUMÉRIQUE ---
 def safe_int_convert(val, default=0):
     if pd.isna(val) or val is None:
         return default
@@ -372,27 +335,46 @@ if "current_page" not in st.session_state:
     st.session_state["current_page"] = "📊 Tableau de Bord"
 
 # ==========================================
-# --- ÉCRAN DE CONNEXION (PROPOSITION 3) ---
+# --- ÉCRAN DE CONNEXION (PROPOSITION 3 FIDÈLE) ---
 # ==========================================
 if not st.session_state["user_connected"]:
-    col_l1, col_l2, col_l3 = st.columns([1, 2, 1])
-    with col_l2:
-        st.markdown(
-            """
-            <div class="login-card-header">
-                <h2>ONG DIEU POURVOIRA</h2>
-                <p>Ensemble aidons les enfants atteints de Paralysie cérébrale</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+    col_center1, col_center2, col_center3 = st.columns([1, 2.2, 1])
+    
+    with col_center2:
+        # ILLUSTRATION SVG + HEADER PROPOSITION 3
+        svg_illustration = """
+        <div style="text-align: center; background: linear-gradient(180deg, #1e7e34 0%, #28a745 70%, #fffdf9 100%); border-radius: 20px 20px 0 0; padding: 25px 15px 10px 15px;">
+            <div style="color: white; font-weight: 800; font-size: 16px; margin-bottom: 10px; letter-spacing: 1px;">ONG DIEU POURVOIRA</div>
+            <svg width="220" height="130" viewBox="0 0 220 130" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Cœur d'espoir lumineux -->
+                <path d="M110 95 C60 55, 50 30, 80 18 C95 12, 105 22, 110 30 C115 22, 125 12, 140 18 C170 30, 160 55, 110 95 Z" stroke="#ffe082" stroke-width="2.5" fill="none" opacity="0.85"/>
+                <!-- Mains protectrices supérieures -->
+                <path d="M65 35 C85 25, 105 28, 110 32" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+                <path d="M155 35 C135 25, 115 28, 110 32" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+                <!-- Silhouette Enfants stylisés -->
+                <circle cx="80" cy="72" r="11" fill="#4a3b32"/>
+                <path d="M68 95 C68 83, 92 83, 92 95" fill="#4a3b32"/>
+                
+                <circle cx="110" cy="78" r="9" fill="#4a3b32"/>
+                <path d="M100 95 C100 86, 120 86, 120 95" fill="#4a3b32"/>
+                
+                <circle cx="140" cy="70" r="12" fill="#4a3b32"/>
+                <path d="M126 95 C126 81, 154 81, 154 95" fill="#4a3b32"/>
+            </svg>
+            <div style="color: #2c3e50; font-weight: 800; font-size: 18px; margin-top: 10px;">ONG DIEU POURVOIRA</div>
+            <div style="color: #555; font-size: 12px; margin-top: 2px;">Ensemble aidons les enfants atteints de Paralysie cérébrale</div>
+        </div>
+        """
+        st.markdown(svg_illustration, unsafe_allow_html=True)
 
-        with st.container(border=True):
-            with st.form("form_connexion"):
-                st.markdown("#### 🔐 Connexion Utilisateur")
-                identifiant = st.text_input("Identifiant utilisateur")
-                mot_de_passe = st.text_input("Mot de passe", type="password")
-                btn_connexion = st.form_submit_button("Se connecter", use_container_width=True)
+        # FORMULAIRE DE CONNEXION ÉPURÉ
+        with st.container():
+            with st.form("form_connexion_prop3"):
+                identifiant = st.text_input("Identifiant utilisateur", value="", placeholder="Votre identifiant")
+                mot_de_passe = st.text_input("Mot de passe", type="password", placeholder="Votre mot de passe")
+                
+                st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+                btn_connexion = st.form_submit_button("Se connecter")
 
                 if btn_connexion:
                     if not df_users.empty and "Identifiant" in df_users.columns:
@@ -412,30 +394,29 @@ if not st.session_state["user_connected"]:
                         else:
                             st.error("❌ Identifiant ou mot de passe incorrect.")
 
-            # Coordonnées placées juste sous le bouton de connexion
-            st.markdown(
-                """
-                <div class="login-footer-coords">
-                    📌 <strong>Coordonnées de l'ONG</strong><br>
-                    📞 <strong>Téléphone :</strong> +225 77 71 04 41 8 / 05 86 99 73 27<br>
-                    ✉️ <strong>Email :</strong> dieupourvoira187@gmail.com<br>
-                    📍 <strong>Adresse :</strong> 08 BP 2945 ABIDJAN 08
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+        # COORDONTÉES EN BAS DE CARTE
+        st.markdown(
+            """
+            <div class="prop3-footer-coords">
+                <strong>Coordonnées</strong><br>
+                📞 +225 77 71 04 41 8 / 05 86 99 73 27 &nbsp;|&nbsp; ✉️ dieupourvoira187@gmail.com<br>
+                📍 08 BP 2945 ABIDJAN 08
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
 # ==========================================
 # --- APPLICATION PRINCIPALE CONNECTÉE ---
 # ==========================================
 else:
-    # BANNIÈRE D'EN-TÊTE DANS L'ESPACE CONNECTÉ
+    # BANNIÈRE ESPACE CONNECTÉ
     st.markdown(
         """
         <div class="hero-header">
             <h1>ONG DIEU POURVOIRA</h1>
             <p><strong>Ensemble aidons les enfants atteints de Paralysie cérébrale</strong></p>
-            <div class="hero-contact">
+            <div style="font-size: 11px; margin-top: 5px; opacity: 0.9;">
                 📞 +225 77 71 04 41 8 / 05 86 99 73 27 &nbsp;|&nbsp; ✉️ dieupourvoira187@gmail.com &nbsp;|&nbsp; 📍 08 BP 2945 ABIDJAN 08
             </div>
         </div>
@@ -458,7 +439,7 @@ else:
     is_compta = "COMPTA" in user_zone.upper() or "COMPTABILITÉ" in user_zone.upper()
     is_dsi = "DSI" in user_zone.upper() or "VUE GLOBALE" in user_zone.upper()
 
-    # --- BARRE LATÉRALE - MENU PERSONNALISÉ ---
+    # --- BARRE LATÉRALE - MENU ---
     st.sidebar.markdown('<div class="sidebar-menu-title">📂 MENU PRINCIPAL</div>', unsafe_allow_html=True)
     st.sidebar.markdown(f"### 👤 **{user_nom}**")
     st.sidebar.caption(f"📌 **Espace : {user_zone}**")
@@ -517,7 +498,7 @@ else:
     menu = st.session_state["current_page"]
 
     # ==========================================
-    # 1. TABLEAU DE BORD MODERNE
+    # 1. TABLEAU DE BORD
     # ==========================================
     if menu == "📊 Tableau de Bord":
         st.subheader(f"📈 Vue Synthétique - {choix_zone_label}")
@@ -530,13 +511,13 @@ else:
 
             k1, k2, k3, k4 = st.columns(4)
             with k1:
-                st.markdown(f'<div class="kpi-card"><div class="kpi-title">Membres</div><div class="kpi-value">{total_membres}</div></div>', unsafe_allow_html=True)
+                st.metric("Membres", total_membres)
             with k2:
-                st.markdown(f'<div class="kpi-card" style="border-left-color: #17a2b8;"><div class="kpi-title">Adhésions OK</div><div class="kpi-value">{total_actifs}</div></div>', unsafe_allow_html=True)
+                st.metric("Adhésions OK", total_actifs)
             with k3:
-                st.markdown(f'<div class="kpi-card" style="border-left-color: #007bff;"><div class="kpi-title">Garçons</div><div class="kpi-value">{total_garcons}</div></div>', unsafe_allow_html=True)
+                st.metric("Garçons", total_garcons)
             with k4:
-                st.markdown(f'<div class="kpi-card" style="border-left-color: #e83e8c;"><div class="kpi-title">Filles</div><div class="kpi-value">{total_filles}</div></div>', unsafe_allow_html=True)
+                st.metric("Filles", total_filles)
 
             st.markdown("---")
             with st.container(border=True):
@@ -551,7 +532,6 @@ else:
     # ==========================================
     elif menu == "➕ Enregistrer un Membre":
         st.subheader("📝 Nouvel Enregistrement")
-        st.markdown(f'<div class="info-card">Saisie d\'un nouvel enfant rattaché à l\'espace : <strong>{choix_zone_label}</strong>.</div>', unsafe_allow_html=True)
 
         liste_communes = ["ABOISSO", "ABOBO", "ADIAKE", "ADJAME", "ADJAHUI", "ALÉPÉ", "ANYAMA", "ASSINIE", "ATTECOUBE", "BINGERVILLE", "BONOUA", "DABOU", "DALOA", "DIVO", "DOKUI", "GAGNOA", "GRAND-BASSAM", "GUIBEROUA", "ISSIA", "KOUMASSI", "MARCORY", "MODESTE", "N'DOTRE", "OUMÉ", "PLATEAU", "PORT-BOUET", "SAN-PÉDRO", "SAMO", "SONGON", "TREICHVILLE", "WILLIAMS CIVIL", "YAMOUSSOUKRO", "YAOU", "YOPOUGON", "AUTRE (Préciser ci-dessous)"]
         matricule_auto = obtenir_prochain_matricule(df)
@@ -675,7 +655,7 @@ else:
                                 else:
                                     st.error("⚠️ Cochez la case de confirmation.")
                 else:
-                    st.info("ℹ️ Veuillez sélectionner un membre dans la liste déroulante ci-dessus pour afficher ses informations.")
+                    st.info("ℹ️ Veuillez sélectionner un membre dans la liste déroulante ci-dessus.")
             else:
                 st.warning("⚠️ Aucun membre ne correspond à votre recherche.")
         else:
@@ -696,7 +676,7 @@ else:
             else:
                 df_affiche = df_f
 
-            tab_liste, tab_cartes = st.tabs(["📋 Liste Générale", "🪪 Cartes d'Adhérents (Modèles Thématiques ONG)"])
+            tab_liste, tab_cartes = st.tabs(["📋 Liste Générale", "🪪 Cartes d'Adhérents"])
 
             with tab_liste:
                 total_lignes = len(df_affiche)
@@ -777,136 +757,31 @@ else:
                             date_adh = str(row_m.get(df.columns[8] if len(df.columns) > 8 else "", "")).split(" ")[0]
                             tel_p = str(row_m.get(col_tel, ""))
 
-                            if modele_carte.startswith("Modèle 1"):
-                                html_carte = f"""
-                                <!DOCTYPE html>
-                                <html>
-                                <head>
-                                <meta charset="utf-8">
-                                <style>
-                                    @media print {{
-                                        body {{ background: none !important; }}
-                                        .no-print {{ display: none !important; }}
-                                        .card-box {{ box-shadow: none !important; border: 3px solid #1e7e34 !important; }}
-                                    }}
-                                    .print-btn {{
-                                        background: linear-gradient(90deg, #28a745 0%, #1e7e34 100%);
-                                        color: white;
-                                        border: none;
-                                        padding: 12px 28px;
-                                        font-size: 14px;
-                                        font-weight: bold;
-                                        border-radius: 10px;
-                                        cursor: pointer;
-                                        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-                                        margin-top: 15px;
-                                        transition: all 0.3s ease;
-                                    }}
-                                    .print-btn:hover {{
-                                        background: linear-gradient(90deg, #1e7e34 0%, #155724 100%);
-                                    }}
-                                </style>
-                                </head>
-                                <body style="background-color: transparent; font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 5px;">
-                                    <div style="display: inline-block;">
-                                        <div class="card-box" style="width: 620px; height: 390px; background: #ffffff; border-radius: 16px; border: 3px solid #1e7e34; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: left; overflow: hidden;">
-                                            <div style="position: absolute; top: 0; left: 0; right: 0; height: 14px; background: linear-gradient(90deg, #1e7e34 0%, #28a745 50%, #ff7f00 100%);"></div>
-                                            <div style="text-align: center; padding-top: 20px;">
-                                                <div style="font-size: 18px; font-weight: 900; color: #1e7e34; letter-spacing: 1px;">ONG DIEU POURVOIRA</div>
-                                                <div style="background: #1e7e34; color: white; padding: 3px 20px; border-radius: 12px; font-size: 12px; font-weight: bold; display: inline-block; margin-top: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">CARTE DE MEMBRE OFFICIELLE</div>
-                                            </div>
-                                            <div style="position: absolute; left: 35px; top: 85px; width: 130px; height: 150px; border: 3px solid #1e7e34; border-radius: 10px; overflow: hidden; background: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-                                                <img src="{img_src}" style="width: 100%; height: 100%; object-fit: cover;">
-                                            </div>
-                                            <div style="position: absolute; left: 65px; top: 242px; width: 70px; height: 70px;">
-                                                <img src="{logo_src}" style="width: 100%; height: 100%; object-fit: contain;">
-                                            </div>
-                                            <div style="position: absolute; left: 185px; top: 85px; width: 415px; font-size: 13px; color: #212529; line-height: 25px;">
-                                                <div style="border-bottom: 1px dotted #ccc; padding-bottom: 1px;"><span style="color: #6c757d; display: inline-block; width: 145px;">Nom de l'enfant :</span> <span style="font-weight: 800; color: #000;">{nom_e}</span></div>
-                                                <div style="border-bottom: 1px dotted #ccc; padding-bottom: 1px;"><span style="color: #6c757d; display: inline-block; width: 145px;">Prénom de l'enfant :</span> <span style="font-weight: 800; color: #000;">{prenom_e}</span></div>
-                                                <div style="border-bottom: 1px dotted #ccc; padding-bottom: 1px;"><span style="color: #6c757d; display: inline-block; width: 145px;">Parent :</span> <span style="font-weight: 700; color: #333; font-size: 12px;">{nom_p}</span></div>
-                                                <div style="border-bottom: 1px dotted #ccc; padding-bottom: 1px;"><span style="color: #6c757d; display: inline-block; width: 145px;">N° Membre :</span> <span style="color: #1e7e34; font-weight: 900; font-size: 14px;">{num_m}</span></div>
-                                                <div style="border-bottom: 1px dotted #ccc; padding-bottom: 1px;"><span style="color: #6c757d; display: inline-block; width: 145px;">Date d'adhésion :</span> <span style="font-weight: 700; color: #000;">{date_adh}</span></div>
-                                                <div style="border-bottom: 1px dotted #ccc; padding-bottom: 1px;"><span style="color: #6c757d; display: inline-block; width: 145px;">Contact parent :</span> <span style="font-weight: 700; color: #000;">{tel_p}</span></div>
-                                            </div>
-                                            <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(90deg, #1e7e34 0%, #0b4d1d 100%); color: white; padding: 8px 12px; font-size: 10px; text-align: center; font-weight: bold;">
-                                                ❤️ Ensemble aidons les enfants atteints de Paralysie cérébrale ❤️<br>
-                                                <span style="font-weight: normal; color: #e2f0d9; font-size: 9px;">📞 Contact : +225 77 71 04 41 8 / 05 86 99 73 27</span>
-                                            </div>
-                                        </div>
+                            html_carte = f"""
+                            <!DOCTYPE html>
+                            <html>
+                            <head><meta charset="utf-8"></head>
+                            <body style="text-align: center;">
+                                <div style="width: 600px; height: 380px; background: #ffffff; border-radius: 16px; border: 3px solid #1e7e34; position: relative; margin: auto; text-align: left; overflow: hidden;">
+                                    <div style="background: #1e7e34; color: white; padding: 12px; text-align: center; font-weight: bold; font-size: 18px;">ONG DIEU POURVOIRA - CARTE MEMBRE</div>
+                                    <div style="position: absolute; left: 30px; top: 75px; width: 130px; height: 150px; border: 2px solid #1e7e34; border-radius: 8px; overflow: hidden;">
+                                        <img src="{img_src}" style="width: 100%; height: 100%; object-fit: cover;">
                                     </div>
-                                    <div class="no-print">
-                                        <button class="print-btn" onclick="window.print()">🖨️ Lancer l'impression / Enregistrer en PDF</button>
+                                    <div style="position: absolute; left: 180px; top: 75px; font-size: 14px; line-height: 26px; color: #222;">
+                                        <div><strong>Nom :</strong> {nom_e}</div>
+                                        <div><strong>Prénom :</strong> {prenom_e}</div>
+                                        <div><strong>Parent :</strong> {nom_p}</div>
+                                        <div><strong>N° Membre :</strong> <span style="color: #1e7e34; font-weight: bold;">{num_m}</span></div>
+                                        <div><strong>Date :</strong> {date_adh}</div>
+                                        <div><strong>Contact :</strong> {tel_p}</div>
                                     </div>
-                                </body>
-                                </html>
-                                """
-                            else:
-                                html_carte = f"""
-                                <!DOCTYPE html>
-                                <html>
-                                <head>
-                                <meta charset="utf-8">
-                                <style>
-                                    @media print {{
-                                        body {{ background: none !important; }}
-                                        .no-print {{ display: none !important; }}
-                                        .card-box {{ box-shadow: none !important; border: 3px solid #ff7f00 !important; }}
-                                    }}
-                                    .print-btn {{
-                                        background: linear-gradient(90deg, #28a745 0%, #1e7e34 100%);
-                                        color: white;
-                                        border: none;
-                                        padding: 12px 28px;
-                                        font-size: 14px;
-                                        font-weight: bold;
-                                        border-radius: 10px;
-                                        cursor: pointer;
-                                        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-                                        margin-top: 15px;
-                                        transition: all 0.3s ease;
-                                    }}
-                                    .print-btn:hover {{
-                                        background: linear-gradient(90deg, #1e7e34 0%, #155724 100%);
-                                    }}
-                                </style>
-                                </head>
-                                <body style="background-color: transparent; font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 5px;">
-                                    <div style="display: inline-block;">
-                                        <div class="card-box" style="width: 620px; height: 390px; background: linear-gradient(135deg, #f9fffb 0%, #f1f8f3 100%); border-radius: 16px; border: 3px solid #ff7f00; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: left; overflow: hidden;">
-                                            <div style="background: #1e7e34; color: white; padding: 8px 15px; display: flex; align-items: center; justify-content: space-between; border-bottom: 4px solid #ff7f00;">
-                                                <img src="{logo_src}" style="height: 42px; width: auto; background: #fff; padding: 2px; border-radius: 6px;">
-                                                <div style="text-align: center; flex-grow: 1;">
-                                                    <div style="font-size: 17px; font-weight: 900; letter-spacing: 1.5px;">ONG DIEU POURVOIRA</div>
-                                                    <div style="font-size: 10px; color: #e2f0d9; font-weight: bold;">CARTE D'ADHÉRENT OFFICIELLE</div>
-                                                </div>
-                                                <div style="width: 42px;"></div>
-                                            </div>
-                                            <div style="position: absolute; left: 35px; top: 90px; width: 130px; height: 155px; border: 3px solid #ff7f00; border-radius: 10px; overflow: hidden; background: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.15);">
-                                                <img src="{img_src}" style="width: 100%; height: 100%; object-fit: cover;">
-                                            </div>
-                                            <div style="position: absolute; left: 185px; top: 90px; width: 415px; font-size: 13px; color: #212529; line-height: 25px;">
-                                                <div style="border-bottom: 1px solid #d4edda; padding-bottom: 1px;"><span style="color: #1e7e34; font-weight: bold; display: inline-block; width: 145px;">Nom :</span> <span style="font-weight: 800; color: #000;">{nom_e}</span></div>
-                                                <div style="border-bottom: 1px solid #d4edda; padding-bottom: 1px;"><span style="color: #1e7e34; font-weight: bold; display: inline-block; width: 145px;">Prénom :</span> <span style="font-weight: 800; color: #000;">{prenom_e}</span></div>
-                                                <div style="border-bottom: 1px solid #d4edda; padding-bottom: 1px;"><span style="color: #1e7e34; font-weight: bold; display: inline-block; width: 145px;">Parent :</span> <span style="font-weight: 700; color: #333; font-size: 12px;">{nom_p}</span></div>
-                                                <div style="border-bottom: 1px solid #d4edda; padding-bottom: 1px;"><span style="color: #1e7e34; font-weight: bold; display: inline-block; width: 145px;">N° Membre :</span> <span style="color: #ff7f00; font-weight: 900; font-size: 14px;">{num_m}</span></div>
-                                                <div style="border-bottom: 1px solid #d4edda; padding-bottom: 1px;"><span style="color: #1e7e34; font-weight: bold; display: inline-block; width: 145px;">Adhésion :</span> <span style="font-weight: 700; color: #000;">{date_adh}</span></div>
-                                                <div style="border-bottom: 1px solid #d4edda; padding-bottom: 1px;"><span style="color: #1e7e34; font-weight: bold; display: inline-block; width: 145px;">Contact :</span> <span style="font-weight: 700; color: #000;">{tel_p}</span></div>
-                                            </div>
-                                            <div style="position: absolute; bottom: 0; left: 0; right: 0; background: #1e7e34; color: white; padding: 8px 12px; font-size: 10px; text-align: center; font-weight: bold;">
-                                                ❤️ Ensemble aidons les enfants atteints de Paralysie cérébrale ❤️<br>
-                                                <span style="font-weight: normal; color: #ff7f00; font-size: 9px;">📞 Contact : +225 77 71 04 41 8 / 05 86 99 73 27</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="no-print">
-                                        <button class="print-btn" onclick="window.print()">🖨️ Lancer l'impression / Enregistrer en PDF</button>
-                                    </div>
-                                </body>
-                                </html>
-                                """
-
-                            st.components.v1.html(html_carte, height=480)
+                                </div>
+                                <br>
+                                <button onclick="window.print()" style="background: #1e7e34; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer;">🖨️ Imprimer la carte</button>
+                            </body>
+                            </html>
+                            """
+                            st.components.v1.html(html_carte, height=450)
                     else:
                         st.warning("⚠️ Aucun enfant ne correspond à votre recherche.")
                 else:
@@ -950,7 +825,7 @@ else:
         with tab_modif_stock:
             if not df_stock.empty and "ID_Don" in df_stock.columns:
                 with st.container(border=True):
-                    recherche_stock_mod = st.text_input("🔍 Filtrer les dons en stock par ID ou Désignation...", key="search_filtre_stock_mod")
+                    recherche_stock_mod = st.text_input("🔍 Filtrer les dons par Désignation ou ID...", key="search_filtre_stock_mod")
                     if recherche_stock_mod:
                         mask_s = df_stock.astype(str).apply(lambda row: row.str.contains(recherche_stock_mod, case=False, na=False).any(), axis=1)
                         df_stock_filtered = df_stock[mask_s]
@@ -1023,18 +898,15 @@ else:
             if not df_stock_dispo.empty:
                 with st.container(border=True):
                     with st.form("form_remise_don", clear_on_submit=True):
-                        st.markdown("##### 🔍 Filtrer et sélectionner le bénéficiaire et le don")
-                        recherche_benef_remise = st.text_input("Filtrer l'enfant bénéficiaire (Nom, Matricule...)")
-                        recherche_don_remise = st.text_input("Filtrer le don en stock (Désignation, ID...)")
+                        recherche_benef_remise = st.text_input("🔍 Filtrer l'enfant bénéficiaire...")
+                        recherche_don_remise = st.text_input("🔍 Filtrer le don en stock...")
                         
-                        # Filtrage dynamique des enfants
                         if recherche_benef_remise:
                             mask_eb = df.astype(str).apply(lambda row: row.str.contains(recherche_benef_remise, case=False, na=False).any(), axis=1)
                             df_enfants_f = df[mask_eb]
                         else:
                             df_enfants_f = df
 
-                        # Filtrage dynamique des stocks dispo
                         if recherche_don_remise:
                             mask_db = df_stock_dispo.astype(str).apply(lambda row: row.str.contains(recherche_don_remise, case=False, na=False).any(), axis=1)
                             df_stock_f = df_stock_dispo[mask_db]
@@ -1083,11 +955,11 @@ else:
                                 except Exception as e:
                                     st.error(f"❌ Erreur lors de la remise : {e}")
                         else:
-                            st.warning("⚠️ Aucun résultat pour vos critères de recherche dans les enfants ou les stocks.")
+                            st.warning("⚠️ Aucun résultat pour vos critères de recherche.")
             else:
                 st.warning("⚠️ Aucun don disponible en stock.")
         else:
-            st.warning("⚠️ Données insuffisantes pour effectuer une remise.")
+            st.warning("⚠️ Données insuffisantes.")
 
         st.markdown("---")
         st.markdown("### 📋 Historique global des Remises")
@@ -1095,10 +967,10 @@ else:
             if not df_distrib.empty:
                 st.dataframe(df_distrib, use_container_width=True)
             else:
-                st.info("Aucune distribution enregistrée pour le moment.")
+                st.info("Aucune distribution enregistrée.")
 
     # ==========================================
-    # 7. SUIVI DES COTISATIONS & CARTES
+    # 7. SUIVI DES COTISATIONS
     # ==========================================
     elif menu == "💳 Suivi Cotisations":
         st.subheader("💳 Suivi des Cotisations et Frais de Carte")
@@ -1108,7 +980,6 @@ else:
             if not df.empty:
                 with st.container(border=True):
                     with st.form("form_cotisation", clear_on_submit=True):
-                        st.markdown("##### 💰 Saisie d'une cotisation ou d'un frais de carte")
                         recherche_cotiz_saisie = st.text_input("🔍 Filtrer le membre concerné...")
                         
                         if recherche_cotiz_saisie:
@@ -1150,7 +1021,7 @@ else:
                                 except Exception as e:
                                     st.error(f"❌ Erreur : {e}")
                         else:
-                            st.warning("⚠️ Aucun membre trouvé pour ce filtre.")
+                            st.warning("⚠️ Aucun membre trouvé.")
             else:
                 st.warning("⚠️ Aucun membre enregistré.")
 
@@ -1158,25 +1029,14 @@ else:
             st.markdown("### 📋 Historique & États des Cotisations")
             if not df_cotiz.empty and "ID_Cotiz" in df_cotiz.columns:
                 st.dataframe(df_cotiz, use_container_width=True)
-                output_c = BytesIO()
-                with pd.ExcelWriter(output_c, engine="xlsxwriter") as writer:
-                    df_cotiz.to_excel(writer, index=False, sheet_name="Cotisations")
-                excel_c_data = output_c.getvalue()
-
-                st.download_button(
-                    label="📥 Exporter le rapport des cotisations (.xlsx)",
-                    data=excel_c_data,
-                    file_name="Rapport_Cotisations_ONG.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                )
             else:
-                st.info("Aucune cotisation enregistrée pour le moment.")
+                st.info("Aucune cotisation enregistrée.")
 
         with tab_cotiz_modif:
-            st.markdown("### ✏️ Modifier ou Supprimer un Paiement de Cotisation")
+            st.markdown("### ✏️ Modifier ou Supprimer un Paiement")
             if not df_cotiz.empty and "ID_Cotiz" in df_cotiz.columns:
                 with st.container(border=True):
-                    recherche_cotiz_mod = st.text_input("🔍 Filtrer les paiements (Nom, ID, Type...)", key="search_filtre_cotiz_mod")
+                    recherche_cotiz_mod = st.text_input("🔍 Filtrer les paiements...", key="search_filtre_cotiz_mod")
                     if recherche_cotiz_mod:
                         mask_cm = df_cotiz.astype(str).apply(lambda row: row.str.contains(recherche_cotiz_mod, case=False, na=False).any(), axis=1)
                         df_cotiz_f = df_cotiz[mask_cm]
@@ -1184,10 +1044,10 @@ else:
                         df_cotiz_f = df_cotiz
 
                     if not df_cotiz_f.empty:
-                        choix_id_cotiz = st.selectbox("Sélectionner le paiement à modifier/supprimer", df_cotiz_f["ID_Cotiz"].astype(str).tolist(), format_func=lambda c: f"{c} - {df_cotiz_f[df_cotiz_f['ID_Cotiz'].astype(str) == c]['Nom_Enfant'].values[0]} ({df_cotiz_f[df_cotiz_f['ID_Cotiz'].astype(str) == c]['Type_Paiement'].values[0]} : {df_cotiz_f[df_cotiz_f['ID_Cotiz'].astype(str) == c]['Montant_Verse'].values[0]} FCFA)")
+                        choix_id_cotiz = st.selectbox("Sélectionner le paiement à modifier/supprimer", df_cotiz_f["ID_Cotiz"].astype(str).tolist(), format_func=lambda c: f"{c} - {df_cotiz_f[df_cotiz_f['ID_Cotiz'].astype(str) == c]['Nom_Enfant'].values[0]} ({df_cotiz_f[df_cotiz_f['ID_Cotiz'].astype(str) == c]['Montant_Verse'].values[0]} FCFA)")
                         cotiz_ligne = df_cotiz[df_cotiz["ID_Cotiz"].astype(str) == choix_id_cotiz].iloc[0]
 
-                        action_cotiz = st.radio("Action sur ce paiement", ["Modifier", "Supprimer définitivement"], horizontal=True, key="radio_act_cotiz")
+                        action_cotiz = st.radio("Action", ["Modifier", "Supprimer définitivement"], horizontal=True, key="radio_act_cotiz")
 
                         if action_cotiz == "Modifier":
                             with st.form("form_modif_cotiz"):
@@ -1204,13 +1064,13 @@ else:
                                         ws_cotiz.update_cell(row_idx, 8, nouveau_statut)
                                         ws_cotiz.update_cell(row_idx, 9, nouveau_comm)
                                         st.cache_data.clear()
-                                        st.session_state["toast_msg"] = f"✅ Paiement {choix_id_cotiz} mis à jour avec succès !"
+                                        st.session_state["toast_msg"] = f"✅ Paiement {choix_id_cotiz} mis à jour !"
                                         st.rerun()
                                     except Exception as e:
                                         st.error(f"❌ Erreur : {e}")
                         else:
-                            conf_sup_c = st.checkbox("Je confirme la suppression de ce paiement", key="chk_sup_cot")
-                            if st.button("🗑️ Supprimer définitivement ce paiement", type="primary"):
+                            conf_sup_c = st.checkbox("Je confirme la suppression", key="chk_sup_cot")
+                            if st.button("🗑️ Supprimer ce paiement", type="primary"):
                                 if conf_sup_c:
                                     try:
                                         ws_cotiz = spreadsheet.worksheet("Cotisations")
@@ -1222,25 +1082,24 @@ else:
                                     except Exception as e:
                                         st.error(f"❌ Erreur : {e}")
                                 else:
-                                    st.error("⚠️ Veuillez cocher la case de confirmation.")
+                                    st.error("⚠️ Cochez la case de confirmation.")
                     else:
-                        st.warning("⚠️ Aucun paiement ne correspond à votre recherche.")
+                        st.warning("⚠️ Aucun paiement trouvé.")
             else:
-                st.info("Aucun paiement de cotisation enregistré pour le moment.")
+                st.info("Aucun paiement enregistré.")
 
     # ==========================================
-    # 8. ARTICLES & GOODIES D'ÉVÉNEMENTS
+    # 8. ARTICLES & GOODIES
     # ==========================================
     elif menu == "🛍️ Articles & Goodies":
         st.subheader("🛍️ Gestion des Articles, T-shirts et Goodies d'Événements")
-        tab_art_vente, tab_art_suivi, tab_art_modif = st.tabs(["➕ Enregistrer une Vente / Attribution", "📊 Suivi & Inventaire", "✏️ Modifier / Supprimer un Article"])
+        tab_art_vente, tab_art_suivi, tab_art_modif = st.tabs(["➕ Enregistrer une Vente", "📊 Suivi & Inventaire", "✏️ Modifier / Supprimer un Article"])
 
         with tab_art_vente:
             if not df.empty:
                 with st.container(border=True):
                     with st.form("form_article_event", clear_on_submit=True):
-                        st.markdown("##### 🏷️ Attribuer un article ou goodies à un membre")
-                        recherche_art_vente = st.text_input("🔍 Filtrer le membre bénéficiaire...")
+                        recherche_art_vente = st.text_input("🔍 Filtrer le membre...")
 
                         if recherche_art_vente:
                             mask_av = df.astype(str).apply(lambda row: row.str.contains(recherche_art_vente, case=False, na=False).any(), axis=1)
@@ -1250,9 +1109,9 @@ else:
 
                         if not df_art_s_f.empty:
                             liste_membres_art = df_art_s_f[col_membre].astype(str).tolist()
-                            membre_a = st.selectbox("Membre bénéficiaire / acheteur", liste_membres_art, format_func=lambda m: f"{m} - {df_art_s_f[df_art_s_f[col_membre].astype(str) == m][col_enfant].values[0]}")
+                            membre_a = st.selectbox("Membre acheteur", liste_membres_art, format_func=lambda m: f"{m} - {df_art_s_f[df_art_s_f[col_membre].astype(str) == m][col_enfant].values[0]}")
 
-                            nom_article = st.text_input("Nom de l'article / Goodies (Ex: T-shirt Gala 2026, Casquette, Badge...)").upper()
+                            nom_article = st.text_input("Nom de l'article / Goodies").upper()
                             quantite_art = st.number_input("Quantité", min_value=1, value=1, step=1)
                             montant_total = st.number_input("Montant Total (FCFA)", min_value=0, value=3000, step=500)
 
@@ -1273,40 +1132,29 @@ else:
                                         ligne_art = [id_art, date_a, membre_a, nom_e, nom_p, nom_article, int(quantite_art), int(montant_total), statut_reglement, statut_livraison, user_nom]
                                         ws_art.append_row(ligne_art, value_input_option="USER_ENTERED")
                                         st.cache_data.clear()
-                                        st.session_state["toast_msg"] = f"✅ Article '{nom_article}' enregistré avec succès !"
+                                        st.session_state["toast_msg"] = f"✅ Article '{nom_article}' enregistré !"
                                         st.rerun()
                                     except Exception as e:
                                         st.error(f"❌ Erreur : {e}")
                                 else:
-                                    st.error("⚠️ Veuillez saisir le nom de l'article.")
+                                    st.error("⚠️ Saisissez le nom de l'article.")
                         else:
-                            st.warning("⚠️ Aucun membre trouvé pour ce filtre.")
+                            st.warning("⚠️ Aucun membre trouvé.")
             else:
                 st.warning("⚠️ Aucun membre enregistré.")
 
         with tab_art_suivi:
-            st.markdown("### 📋 Suivi des Ventes & Goodies")
+            st.markdown("### 📋 Suivi des Ventes")
             if not df_articles.empty and "ID_Art" in df_articles.columns:
                 st.dataframe(df_articles, use_container_width=True)
-                output_a = BytesIO()
-                with pd.ExcelWriter(output_a, engine="xlsxwriter") as writer:
-                    df_articles.to_excel(writer, index=False, sheet_name="Articles")
-                excel_a_data = output_a.getvalue()
-
-                st.download_button(
-                    label="📥 Exporter le suivi des articles (.xlsx)",
-                    data=excel_a_data,
-                    file_name="Rapport_Articles_Evenements.xlsx",
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                )
             else:
-                st.info("Aucun article enregistré pour le moment.")
+                st.info("Aucun article enregistré.")
 
         with tab_art_modif:
-            st.markdown("### ✏️ Modifier ou Supprimer un Article / Goodies")
+            st.markdown("### ✏️ Modifier ou Supprimer un Article")
             if not df_articles.empty and "ID_Art" in df_articles.columns:
                 with st.container(border=True):
-                    recherche_art_mod = st.text_input("🔍 Filtrer les articles (Nom, Enfant, ID...)", key="search_filtre_art_mod")
+                    recherche_art_mod = st.text_input("🔍 Filtrer les articles...", key="search_filtre_art_mod")
                     if recherche_art_mod:
                         mask_am = df_articles.astype(str).apply(lambda row: row.str.contains(recherche_art_mod, case=False, na=False).any(), axis=1)
                         df_articles_f = df_articles[mask_am]
@@ -1314,20 +1162,20 @@ else:
                         df_articles_f = df_articles
 
                     if not df_articles_f.empty:
-                        choix_id_art = st.selectbox("Sélectionner l'article à modifier/supprimer", df_articles_f["ID_Art"].astype(str).tolist(), format_func=lambda a: f"{a} - {df_articles_f[df_articles_f['ID_Art'].astype(str) == a]['Nom_Enfant'].values[0]} ({df_articles_f[df_articles_f['ID_Art'].astype(str) == a]['Nom_Article'].values[0]})")
+                        choix_id_art = st.selectbox("Sélectionner l'article", df_articles_f["ID_Art"].astype(str).tolist(), format_func=lambda a: f"{a} - {df_articles_f[df_articles_f['ID_Art'].astype(str) == a]['Nom_Article'].values[0]}")
                         art_ligne = df_articles[df_articles["ID_Art"].astype(str) == choix_id_art].iloc[0]
 
-                        action_art = st.radio("Action sur cet article", ["Modifier", "Supprimer définitivement"], horizontal=True, key="radio_act_art")
+                        action_art = st.radio("Action", ["Modifier", "Supprimer définitivement"], horizontal=True, key="radio_act_art")
 
                         if action_art == "Modifier":
                             with st.form("form_modif_art"):
                                 nouveau_nom_art = st.text_input("Nom de l'article", value=str(art_ligne.get("Nom_Article", ""))).upper()
                                 nouvelle_qte = st.number_input("Quantité", min_value=1, value=safe_int_convert(art_ligne.get("Quantite", 1), default=1))
                                 nouveau_montant_art = st.number_input("Montant Total (FCFA)", min_value=0, value=safe_int_convert(art_ligne.get("Montant_Total", 0)))
-                                nouveau_stat_reg = st.selectbox("Statut du paiement", ["Payé", "Avance", "Impayé"], index=["Payé", "Avance", "Impayé"].index(str(art_ligne.get("Statut_Reglement", "Payé"))) if str(art_ligne.get("Statut_Reglement", "Payé")) in ["Payé", "Avance", "Impayé"] else 0)
-                                nouveau_stat_liv = st.selectbox("Statut de remise", ["Livré / Remis", "En attente de retrait"], index=0 if str(art_ligne.get("Statut_Livraison", "")).startswith("Livré") else 1)
+                                nouveau_stat_reg = st.selectbox("Statut paiement", ["Payé", "Avance", "Impayé"])
+                                nouveau_stat_liv = st.selectbox("Statut remise", ["Livré / Remis", "En attente de retrait"])
 
-                                if st.form_submit_button("💾 Mettre à jour l'article"):
+                                if st.form_submit_button("💾 Mettre à jour"):
                                     try:
                                         ws_art = spreadsheet.worksheet("Articles_Evenements")
                                         cell = ws_art.find(str(choix_id_art))
@@ -1338,13 +1186,13 @@ else:
                                         ws_art.update_cell(row_idx, 9, nouveau_stat_reg)
                                         ws_art.update_cell(row_idx, 10, nouveau_stat_liv)
                                         st.cache_data.clear()
-                                        st.session_state["toast_msg"] = f"✅ Article {choix_id_art} mis à jour avec succès !"
+                                        st.session_state["toast_msg"] = f"✅ Article {choix_id_art} mis à jour !"
                                         st.rerun()
                                     except Exception as e:
                                         st.error(f"❌ Erreur : {e}")
                         else:
-                            conf_sup_a = st.checkbox("Je confirme la suppression de cet article", key="chk_sup_art")
-                            if st.button("🗑️ Supprimer définitivement cet article", type="primary"):
+                            conf_sup_a = st.checkbox("Je confirme la suppression", key="chk_sup_art")
+                            if st.button("🗑️ Supprimer l'article", type="primary"):
                                 if conf_sup_a:
                                     try:
                                         ws_art = spreadsheet.worksheet("Articles_Evenements")
@@ -1356,11 +1204,11 @@ else:
                                     except Exception as e:
                                         st.error(f"❌ Erreur : {e}")
                                 else:
-                                    st.error("⚠️ Veuillez cocher la case de confirmation.")
+                                    st.error("⚠️ Cochez la case de confirmation.")
                     else:
-                        st.warning("⚠️ Aucun article ne correspond à votre recherche.")
+                        st.warning("⚠️ Aucun article trouvé.")
             else:
-                st.info("Aucun article enregistré pour le moment.")
+                st.info("Aucun article enregistré.")
 
     if "toast_msg" in st.session_state:
         st.toast(st.session_state["toast_msg"], icon="🎉")
