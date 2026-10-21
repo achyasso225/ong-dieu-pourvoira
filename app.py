@@ -16,20 +16,31 @@ st.set_page_config(
     layout="wide",
 )
 
-# --- INJECTION CSS STRICT - PROPOSITION 3 (LUMINEUX, CHALEUREUX & LISIBLE) ---
+# --- CHARGEMENT DE L'IMAGE DE FOND EN BASE64 ---
+def get_image_base64(path):
+    if os.path.exists(path):
+        with open(path, "rb") as f:
+            return f"data:image/png;base64,{base64.b64encode(f.read()).decode()}"
+    return None
+
+# Cherche le fichier sous l'un des deux noms possibles
+banner_path = "banner_connection.png" if os.path.exists("banner_connection.png") else "banner_connexion.png"
+banner_b64 = get_image_base64(banner_path)
+
+# --- INJECTION CSS STRICT - PROPOSITION 3 ---
 st.markdown(
     """
     <style>
-    /* 1. FOND DE PAGE GLOBAL */
+    /* 1. FOND DE PAGE GLOBAL BEIGE CHAUD */
     .stApp {
-        background-color: #f7f3ec !important;
+        background-color: #f7f3e9 !important;
         color: #2c3e50 !important;
     }
     
-    /* 2. OVERRIDE STRICT DES INPUTS STREAMLIT (Correction des boîtes noires) */
+    /* 2. STYLE DES INPUTS (Saisie en Blanc avec Bordure Douce) */
     div[data-baseweb="input"] {
         background-color: #ffffff !important;
-        border: 1px solid #dcd6cd !important;
+        border: 1px solid #e0d8cc !important;
         border-radius: 8px !important;
     }
     div[data-baseweb="input"] input {
@@ -38,90 +49,81 @@ st.markdown(
         font-weight: 500 !important;
     }
     div[data-baseweb="input"]:focus-within {
-        border-color: #28a745 !important;
-        box-shadow: 0 0 0 1px #28a745 !important;
+        border-color: #2e8b42 !important;
+        box-shadow: 0 0 0 1px #2e8b42 !important;
     }
 
-    /* LABELS DES CHAMPS DE SAISIE */
     label[data-testid="stWidgetLabel"] {
         color: #2c3e50 !important;
         font-weight: 700 !important;
         font-size: 14px !important;
     }
 
-    /* 3. BOUTONS STYLISÉS (PROPOSITION 3) */
+    /* 3. BOUTON SE CONNECTER (VERT EXACT PROPOSITION 3) */
     div.stButton > button, div[data-testid="stFormSubmitButton"] > button {
-        background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%) !important;
+        background-color: #2e8b42 !important;
         color: #ffffff !important;
         font-weight: bold !important;
         font-size: 16px !important;
-        border-radius: 10px !important;
+        border-radius: 8px !important;
         border: none !important;
         padding: 10px 24px !important;
-        box-shadow: 0 4px 12px rgba(40,167,69,0.3) !important;
+        box-shadow: 0 3px 8px rgba(46,139,66,0.2) !important;
         width: 100% !important;
+        transition: all 0.2s ease !important;
     }
     div.stButton > button:hover, div[data-testid="stFormSubmitButton"] > button:hover {
-        background: linear-gradient(135deg, #1e7e34 0%, #155724 100%) !important;
+        background-color: #236f33 !important;
         color: #ffffff !important;
     }
 
-    /* 4. CARTE DE CONNEXION PRINCIPALE */
-    .prop3-card-container {
-        max-width: 450px;
-        margin: 20px auto;
-        background: #fffdf9;
-        border-radius: 20px;
-        box-shadow: 0 12px 30px rgba(0,0,0,0.08);
-        border: 1px solid #eae3d5;
+    /* 4. CARTE CENTRALE DESIGN PROPOSITION 3 */
+    .prop3-card-wrapper {
+        max-width: 420px;
+        margin: 10px auto;
+        background-color: #fdf8f0;
+        border-radius: 16px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.08);
         overflow: hidden;
+        border: 1px solid #e8e0d0;
     }
 
-    .prop3-illustration-header {
-        background: linear-gradient(180deg, #238b38 0%, #2e9f43 60%, #fffdf9 100%);
-        padding: 25px 20px 10px 20px;
+    .prop3-card-header {
+        background-color: #2e8b42;
+        padding: 20px 15px;
         text-align: center;
-    }
-
-    .prop3-brand-title {
-        color: #1a1a1a;
-        font-size: 22px;
-        font-weight: 900;
-        text-align: center;
-        letter-spacing: 0.8px;
-        margin-top: 10px;
-        margin-bottom: 15px;
+        color: white;
     }
 
     .prop3-footer-coords {
-        background-color: #fcf8f2;
-        padding: 15px;
-        border-top: 1px dashed #e2dacd;
         text-align: center;
+        padding-top: 15px;
+        margin-top: 15px;
+        border-top: 1px solid #e6dec8;
         font-size: 12px;
-        color: #555;
+        color: #555555;
         line-height: 20px;
     }
 
-    /* 5. STYLES BARRE LATÉRALE & COMPOSANTS DASHBOARD */
+    /* 5. STYLES BARRE LATÉRALE & INTERFACE CONNECTÉE */
     button[aria-label*="sidebar"], [data-testid="stSidebarCollapseButton"] button {
         background-color: #ffffff !important;
-        border: 2px solid #28a745 !important;
+        border: 2px solid #2e8b42 !important;
         border-radius: 8px !important;
     }
 
     .sidebar-menu-title {
         background-color: #ffffff;
-        border: 1px solid #28a745;
+        border: 1px solid #2e8b42;
         border-radius: 8px;
         padding: 10px;
         text-align: center;
-        color: #1e7e34;
+        color: #236f33;
         font-weight: bold;
     }
 
     .hero-header {
-        background: linear-gradient(135deg, #1e7e34 0%, #28a745 100%);
+        background: linear-gradient(135deg, #236f33 0%, #2e8b42 100%);
         border-radius: 16px;
         padding: 20px;
         color: white;
@@ -130,11 +132,11 @@ st.markdown(
     }
 
     div[data-testid="stSidebar"] {
-        background-color: #f2ece1 !important;
+        background-color: #efe8da !important;
     }
 
     .nav-btn-active button {
-        background: #28a745 !important;
+        background-color: #2e8b42 !important;
         color: white !important;
     }
     .nav-btn-inactive button {
@@ -201,29 +203,24 @@ def charger_donnees_depuis_sheets():
     client = init_connection()
     spreadsheet = client.open("Base_de_donnee_ONG_Dieu_Pourvoira")
 
-    # 1. Membres
     sheet_membres = spreadsheet.sheet1
     data = sheet_membres.get_all_records(head=9)
 
-    # 2. Utilisateurs
     try:
         df_users = pd.DataFrame(spreadsheet.worksheet("Utilisateurs").get_all_records())
     except Exception:
         df_users = pd.DataFrame()
 
-    # 3. Stock des Dons
     try:
         df_stock = pd.DataFrame(spreadsheet.worksheet("Dons_Stock").get_all_records())
     except Exception:
         df_stock = pd.DataFrame()
 
-    # 4. Remise de Dons
     try:
         df_distrib = pd.DataFrame(spreadsheet.worksheet("Remise de Dons").get_all_records())
     except Exception:
         df_distrib = pd.DataFrame()
 
-    # 5. Cotisations
     try:
         ws_cotiz = spreadsheet.worksheet("Cotisations")
         val_cotiz = ws_cotiz.get_all_values()
@@ -234,7 +231,6 @@ def charger_donnees_depuis_sheets():
     except Exception:
         df_cotiz = pd.DataFrame()
 
-    # 6. Articles & Goodies Événements
     try:
         ws_art = spreadsheet.worksheet("Articles_Evenements")
         val_art = ws_art.get_all_values()
@@ -335,45 +331,35 @@ if "current_page" not in st.session_state:
     st.session_state["current_page"] = "📊 Tableau de Bord"
 
 # ==========================================
-# --- ÉCRAN DE CONNEXION (PROPOSITION 3 FIDÈLE) ---
+# --- ÉCRAN DE CONNEXION (PROPOSITION 3 EXACTE) ---
 # ==========================================
 if not st.session_state["user_connected"]:
-    col_center1, col_center2, col_center3 = st.columns([1, 2.2, 1])
-    
-    with col_center2:
-        # ILLUSTRATION SVG + HEADER PROPOSITION 3
-        svg_illustration = """
-        <div style="text-align: center; background: linear-gradient(180deg, #1e7e34 0%, #28a745 70%, #fffdf9 100%); border-radius: 20px 20px 0 0; padding: 25px 15px 10px 15px;">
-            <div style="color: white; font-weight: 800; font-size: 16px; margin-bottom: 10px; letter-spacing: 1px;">ONG DIEU POURVOIRA</div>
-            <svg width="220" height="130" viewBox="0 0 220 130" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <!-- Cœur d'espoir lumineux -->
-                <path d="M110 95 C60 55, 50 30, 80 18 C95 12, 105 22, 110 30 C115 22, 125 12, 140 18 C170 30, 160 55, 110 95 Z" stroke="#ffe082" stroke-width="2.5" fill="none" opacity="0.85"/>
-                <!-- Mains protectrices supérieures -->
-                <path d="M65 35 C85 25, 105 28, 110 32" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
-                <path d="M155 35 C135 25, 115 28, 110 32" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
-                <!-- Silhouette Enfants stylisés -->
-                <circle cx="80" cy="72" r="11" fill="#4a3b32"/>
-                <path d="M68 95 C68 83, 92 83, 92 95" fill="#4a3b32"/>
-                
-                <circle cx="110" cy="78" r="9" fill="#4a3b32"/>
-                <path d="M100 95 C100 86, 120 86, 120 95" fill="#4a3b32"/>
-                
-                <circle cx="140" cy="70" r="12" fill="#4a3b32"/>
-                <path d="M126 95 C126 81, 154 81, 154 95" fill="#4a3b32"/>
-            </svg>
-            <div style="color: #2c3e50; font-weight: 800; font-size: 18px; margin-top: 10px;">ONG DIEU POURVOIRA</div>
-            <div style="color: #555; font-size: 12px; margin-top: 2px;">Ensemble aidons les enfants atteints de Paralysie cérébrale</div>
-        </div>
-        """
-        st.markdown(svg_illustration, unsafe_allow_html=True)
+    col_c1, col_c2, col_c3 = st.columns([1, 1.8, 1])
 
-        # FORMULAIRE DE CONNEXION ÉPURÉ
-        with st.container():
+    with col_c2:
+        # En-tête avec l'image de la bannière (banner_connection.png)
+        if banner_b64:
+            st.markdown(f'''
+                <div style="text-align: center; border-radius: 16px 16px 0 0; overflow: hidden; margin-bottom: -10px;">
+                    <img src="{banner_b64}" style="width: 100%; height: auto; display: block;">
+                </div>
+            ''', unsafe_allow_html=True)
+        else:
+            st.markdown('''
+                <div class="prop3-card-header">
+                    <h2 style="margin:0; font-weight:800; font-size:22px;">ONG DIEU POURVOIRA</h2>
+                    <p style="margin:4px 0 0 0; font-size:12px; opacity:0.9;">Ensemble aidons les enfants atteints de Paralysie cérébrale</p>
+                </div>
+            ''', unsafe_allow_html=True)
+
+        with st.container(border=True):
+            st.markdown("<h3 style='text-align:center; font-weight:800; color:#2c3e50; font-size:18px; margin-bottom:15px;'>ONG DIEU POURVOIRA</h3>", unsafe_allow_html=True)
+            
             with st.form("form_connexion_prop3"):
-                identifiant = st.text_input("Identifiant utilisateur", value="", placeholder="Votre identifiant")
+                identifiant = st.text_input("Identifiant utilisateur", placeholder="Ex: asso")
                 mot_de_passe = st.text_input("Mot de passe", type="password", placeholder="Votre mot de passe")
                 
-                st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+                st.markdown("<br>", unsafe_allow_html=True)
                 btn_connexion = st.form_submit_button("Se connecter")
 
                 if btn_connexion:
@@ -394,29 +380,29 @@ if not st.session_state["user_connected"]:
                         else:
                             st.error("❌ Identifiant ou mot de passe incorrect.")
 
-        # COORDONTÉES EN BAS DE CARTE
-        st.markdown(
-            """
-            <div class="prop3-footer-coords">
-                <strong>Coordonnées</strong><br>
-                📞 +225 77 71 04 41 8 / 05 86 99 73 27 &nbsp;|&nbsp; ✉️ dieupourvoira187@gmail.com<br>
-                📍 08 BP 2945 ABIDJAN 08
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+            # COORDONNÉES JUSTE EN BAS DE SE CONNECTER
+            st.markdown(
+                """
+                <div class="prop3-footer-coords">
+                    📌 <strong>Coordonnées de l'ONG</strong><br>
+                    📞 <strong>Téléphone :</strong> +225 77 71 04 41 8 / 05 86 99 73 27<br>
+                    ✉️ <strong>Email :</strong> dieupourvoira187@gmail.com<br>
+                    📍 <strong>Adresse :</strong> 08 BP 2945 ABIDJAN 08
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
 
 # ==========================================
 # --- APPLICATION PRINCIPALE CONNECTÉE ---
 # ==========================================
 else:
-    # BANNIÈRE ESPACE CONNECTÉ
     st.markdown(
         """
         <div class="hero-header">
-            <h1>ONG DIEU POURVOIRA</h1>
-            <p><strong>Ensemble aidons les enfants atteints de Paralysie cérébrale</strong></p>
-            <div style="font-size: 11px; margin-top: 5px; opacity: 0.9;">
+            <h1 style="margin:0; font-size:24px; font-weight:800;">ONG DIEU POURVOIRA</h1>
+            <p style="margin:4px 0 0 0; font-size:13px;">Ensemble aidons les enfants atteints de Paralysie cérébrale</p>
+            <div style="font-size: 11px; margin-top: 8px; opacity: 0.9;">
                 📞 +225 77 71 04 41 8 / 05 86 99 73 27 &nbsp;|&nbsp; ✉️ dieupourvoira187@gmail.com &nbsp;|&nbsp; 📍 08 BP 2945 ABIDJAN 08
             </div>
         </div>
@@ -439,7 +425,7 @@ else:
     is_compta = "COMPTA" in user_zone.upper() or "COMPTABILITÉ" in user_zone.upper()
     is_dsi = "DSI" in user_zone.upper() or "VUE GLOBALE" in user_zone.upper()
 
-    # --- BARRE LATÉRALE - MENU ---
+    # --- BARRE LATÉRALE ---
     st.sidebar.markdown('<div class="sidebar-menu-title">📂 MENU PRINCIPAL</div>', unsafe_allow_html=True)
     st.sidebar.markdown(f"### 👤 **{user_nom}**")
     st.sidebar.caption(f"📌 **Espace : {user_zone}**")
@@ -478,7 +464,6 @@ else:
         st.session_state["user_info"] = None
         st.rerun()
 
-    # Filtrage géographique
     if "Zone Sud" in user_zone or "Sud" in user_zone:
         df_f = df[df["Zone_Geographique"] == "Zone Sud"]
         choix_zone_label = "📍 Zone Sud"
@@ -718,8 +703,6 @@ else:
                     df_ok = pd.DataFrame()
 
                 if not df_ok.empty:
-                    modele_carte = st.radio("🎨 Choisissez le modèle de carte officiel :", ["Modèle 1 : Classique Officiel avec Logo (Vert, Blanc & Orange)", "Modèle 2 : Moderne & Épuré avec En-tête Logo (Design épuré)"], horizontal=False)
-
                     recherche_carte = st.text_input("🔍 Filtrer l'enfant pour la carte...", key="search_filtre_carte")
                     if recherche_carte:
                         mask_c = df_ok.astype(str).apply(lambda row: row.str.contains(recherche_carte, case=False, na=False).any(), axis=1)
@@ -741,14 +724,6 @@ else:
                             else:
                                 img_src = "https://via.placeholder.com/130x150/e9ecef/6c757d?text=PHOTO"
 
-                            logo_path = "logo.png"
-                            if os.path.exists(logo_path):
-                                with open(logo_path, "rb") as f_logo:
-                                    logo_b64 = base64.b64encode(f_logo.read()).decode()
-                                logo_src = f"data:image/png;base64,{logo_b64}"
-                            else:
-                                logo_src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="%231e7e34"/><path d="M50 25 L60 45 L80 45 L65 60 L70 80 L50 68 L30 80 L35 60 L20 45 L40 45 Z" fill="%23ff7f00"/></svg>'
-
                             nom_complet = str(row_m.get(col_enfant, "")).upper().split(" ", 1)
                             nom_e = nom_complet[0]
                             prenom_e = nom_complet[1] if len(nom_complet) > 1 else ""
@@ -762,22 +737,22 @@ else:
                             <html>
                             <head><meta charset="utf-8"></head>
                             <body style="text-align: center;">
-                                <div style="width: 600px; height: 380px; background: #ffffff; border-radius: 16px; border: 3px solid #1e7e34; position: relative; margin: auto; text-align: left; overflow: hidden;">
-                                    <div style="background: #1e7e34; color: white; padding: 12px; text-align: center; font-weight: bold; font-size: 18px;">ONG DIEU POURVOIRA - CARTE MEMBRE</div>
-                                    <div style="position: absolute; left: 30px; top: 75px; width: 130px; height: 150px; border: 2px solid #1e7e34; border-radius: 8px; overflow: hidden;">
+                                <div style="width: 600px; height: 380px; background: #ffffff; border-radius: 16px; border: 3px solid #2e8b42; position: relative; margin: auto; text-align: left; overflow: hidden;">
+                                    <div style="background: #2e8b42; color: white; padding: 12px; text-align: center; font-weight: bold; font-size: 18px;">ONG DIEU POURVOIRA - CARTE MEMBRE</div>
+                                    <div style="position: absolute; left: 30px; top: 75px; width: 130px; height: 150px; border: 2px solid #2e8b42; border-radius: 8px; overflow: hidden;">
                                         <img src="{img_src}" style="width: 100%; height: 100%; object-fit: cover;">
                                     </div>
                                     <div style="position: absolute; left: 180px; top: 75px; font-size: 14px; line-height: 26px; color: #222;">
                                         <div><strong>Nom :</strong> {nom_e}</div>
                                         <div><strong>Prénom :</strong> {prenom_e}</div>
                                         <div><strong>Parent :</strong> {nom_p}</div>
-                                        <div><strong>N° Membre :</strong> <span style="color: #1e7e34; font-weight: bold;">{num_m}</span></div>
+                                        <div><strong>N° Membre :</strong> <span style="color: #2e8b42; font-weight: bold;">{num_m}</span></div>
                                         <div><strong>Date :</strong> {date_adh}</div>
                                         <div><strong>Contact :</strong> {tel_p}</div>
                                     </div>
                                 </div>
                                 <br>
-                                <button onclick="window.print()" style="background: #1e7e34; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer;">🖨️ Imprimer la carte</button>
+                                <button onclick="window.print()" style="background: #2e8b42; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer;">🖨️ Imprimer la carte</button>
                             </body>
                             </html>
                             """
