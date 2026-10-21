@@ -205,7 +205,7 @@ def safe_int_convert(val, default=0):
         return int(match.group(1))
     return default
 
-# --- CONNEXION ET CACHE GOOGLE SHEETS (Anti-Quota 429) ---
+# --- CONNEXION ET CACHE GOOGLE SHEETS (Anti-Quota 429 étendu à 120s) ---
 @st.cache_resource
 def init_connection():
     scope = [
@@ -216,7 +216,7 @@ def init_connection():
     creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
     return gspread.authorize(creds)
 
-@st.cache_data(ttl=30)
+@st.cache_data(ttl=120)
 def charger_donnees_depuis_sheets():
     client = init_connection()
     spreadsheet = client.open("Base_de_donnee_ONG_Dieu_Pourvoira")
@@ -243,7 +243,7 @@ def charger_donnees_depuis_sheets():
     except Exception:
         df_distrib = pd.DataFrame()
 
-    # 5. Cotisations (Avec vérification automatique des en-têtes)
+    # 5. Cotisations
     try:
         ws_cotiz = spreadsheet.worksheet("Cotisations")
         val_cotiz = ws_cotiz.get_all_values()
@@ -254,7 +254,7 @@ def charger_donnees_depuis_sheets():
     except Exception:
         df_cotiz = pd.DataFrame()
 
-    # 6. Articles & Goodies Événements (Avec vérification automatique des en-têtes)
+    # 6. Articles & Goodies Événements
     try:
         ws_art = spreadsheet.worksheet("Articles_Evenements")
         val_art = ws_art.get_all_values()
@@ -296,7 +296,7 @@ try:
         df = df[df["Numéro du membre"].astype(str).str.startswith("ONG DP")]
 
 except Exception as e:
-    st.error(f"⚠️ Erreur de connexion à Google Sheets : {e}")
+    st.error(f"⚠️ Erreur de connexion à Google Sheets (Quota dépassé ou réseau) : {e}")
     df = pd.DataFrame()
     df_users = pd.DataFrame()
     df_stock = pd.DataFrame()
@@ -553,85 +553,69 @@ else:
         st.subheader(f"✏️ Modifier ou Supprimer - {choix_zone_label}")
 
         if not df_f.empty and col_membre in df_f.columns:
-            if "search_query_edit" not in st.session_state:
-                st.session_state["search_query_edit"] = ""
+            # Sélecteur direct de tous les membres disponibles pour éviter tout blocage de filtrage
+            liste_membres_complets = df_f[col_membre].astype(str).tolist()
+            options_select = ["-- Sélectionnez un membre dans la liste --"] + liste_membres_complets
 
-            recherche_edit = st.text_input("🔍 Rechercher un membre (Nom, Matricule, Parent...)", value=st.session_state["search_query_edit"])
-            st.session_state["search_query_edit"] = recherche_edit
+            choix_membre = st.selectbox(
+                "🔍 Sélectionner directement le membre à modifier ou supprimer", 
+                options_select, 
+                format_func=lambda m: m if m == "-- Sélectionnez un membre dans la liste --" else f"{m} - {df_f[df_f[col_membre].astype(str) == m][col_enfant].values[0]}" if col_enfant in df_f.columns else m
+            )
 
-            if recherche_edit:
-                mask_edit = df_f.astype(str).apply(lambda row: row.str.contains(recherche_edit, case=False, na=False).any(), axis=1)
-                df_edit_filtered = df_f[mask_edit]
+            if choix_membre != "-- Sélectionnez un membre dans la liste --":
+                membre_actuel = df[df[col_membre].astype(str) == choix_membre].iloc[0]
+
+                st.markdown("---")
+                choix_action = st.radio("Action à effectuer", ["Modifier les informations", "Supprimer le membre"], horizontal=True)
+
+                with st.container(border=True):
+                    if choix_action == "Modifier les informations":
+                        with st.form("form_modification", clear_on_submit=True):
+                            m_nom_enfant = st.text_input("Nom et Prénom", value=str(membre_actuel.get(col_enfant, ""))).upper()
+                            m_date_nais = st.text_input("Date de naissance", value=str(membre_actuel.get(col_date, "")))
+                            val_sexe = str(membre_actuel.get(col_sexe, "M")).upper()
+                            m_sexe = st.selectbox("Sexe", ["M", "F"], index=0 if val_sexe == "M" else 1)
+                            m_ville = st.text_input("Ville", value=str(membre_actuel.get(col_ville, ""))).upper()
+                            m_nom_parent = st.text_input("Parent", value=str(membre_actuel.get(col_parent, ""))).upper()
+                            m_tel = st.text_input("Téléphone", value=str(membre_actuel.get(col_tel, "")))
+                            val_adh = str(membre_actuel.get(col_adh, "OK")).upper()
+                            m_adhesion = st.selectbox("Adhésion", ["OK", "En attente"], index=0 if "OK" in val_adh else 1)
+
+                            btn_modifier = st.form_submit_button("💾 Mettre à jour")
+                            if btn_modifier:
+                                try:
+                                    cell = sheet.find(str(choix_membre))
+                                    row_idx = cell.row
+                                    sheet.update_cell(row_idx, 2, m_nom_enfant)
+                                    sheet.update_cell(row_idx, 3, m_date_nais)
+                                    sheet.update_cell(row_idx, 4, m_sexe)
+                                    sheet.update_cell(row_idx, 5, m_ville)
+                                    sheet.update_cell(row_idx, 6, m_nom_parent)
+                                    sheet.update_cell(row_idx, 7, str(m_tel))
+                                    sheet.update_cell(row_idx, 8, m_adhesion)
+                                    st.cache_data.clear()
+                                    st.session_state["toast_msg"] = f"✅ Membre {choix_membre} mis à jour !"
+                                    st.rerun()
+                                except Exception as e:
+                                    st.error(f"❌ Erreur : {e}")
+                    else:
+                        st.warning(f"⚠️ Suppression définitive du membre {choix_membre}")
+                        confirmer = st.checkbox("Je confirme la suppression définitive")
+                        if st.button("🗑️ Confirmer la suppression", type="primary"):
+                            if confirmer:
+                                try:
+                                    cell = sheet.find(str(choix_membre))
+                                    sheet.delete_rows(cell.row)
+                                    st.cache_data.clear()
+                                    st.session_state["toast_msg"] = f"✅ Membre {choix_membre} supprimé !"
+                                    st.rerun()
+                                except Exception as e:
+                                    st.error(f"❌ Erreur : {e}")
+                            else:
+                                st.error("⚠️ Cochez la case de confirmation.")
             else:
-                df_edit_filtered = df_f
-
-            if not df_edit_filtered.empty:
-                liste_membres = df_edit_filtered[col_membre].astype(str).tolist()
-                options_select = ["-- Sélectionnez un membre dans la liste --"] + liste_membres
-
-                choix_membre = st.selectbox(
-                    "Sélectionner le membre", 
-                    options_select, 
-                    format_func=lambda m: m if m == "-- Sélectionnez un membre dans la liste --" else f"{m} - {df_edit_filtered[df_edit_filtered[col_membre].astype(str) == m][col_enfant].values[0]}" if col_enfant in df_edit_filtered.columns else m
-                )
-
-                if choix_membre != "-- Sélectionnez un membre dans la liste --":
-                    membre_actuel = df[df[col_membre].astype(str) == choix_membre].iloc[0]
-
-                    st.markdown("---")
-                    choix_action = st.radio("Action à effectuer", ["Modifier les informations", "Supprimer le membre"], horizontal=True)
-
-                    with st.container(border=True):
-                        if choix_action == "Modifier les informations":
-                            with st.form("form_modification", clear_on_submit=True):
-                                m_nom_enfant = st.text_input("Nom et Prénom", value=str(membre_actuel.get(col_enfant, ""))).upper()
-                                m_date_nais = st.text_input("Date de naissance", value=str(membre_actuel.get(col_date, "")))
-                                val_sexe = str(membre_actuel.get(col_sexe, "M")).upper()
-                                m_sexe = st.selectbox("Sexe", ["M", "F"], index=0 if val_sexe == "M" else 1)
-                                m_ville = st.text_input("Ville", value=str(membre_actuel.get(col_ville, ""))).upper()
-                                m_nom_parent = st.text_input("Parent", value=str(membre_actuel.get(col_parent, ""))).upper()
-                                m_tel = st.text_input("Téléphone", value=str(membre_actuel.get(col_tel, "")))
-                                val_adh = str(membre_actuel.get(col_adh, "OK")).upper()
-                                m_adhesion = st.selectbox("Adhésion", ["OK", "En attente"], index=0 if "OK" in val_adh else 1)
-
-                                btn_modifier = st.form_submit_button("💾 Mettre à jour")
-                                if btn_modifier:
-                                    try:
-                                        cell = sheet.find(str(choix_membre))
-                                        row_idx = cell.row
-                                        sheet.update_cell(row_idx, 2, m_nom_enfant)
-                                        sheet.update_cell(row_idx, 3, m_date_nais)
-                                        sheet.update_cell(row_idx, 4, m_sexe)
-                                        sheet.update_cell(row_idx, 5, m_ville)
-                                        sheet.update_cell(row_idx, 6, m_nom_parent)
-                                        sheet.update_cell(row_idx, 7, str(m_tel))
-                                        sheet.update_cell(row_idx, 8, m_adhesion)
-                                        st.session_state["search_query_edit"] = ""
-                                        st.cache_data.clear()
-                                        st.session_state["toast_msg"] = f"✅ Membre {choix_membre} mis à jour !"
-                                        st.rerun()
-                                    except Exception as e:
-                                        st.error(f"❌ Erreur : {e}")
-                        else:
-                            st.warning(f"⚠️ Suppression définitive du membre {choix_membre}")
-                            confirmer = st.checkbox("Je confirme la suppression définitive")
-                            if st.button("🗑️ Confirmer la suppression", type="primary"):
-                                if confirmer:
-                                    try:
-                                        cell = sheet.find(str(choix_membre))
-                                        sheet.delete_rows(cell.row)
-                                        st.session_state["search_query_edit"] = ""
-                                        st.cache_data.clear()
-                                        st.session_state["toast_msg"] = f"✅ Membre {choix_membre} supprimé !"
-                                        st.rerun()
-                                    except Exception as e:
-                                        st.error(f"❌ Erreur : {e}")
-                                else:
-                                    st.error("⚠️ Cochez la case de confirmation.")
-                else:
-                    st.info("ℹ️ Veuillez rechercher et sélectionner un membre dans la liste ci-dessus pour effectuer une modification ou une suppression.")
-            else:
-                st.warning("⚠️ Aucun membre ne correspond à votre recherche.")
+                st.info("ℹ️ Veuillez sélectionner un membre dans la liste déroulante ci-dessus pour afficher ses informations et effectuer une modification ou suppression.")
         else:
             st.info("Aucun membre disponible.")
 
