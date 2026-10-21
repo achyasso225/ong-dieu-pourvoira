@@ -16,7 +16,7 @@ st.set_page_config(
     layout="wide",
 )
 
-# --- CHARGEMENT DE L'IMAGE EN BASE64 ---
+# --- CHARGEMENT DE L'IMAGE DE FOND EN BASE64 ---
 def get_image_base64(path):
     if os.path.exists(path):
         with open(path, "rb") as f:
@@ -26,28 +26,27 @@ def get_image_base64(path):
 banner_path = "banner_connection.png" if os.path.exists("banner_connection.png") else "banner_connexion.png"
 banner_b64 = get_image_base64(banner_path)
 
-# Si l'image n'est pas trouvée, fallback CSS
-bg_card_style = f"background-image: url('{banner_b64}'); background-size: 100% auto; background-repeat: no-repeat; background-position: top center;" if banner_b64 else "background-color: #fdf8f0;"
+bg_card_style = f"background-image: url('{banner_b64}'); background-size: 100% auto; background-repeat: no-repeat; background-position: top center;" if banner_b64 else "background-color: #1e1e1e;"
 
-# --- INJECTION CSS STRICT - CARTE PROPOSITION 3 AVEC FOND DE CARTE ---
+# --- INJECTION CSS STRICT - FOND NOIR / SOMBRE & LISIBILITÉ ---
 st.markdown(
     f"""
     <style>
-    /* 1. FOND DE PAGE GLOBAL BEIGE CHAUD */
+    /* 1. FOND DE PAGE GLOBAL NOIR / SOMBRE */
     .stApp {{
-        background-color: #f5f0e6 !important;
-        color: #2c3e50 !important;
+        background-color: #121212 !important;
+        color: #e0e0e0 !important;
     }}
     
-    /* 2. STYLE DES INPUTS (Champs Blancs, Texte Sombre) */
+    /* 2. STYLE DES INPUTS (Champs sombres avec texte blanc lisible) */
     div[data-baseweb="input"] {{
-        background-color: #ffffff !important;
-        border: 1px solid #dcd6cd !important;
+        background-color: #1e1e1e !important;
+        border: 1px solid #333333 !important;
         border-radius: 8px !important;
     }}
     div[data-baseweb="input"] input {{
-        color: #1a1a1a !important;
-        background-color: #ffffff !important;
+        color: #ffffff !important;
+        background-color: #1e1e1e !important;
         font-weight: 500 !important;
     }}
     div[data-baseweb="input"]:focus-within {{
@@ -55,13 +54,12 @@ st.markdown(
         box-shadow: 0 0 0 1px #2e8b42 !important;
     }}
 
-    label[data-testid="stWidgetLabel"] {{
-        color: #2c3e50 !important;
-        font-weight: 700 !important;
-        font-size: 14px !important;
+    /* LABELS DES CHAMPS DE SAISIE EN CLAIR */
+    label[data-testid="stWidgetLabel"], .stMarkdown p, h1, h2, h3, h4, h5, h6 {{
+        color: #f0f0f0 !important;
     }}
 
-    /* 3. BOUTON SE CONNECTER (VERT PROPOSITION 3) */
+    /* 3. BOUTON SE CONNECTER ET VALIDATION (VERT PROPOSITION 3) */
     div.stButton > button, div[data-testid="stFormSubmitButton"] > button {{
         background-color: #2e8b42 !important;
         color: #ffffff !important;
@@ -70,7 +68,7 @@ st.markdown(
         border-radius: 8px !important;
         border: none !important;
         padding: 10px 24px !important;
-        box-shadow: 0 3px 8px rgba(46,139,66,0.2) !important;
+        box-shadow: 0 3px 8px rgba(46,139,66,0.3) !important;
         width: 100% !important;
         transition: all 0.2s ease !important;
     }}
@@ -79,27 +77,27 @@ st.markdown(
         color: #ffffff !important;
     }}
 
-    /* 4. CONTENEUR AVEC L'IMAGE EN FOND (PROPOSITION 3) */
+    /* 4. CONTENEUR DE CONNEXION AVEC L'IMAGE EN FOND */
     .prop3-login-card {{
         width: 420px;
         max-width: 95%;
         margin: 20px auto;
         border-radius: 20px;
-        box-shadow: 0 12px 32px rgba(0,0,0,0.12);
+        box-shadow: 0 12px 32px rgba(0,0,0,0.5);
         overflow: hidden;
-        border: 1px solid #e2dacb;
+        border: 1px solid #333333;
         {bg_card_style}
-        padding-top: 240px; /* Espace réservé pour l'illustration en haut */
+        padding-top: 240px;
         padding-left: 25px;
         padding-right: 25px;
         padding-bottom: 20px;
-        background-color: #fdf8f0;
+        background-color: #1a1a1a;
     }}
 
     .prop3-title-text {{
         text-align: center;
         font-weight: 800;
-        color: #2c3e50;
+        color: #ffffff;
         font-size: 20px;
         margin-bottom: 15px;
         letter-spacing: 0.5px;
@@ -109,40 +107,41 @@ st.markdown(
         text-align: center;
         padding-top: 15px;
         margin-top: 15px;
-        border-top: 1px dashed #d8cfbe;
+        border-top: 1px dashed #444444;
         font-size: 12px;
-        color: #555555;
+        color: #b0b0b0;
         line-height: 20px;
     }}
 
     /* 5. STYLES BARRE LATÉRALE & INTERFACE CONNECTÉE */
     button[aria-label*="sidebar"], [data-testid="stSidebarCollapseButton"] button {{
-        background-color: #ffffff !important;
+        background-color: #1e1e1e !important;
         border: 2px solid #2e8b42 !important;
         border-radius: 8px !important;
     }}
 
     .sidebar-menu-title {{
-        background-color: #ffffff;
+        background-color: #1e1e1e;
         border: 1px solid #2e8b42;
         border-radius: 8px;
         padding: 10px;
         text-align: center;
-        color: #236f33;
+        color: #4ade80;
         font-weight: bold;
     }}
 
     .hero-header {{
-        background: linear-gradient(135deg, #236f33 0%, #2e8b42 100%);
+        background: linear-gradient(135deg, #1b4332 0%, #2e8b42 100%);
         border-radius: 16px;
         padding: 20px;
         color: white;
         text-align: center;
         margin-bottom: 20px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     }}
 
     div[data-testid="stSidebar"] {{
-        background-color: #efe8da !important;
+        background-color: #18181b !important;
     }}
 
     .nav-btn-active button {{
@@ -150,8 +149,17 @@ st.markdown(
         color: white !important;
     }}
     .nav-btn-inactive button {{
-        background-color: #ffffff !important;
-        color: #2c3e50 !important;
+        background-color: #27272a !important;
+        color: #e4e4e7 !important;
+        border: 1px solid #3f3f46 !important;
+    }}
+    
+    /* Tableaux et conteneurs sombres */
+    [data-testid="stContainer"] {{
+        background-color: #1a1a1a !important;
+        border: 1px solid #2d2d2d !important;
+        border-radius: 10px;
+        padding: 15px;
     }}
     </style>
 """,
@@ -347,7 +355,6 @@ if not st.session_state["user_connected"]:
     col_c1, col_c2, col_c3 = st.columns([1, 1.8, 1])
 
     with col_c2:
-        # Ouverture du conteneur stylisé qui porte l'image banner_connection.png en FOND
         st.markdown('<div class="prop3-login-card">', unsafe_allow_html=True)
         st.markdown('<div class="prop3-title-text">ONG DIEU POURVOIRA</div>', unsafe_allow_html=True)
         
@@ -376,7 +383,6 @@ if not st.session_state["user_connected"]:
                     else:
                         st.error("❌ Identifiant ou mot de passe incorrect.")
 
-        # COORDONNÉES PLACÉES JUSTE EN BAS DE SE CONNECTER
         st.markdown(
             """
             <div class="prop3-footer-coords">
@@ -385,7 +391,7 @@ if not st.session_state["user_connected"]:
                 ✉️ <strong>Email :</strong> dieupourvoira187@gmail.com<br>
                 📍 <strong>Adresse :</strong> 08 BP 2945 ABIDJAN 08
             </div>
-            </div> <!-- Fermeture .prop3-login-card -->
+            </div>
             """,
             unsafe_allow_html=True,
         )
@@ -397,9 +403,9 @@ else:
     st.markdown(
         """
         <div class="hero-header">
-            <h1 style="margin:0; font-size:24px; font-weight:800;">ONG DIEU POURVOIRA</h1>
-            <p style="margin:4px 0 0 0; font-size:13px;">Ensemble aidons les enfants atteints de Paralysie cérébrale</p>
-            <div style="font-size: 11px; margin-top: 8px; opacity: 0.9;">
+            <h1 style="margin:0; font-size:24px; font-weight:800; color: #ffffff;">ONG DIEU POURVOIRA</h1>
+            <p style="margin:4px 0 0 0; font-size:13px; color: #e2e8f0;">Ensemble aidons les enfants atteints de Paralysie cérébrale</p>
+            <div style="font-size: 11px; margin-top: 8px; opacity: 0.9; color: #cbd5e1;">
                 📞 +225 77 71 04 41 8 / 05 86 99 73 27 &nbsp;|&nbsp; ✉️ dieupourvoira187@gmail.com &nbsp;|&nbsp; 📍 08 BP 2945 ABIDJAN 08
             </div>
         </div>
