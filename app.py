@@ -16,24 +16,25 @@ st.set_page_config(
     layout="wide",
 )
 
-# --- INJECTION CSS DESIGN MODERNE & MOBILE-FRIENDLY ---
+# --- INJECTION CSS DESIGN LUMINEUX ET MODERNE (PROPOSITION 3) ---
 st.markdown(
     """
     <style>
-    /* Styles Globaux */
+    /* Styles Globaux - Fond clair et chaleureux */
     .stApp {
-        background-color: #0e1117;
+        background-color: #fdfbf7;
+        color: #2c3e50;
     }
     
     /* Bouton d'ouverture du menu en haut (Hamburger) */
     button[aria-label*="sidebar"], 
     [data-testid="stSidebarCollapseButton"] button,
     [data-testid="collapsedControl"] {
-        background-color: #1a1f2c !important;
+        background-color: #ffffff !important;
         border: 2px solid #28a745 !important;
         border-radius: 8px !important;
         padding: 4px 10px !important;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.5) !important;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.08) !important;
     }
     button[aria-label*="sidebar"] svg, 
     [data-testid="stSidebarCollapseButton"] svg,
@@ -44,28 +45,28 @@ st.markdown(
 
     /* En-tête personnalisé à l'intérieur du menu latéral */
     .sidebar-menu-title {
-        background-color: #1a1f2c;
+        background-color: #ffffff;
         border: 1px solid #28a745;
         border-radius: 8px;
         padding: 10px;
         text-align: center;
-        color: #28a745;
+        color: #1e7e34;
         font-weight: bold;
         font-size: 16px;
         margin-bottom: 15px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
 
     /* Bannière d'en-tête moderne */
     .hero-header {
-        background: linear-gradient(135deg, #1e7e34 0%, #0b4d1d 100%);
+        background: linear-gradient(135deg, #1e7e34 0%, #28a745 100%);
         border-radius: 16px;
         padding: 24px;
         color: white;
         text-align: center;
-        box-shadow: 0 10px 25px rgba(0,128,0,0.2);
+        box-shadow: 0 8px 20px rgba(40,167,69,0.15);
         margin-bottom: 25px;
-        border: 1px solid rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.2);
     }
     .hero-header h1 {
         font-size: 26px !important;
@@ -75,42 +76,72 @@ st.markdown(
         letter-spacing: 0.5px;
     }
     .hero-header p {
-        font-size: 13px !important;
-        color: #e2f0d9 !important;
+        font-size: 14px !important;
+        color: #f1f8f3 !important;
         margin: 0 !important;
     }
     .hero-contact {
-        font-size: 11px !important;
-        color: #b2d8b2 !important;
+        font-size: 12px !important;
+        color: #e2f0d9 !important;
         margin-top: 10px !important;
+    }
+
+    /* Carte de Connexion Style Proposition 3 */
+    .login-card-header {
+        background: linear-gradient(135deg, #1e7e34 0%, #28a745 100%);
+        border-radius: 16px 16px 0 0;
+        padding: 20px;
+        text-align: center;
+        color: white;
+    }
+    .login-card-header h2 {
+        color: #ffffff !important;
+        font-weight: 800;
+        margin: 0;
+        font-size: 22px;
+    }
+    .login-card-header p {
+        color: #e2f0d9 !important;
+        font-size: 12px;
+        margin-top: 4px;
+    }
+
+    .login-footer-coords {
+        text-align: center;
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 1px dashed #dcd6cd;
+        font-size: 12px;
+        color: #555555;
+        line-height: 20px;
     }
 
     /* Cartes de statistiques (KPI Cards) */
     .kpi-card {
-        background-color: #1a1f2c;
+        background-color: #ffffff;
         border-radius: 12px;
         padding: 16px;
         border-left: 5px solid #28a745;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         margin-bottom: 15px;
     }
     .kpi-title {
         font-size: 12px;
-        color: #8e9baf;
+        color: #6c757d;
         text-transform: uppercase;
         font-weight: 600;
     }
     .kpi-value {
         font-size: 28px;
         font-weight: 800;
-        color: #ffffff;
+        color: #1e7e34;
         margin-top: 4px;
     }
 
     /* Styling de la Sidebar */
     div[data-testid="stSidebar"] {
-        background-color: #131722 !important;
-        border-right: 1px solid rgba(255,255,255,0.05);
+        background-color: #f4efe6 !important;
+        border-right: 1px solid rgba(0,0,0,0.05);
     }
 
     .nav-btn-active button {
@@ -118,33 +149,33 @@ st.markdown(
         color: white !important;
         font-weight: bold !important;
         border-radius: 10px !important;
-        box-shadow: 0 4px 12px rgba(40,167,69,0.3) !important;
+        box-shadow: 0 4px 12px rgba(40,167,69,0.2) !important;
         border: none !important;
     }
     
     .nav-btn-inactive button {
-        background-color: #1a1f2c !important;
-        color: #c5d1e0 !important;
+        background-color: #ffffff !important;
+        color: #2c3e50 !important;
         border-radius: 10px !important;
-        border: 1px solid rgba(255,255,255,0.05) !important;
+        border: 1px solid rgba(0,0,0,0.08) !important;
         transition: all 0.3s ease !important;
     }
     
     .nav-btn-inactive button:hover {
-        background-color: #252c3d !important;
-        color: white !important;
+        background-color: #e8f5e9 !important;
+        color: #1e7e34 !important;
         border-color: #28a745 !important;
     }
 
     /* Boîtes d'informations */
     .info-card {
-        background: rgba(255, 127, 0, 0.08);
-        border: 1px solid rgba(255, 127, 0, 0.3);
+        background: #fff8f0;
+        border: 1px solid #ffe0b2;
         border-left: 4px solid #ff7f00;
         border-radius: 8px;
         padding: 12px 16px;
         font-size: 13px;
-        color: #f1f1f1;
+        color: #4a3b32;
         margin-bottom: 20px;
     }
     </style>
@@ -181,20 +212,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- BANNIÈRE D'EN-TÊTE ---
-st.markdown(
-    """
-    <div class="hero-header">
-        <h1>ONG DIEU POURVOIRA</h1>
-        <p><strong>Ensemble aidons les enfants atteints de Paralysie cérébrale</strong></p>
-        <div class="hero-contact">
-            📞 +225 77 71 04 41 8 / 05 86 99 73 27 &nbsp;|&nbsp; ✉️ dieupourvoira187@gmail.com &nbsp;|&nbsp; 📍 08 BP 2945 ABIDJAN 08
-        </div>
-    </div>
-""",
-    unsafe_allow_html=True,
-)
-
 # --- FONCTION SECURISEE CONVERSION NUMERIQUE ---
 def safe_int_convert(val, default=0):
     if pd.isna(val) or val is None:
@@ -205,7 +222,7 @@ def safe_int_convert(val, default=0):
         return int(match.group(1))
     return default
 
-# --- CONNEXION ET CACHE GOOGLE SHEETS (Anti-Quota 429 étendu à 120s) ---
+# --- CONNEXION ET CACHE GOOGLE SHEETS ---
 @st.cache_resource
 def init_connection():
     scope = [
@@ -296,7 +313,7 @@ try:
         df = df[df["Numéro du membre"].astype(str).str.startswith("ONG DP")]
 
 except Exception as e:
-    st.error(f"⚠️ Erreur de connexion à Google Sheets (Quota dépassé ou réseau) : {e}")
+    st.error(f"⚠️ Erreur de connexion à Google Sheets : {e}")
     df = pd.DataFrame()
     df_users = pd.DataFrame()
     df_stock = pd.DataFrame()
@@ -354,42 +371,78 @@ if "user_connected" not in st.session_state:
 if "current_page" not in st.session_state:
     st.session_state["current_page"] = "📊 Tableau de Bord"
 
-# --- ÉCRAN DE CONNEXION ---
+# ==========================================
+# --- ÉCRAN DE CONNEXION (PROPOSITION 3) ---
+# ==========================================
 if not st.session_state["user_connected"]:
-    st.subheader("🔐 Connexion au Portail ONG DIEU POURVOIRA")
-    st.markdown("""
-      <div class="info-card">
-          Veuillez saisir vos identifiants pour accéder à votre espace de travail.
-      </div>
-  """, unsafe_allow_html=True)
+    col_l1, col_l2, col_l3 = st.columns([1, 2, 1])
+    with col_l2:
+        st.markdown(
+            """
+            <div class="login-card-header">
+                <h2>ONG DIEU POURVOIRA</h2>
+                <p>Ensemble aidons les enfants atteints de Paralysie cérébrale</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-    col_login1, col_login2, col_login3 = st.columns([1, 2, 1])
-    with col_login2:
-        with st.form("form_connexion"):
-            identifiant = st.text_input("Identifiant utilisateur")
-            mot_de_passe = st.text_input("Mot de passe", type="password")
-            btn_connexion = st.form_submit_button("Se connecter")
+        with st.container(border=True):
+            with st.form("form_connexion"):
+                st.markdown("#### 🔐 Connexion Utilisateur")
+                identifiant = st.text_input("Identifiant utilisateur")
+                mot_de_passe = st.text_input("Mot de passe", type="password")
+                btn_connexion = st.form_submit_button("Se connecter", use_container_width=True)
 
-            if btn_connexion:
-                if not df_users.empty and "Identifiant" in df_users.columns:
-                    match = df_users[(df_users["Identifiant"].astype(str) == identifiant.strip()) & (df_users["Mot_de_passe"].astype(str) == mot_de_passe.strip())]
-                    if not match.empty:
-                        st.session_state["user_connected"] = True
-                        st.session_state["user_info"] = match.iloc[0].to_dict()
-                        st.toast(f"Bienvenue {st.session_state['user_info'].get('Nom_Responsable', '')} !", icon="👋")
-                        st.rerun()
+                if btn_connexion:
+                    if not df_users.empty and "Identifiant" in df_users.columns:
+                        match = df_users[(df_users["Identifiant"].astype(str) == identifiant.strip()) & (df_users["Mot_de_passe"].astype(str) == mot_de_passe.strip())]
+                        if not match.empty:
+                            st.session_state["user_connected"] = True
+                            st.session_state["user_info"] = match.iloc[0].to_dict()
+                            st.toast(f"Bienvenue {st.session_state['user_info'].get('Nom_Responsable', '')} !", icon="👋")
+                            st.rerun()
+                        else:
+                            st.error("❌ Identifiant ou mot de passe incorrect.")
                     else:
-                        st.error("❌ Identifiant ou mot de passe incorrect.")
-                else:
-                    if identifiant == "admin" and mot_de_passe == "admin123":
-                        st.session_state["user_connected"] = True
-                        st.session_state["user_info"] = {"Nom_Responsable": "Direction DSI", "Zone": "Vue Globale"}
-                        st.rerun()
-                    else:
-                        st.error("❌ Identifiant ou mot de passe incorrect.")
+                        if identifiant == "admin" and mot_de_passe == "admin123":
+                            st.session_state["user_connected"] = True
+                            st.session_state["user_info"] = {"Nom_Responsable": "Direction DSI", "Zone": "Vue Globale"}
+                            st.rerun()
+                        else:
+                            st.error("❌ Identifiant ou mot de passe incorrect.")
 
-# --- APPLICATION PRINCIPALE ---
+            # Coordonnées placées juste sous le bouton de connexion
+            st.markdown(
+                """
+                <div class="login-footer-coords">
+                    📌 <strong>Coordonnées de l'ONG</strong><br>
+                    📞 <strong>Téléphone :</strong> +225 77 71 04 41 8 / 05 86 99 73 27<br>
+                    ✉️ <strong>Email :</strong> dieupourvoira187@gmail.com<br>
+                    📍 <strong>Adresse :</strong> 08 BP 2945 ABIDJAN 08
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+# ==========================================
+# --- APPLICATION PRINCIPALE CONNECTÉE ---
+# ==========================================
 else:
+    # BANNIÈRE D'EN-TÊTE DANS L'ESPACE CONNECTÉ
+    st.markdown(
+        """
+        <div class="hero-header">
+            <h1>ONG DIEU POURVOIRA</h1>
+            <p><strong>Ensemble aidons les enfants atteints de Paralysie cérébrale</strong></p>
+            <div class="hero-contact">
+                📞 +225 77 71 04 41 8 / 05 86 99 73 27 &nbsp;|&nbsp; ✉️ dieupourvoira187@gmail.com &nbsp;|&nbsp; 📍 08 BP 2945 ABIDJAN 08
+            </div>
+        </div>
+    """,
+        unsafe_allow_html=True,
+    )
+
     user_info = st.session_state["user_info"]
 
     user_zone = ""
@@ -553,7 +606,6 @@ else:
         st.subheader(f"✏️ Modifier ou Supprimer - {choix_zone_label}")
 
         if not df_f.empty and col_membre in df_f.columns:
-            # Sélecteur direct de tous les membres disponibles pour éviter tout blocage de filtrage
             liste_membres_complets = df_f[col_membre].astype(str).tolist()
             options_select = ["-- Sélectionnez un membre dans la liste --"] + liste_membres_complets
 
