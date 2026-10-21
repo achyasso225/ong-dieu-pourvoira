@@ -553,10 +553,12 @@ else:
         st.subheader(f"✏️ Modifier ou Supprimer - {choix_zone_label}")
 
         if not df_f.empty and col_membre in df_f.columns:
-            if "recherche_edit" not in st.session_state:
-                st.session_state["recherche_edit"] = ""
+            if "search_query_edit" not in st.session_state:
+                st.session_state["search_query_edit"] = ""
 
-            recherche_edit = st.text_input("🔍 Rechercher dans votre zone...", key="recherche_edit")
+            recherche_edit = st.text_input("🔍 Rechercher un membre (Nom, Matricule, Parent...)", value=st.session_state["search_query_edit"])
+            st.session_state["search_query_edit"] = recherche_edit
+
             if recherche_edit:
                 mask_edit = df_f.astype(str).apply(lambda row: row.str.contains(recherche_edit, case=False, na=False).any(), axis=1)
                 df_edit_filtered = df_f[mask_edit]
@@ -565,15 +567,15 @@ else:
 
             if not df_edit_filtered.empty:
                 liste_membres = df_edit_filtered[col_membre].astype(str).tolist()
-                options_select = ["-- Sélectionnez un membre --"] + liste_membres
+                options_select = ["-- Sélectionnez un membre dans la liste --"] + liste_membres
 
                 choix_membre = st.selectbox(
                     "Sélectionner le membre", 
                     options_select, 
-                    format_func=lambda m: m if m == "-- Sélectionnez un membre --" else f"{m} - {df_edit_filtered[df_edit_filtered[col_membre].astype(str) == m][col_enfant].values[0]}" if col_enfant in df_edit_filtered.columns else m
+                    format_func=lambda m: m if m == "-- Sélectionnez un membre dans la liste --" else f"{m} - {df_edit_filtered[df_edit_filtered[col_membre].astype(str) == m][col_enfant].values[0]}" if col_enfant in df_edit_filtered.columns else m
                 )
 
-                if choix_membre != "-- Sélectionnez un membre --":
+                if choix_membre != "-- Sélectionnez un membre dans la liste --":
                     membre_actuel = df[df[col_membre].astype(str) == choix_membre].iloc[0]
 
                     st.markdown("---")
@@ -604,7 +606,7 @@ else:
                                         sheet.update_cell(row_idx, 6, m_nom_parent)
                                         sheet.update_cell(row_idx, 7, str(m_tel))
                                         sheet.update_cell(row_idx, 8, m_adhesion)
-                                        st.session_state["recherche_edit"] = ""
+                                        st.session_state["search_query_edit"] = ""
                                         st.cache_data.clear()
                                         st.session_state["toast_msg"] = f"✅ Membre {choix_membre} mis à jour !"
                                         st.rerun()
@@ -618,7 +620,7 @@ else:
                                     try:
                                         cell = sheet.find(str(choix_membre))
                                         sheet.delete_rows(cell.row)
-                                        st.session_state["recherche_edit"] = ""
+                                        st.session_state["search_query_edit"] = ""
                                         st.cache_data.clear()
                                         st.session_state["toast_msg"] = f"✅ Membre {choix_membre} supprimé !"
                                         st.rerun()
@@ -629,13 +631,13 @@ else:
                 else:
                     st.info("ℹ️ Veuillez rechercher et sélectionner un membre dans la liste ci-dessus pour effectuer une modification ou une suppression.")
             else:
-                st.warning("⚠️ Aucun membre trouvé.")
+                st.warning("⚠️ Aucun membre ne correspond à votre recherche.")
         else:
             st.info("Aucun membre disponible.")
 
-  # ==========================================
-  # 4. LISTE & REPERTOIRE + CARTES
-  # ==========================================
+    # ==========================================
+    # 4. LISTE & REPERTOIRE + CARTES
+    # ==========================================
     elif menu == "📋 Liste & Répertoire":
         st.subheader(f"📋 Répertoire & Cartes - {choix_zone_label}")
         recherche = st.text_input("🔍 Rechercher un membre...", key="recherche_liste")
