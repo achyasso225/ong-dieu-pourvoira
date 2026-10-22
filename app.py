@@ -28,38 +28,37 @@ banner_b64 = get_image_base64(banner_path)
 
 bg_card_style = f"background-image: url('{banner_b64}'); background-size: 100% auto; background-repeat: no-repeat; background-position: top center;" if banner_b64 else "background-color: #1e1e1e;"
 
-# --- INJECTION CSS STRICT - FOND NOIR / SOMBRE & LISIBILITÉ ---
+# --- INJECTION CSS STRICT - THEME SOMBRE ET LISIBILITÉ AMÉLIORÉE ---
 st.markdown(
     f"""
     <style>
-    /* 1. FOND DE PAGE GLOBAL NOIR / SOMBRE */
+    /* FOND NOIR GLOBAL */
     .stApp {{
         background-color: #121212 !important;
         color: #e0e0e0 !important;
     }}
     
-    /* 2. STYLE DES INPUTS (Champs sombres avec texte blanc lisible) */
-    div[data-baseweb="input"] {{
+    /* INPUTS DE SAISIE SOMBRES AVEC TEXTE BLANC ET CONTRASTE MAXIMAL */
+    div[data-baseweb="input"], div[data-baseweb="select"] {{
         background-color: #1e1e1e !important;
-        border: 1px solid #333333 !important;
+        border: 1px solid #3f3f46 !important;
         border-radius: 8px !important;
     }}
-    div[data-baseweb="input"] input {{
+    div[data-baseweb="input"] input, div[data-baseweb="select"] div {{
         color: #ffffff !important;
         background-color: #1e1e1e !important;
         font-weight: 500 !important;
     }}
-    div[data-baseweb="input"]:focus-within {{
+    div[data-baseweb="input"]:focus-within, div[data-baseweb="select"]:focus-within {{
         border-color: #2e8b42 !important;
         box-shadow: 0 0 0 1px #2e8b42 !important;
     }}
 
-    /* LABELS DES CHAMPS DE SAISIE EN CLAIR */
     label[data-testid="stWidgetLabel"], .stMarkdown p, h1, h2, h3, h4, h5, h6 {{
         color: #f0f0f0 !important;
     }}
 
-    /* 3. BOUTON SE CONNECTER ET VALIDATION (VERT PROPOSITION 3) */
+    /* BOUTONS VERTS PRINCIPAUX */
     div.stButton > button, div[data-testid="stFormSubmitButton"] > button {{
         background-color: #2e8b42 !important;
         color: #ffffff !important;
@@ -77,7 +76,7 @@ st.markdown(
         color: #ffffff !important;
     }}
 
-    /* 4. CONTENEUR DE CONNEXION AVEC L'IMAGE EN FOND */
+    /* CARTE DE CONNEXION AVEC BANNERE EN FOND */
     .prop3-login-card {{
         width: 420px;
         max-width: 95%;
@@ -113,7 +112,7 @@ st.markdown(
         line-height: 20px;
     }}
 
-    /* 5. STYLES BARRE LATÉRALE & INTERFACE CONNECTÉE */
+    /* BARRE LATÉRALE ET COMPOSANTS */
     button[aria-label*="sidebar"], [data-testid="stSidebarCollapseButton"] button {{
         background-color: #1e1e1e !important;
         border: 2px solid #2e8b42 !important;
@@ -154,7 +153,6 @@ st.markdown(
         border: 1px solid #3f3f46 !important;
     }}
     
-    /* Tableaux et conteneurs sombres */
     [data-testid="stContainer"] {{
         background-color: #1a1a1a !important;
         border: 1px solid #2d2d2d !important;
@@ -166,7 +164,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- SCRIPT JAVASCRIPT FERMETURE AUTOMATIQUE SIDEBAR MOBILE ---
+# --- JAVASCRIPT FERMETURE MOBILE ---
 st.markdown(
     """
     <script>
@@ -195,7 +193,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# --- FONCTION SÉCURISÉE CONVERSION NUMÉRIQUE ---
+# --- CONVERSION NUMÉRIQUE SÉCURISÉE ---
 def safe_int_convert(val, default=0):
     if pd.isna(val) or val is None:
         return default
@@ -205,7 +203,7 @@ def safe_int_convert(val, default=0):
         return int(match.group(1))
     return default
 
-# --- CONNEXION ET CACHE GOOGLE SHEETS ---
+# --- GOOGLE SHEETS & CACHE ---
 @st.cache_resource
 def init_connection():
     scope = [
@@ -349,7 +347,7 @@ if "current_page" not in st.session_state:
     st.session_state["current_page"] = "📊 Tableau de Bord"
 
 # ==========================================
-# --- ÉCRAN DE CONNEXION (IMAGE EN FOND DE CARTE) ---
+# --- ÉCRAN DE CONNEXION ---
 # ==========================================
 if not st.session_state["user_connected"]:
     col_c1, col_c2, col_c3 = st.columns([1, 1.8, 1])
@@ -568,13 +566,14 @@ else:
                         st.error("⚠️ Veuillez renseigner le nom de l'enfant et du parent.")
 
     # ==========================================
-    # 3. MODIFIER / SUPPRIMER
+    # 3. MODIFIER / SUPPRIMER (RECHERCHE REFACTOREE ET INTUITIVE)
     # ==========================================
     elif menu == "✏️ Modifier / Supprimer":
         st.subheader(f"✏️ Modifier ou Supprimer - {choix_zone_label}")
 
         if not df_f.empty and col_membre in df_f.columns:
             recherche_edit = st.text_input("🔍 Filtrer les membres par nom, matricule ou parent...", key="search_filtre_membre")
+            
             if recherche_edit:
                 mask_f = df_f.astype(str).apply(lambda row: row.str.contains(recherche_edit, case=False, na=False).any(), axis=1)
                 df_filtered_select = df_f[mask_f]
@@ -586,9 +585,9 @@ else:
                 options_select = ["-- Sélectionnez un membre dans la liste --"] + liste_membres_complets
 
                 choix_membre = st.selectbox(
-                    "Sélectionner le membre", 
+                    "Sélectionner le membre (tapez directement au clavier pour filtrer)", 
                     options_select, 
-                    format_func=lambda m: m if m == "-- Sélectionnez un membre dans la liste --" else f"{m} - {df_filtered_select[df_filtered_select[col_membre].astype(str) == m][col_enfant].values[0]}" if col_enfant in df_filtered_select.columns else m
+                    format_func=lambda m: m if m == "-- Sélectionnez un membre dans la liste --" else f"{m} - {df_filtered_select[df_filtered_select[col_membre].astype(str) == m][col_enfant].values[0]} ({df_filtered_select[df_filtered_select[col_membre].astype(str) == m][col_parent].values[0]})" if col_enfant in df_filtered_select.columns else m
                 )
 
                 if choix_membre != "-- Sélectionnez un membre dans la liste --":
@@ -768,7 +767,7 @@ else:
             st.warning("⚠️ Aucune donnée disponible.")
 
     # ==========================================
-    # 5. STOCK DES DONS
+    # 5. STOCK DES DONS (RECHERCHE REFACTOREE ET INTUITIVE)
     # ==========================================
     elif menu == "📦 Stock des Dons":
         st.subheader("📦 Stock & Réception des Dons")
@@ -804,6 +803,7 @@ else:
             if not df_stock.empty and "ID_Don" in df_stock.columns:
                 with st.container(border=True):
                     recherche_stock_mod = st.text_input("🔍 Filtrer les dons par Désignation ou ID...", key="search_filtre_stock_mod")
+                    
                     if recherche_stock_mod:
                         mask_s = df_stock.astype(str).apply(lambda row: row.str.contains(recherche_stock_mod, case=False, na=False).any(), axis=1)
                         df_stock_filtered = df_stock[mask_s]
@@ -811,7 +811,11 @@ else:
                         df_stock_filtered = df_stock
 
                     if not df_stock_filtered.empty:
-                        choix_id_don = st.selectbox("Sélectionner le Don à modifier/supprimer", df_stock_filtered["ID_Don"].astype(str).tolist(), format_func=lambda d: f"{d} - {df_stock_filtered[df_stock_filtered['ID_Don'].astype(str) == d]['Designation'].values[0]}")
+                        choix_id_don = st.selectbox(
+                            "Sélectionner le Don à modifier/supprimer (tapez pour filtrer)", 
+                            df_stock_filtered["ID_Don"].astype(str).tolist(), 
+                            format_func=lambda d: f"{d} - {df_stock_filtered[df_stock_filtered['ID_Don'].astype(str) == d]['Designation'].values[0]}"
+                        )
                         don_ligne = df_stock[df_stock["ID_Don"].astype(str) == choix_id_don].iloc[0]
 
                         action_stock = st.radio("Action sur ce stock", ["Modifier", "Supprimer définitivement"], horizontal=True)
@@ -863,7 +867,7 @@ else:
                 st.info("Aucun stock pour le moment.")
 
     # ==========================================
-    # 6. REMISE DE DONS
+    # 6. REMISE DE DONS (RECHERCHE REFACTOREE ET INTUITIVE)
     # ==========================================
     elif menu == "🎁 Remise de Dons":
         st.subheader("🎁 Attribution & Remise de Don aux Enfants")
@@ -875,23 +879,23 @@ else:
 
             if not df_stock_dispo.empty:
                 with st.container(border=True):
-                    with st.form("form_remise_don", clear_on_submit=True):
-                        recherche_benef_remise = st.text_input("🔍 Filtrer l'enfant bénéficiaire...")
-                        recherche_don_remise = st.text_input("🔍 Filtrer le don en stock...")
-                        
-                        if recherche_benef_remise:
-                            mask_eb = df.astype(str).apply(lambda row: row.str.contains(recherche_benef_remise, case=False, na=False).any(), axis=1)
-                            df_enfants_f = df[mask_eb]
-                        else:
-                            df_enfants_f = df
+                    recherche_benef_remise = st.text_input("🔍 Filtrer l'enfant bénéficiaire par mot-clé...")
+                    recherche_don_remise = st.text_input("🔍 Filtrer le don en stock par mot-clé...")
+                    
+                    if recherche_benef_remise:
+                        mask_eb = df.astype(str).apply(lambda row: row.str.contains(recherche_benef_remise, case=False, na=False).any(), axis=1)
+                        df_enfants_f = df[mask_eb]
+                    else:
+                        df_enfants_f = df
 
-                        if recherche_don_remise:
-                            mask_db = df_stock_dispo.astype(str).apply(lambda row: row.str.contains(recherche_don_remise, case=False, na=False).any(), axis=1)
-                            df_stock_f = df_stock_dispo[mask_db]
-                        else:
-                            df_stock_f = df_stock_dispo
+                    if recherche_don_remise:
+                        mask_db = df_stock_dispo.astype(str).apply(lambda row: row.str.contains(recherche_don_remise, case=False, na=False).any(), axis=1)
+                        df_stock_f = df_stock_dispo[mask_db]
+                    else:
+                        df_stock_f = df_stock_dispo
 
-                        if not df_enfants_f.empty and not df_stock_f.empty:
+                    if not df_enfants_f.empty and not df_stock_f.empty:
+                        with st.form("form_remise_don", clear_on_submit=True):
                             liste_enfants = df_enfants_f[col_membre].astype(str).tolist()
                             choix_enfant_don = st.selectbox("1. Enfant bénéficiaire", liste_enfants, format_func=lambda m: f"{m} - {df_enfants_f[df_enfants_f[col_membre].astype(str) == m][col_enfant].values[0]}")
 
@@ -932,8 +936,8 @@ else:
                                         st.error(f"⚠️ Stock insuffisant (Reste : {stock_actuel})")
                                 except Exception as e:
                                     st.error(f"❌ Erreur lors de la remise : {e}")
-                        else:
-                            st.warning("⚠️ Aucun résultat pour vos critères de recherche.")
+                    else:
+                        st.warning("⚠️ Aucun résultat pour vos critères de recherche.")
             else:
                 st.warning("⚠️ Aucun don disponible en stock.")
         else:
@@ -948,7 +952,7 @@ else:
                 st.info("Aucune distribution enregistrée.")
 
     # ==========================================
-    # 7. SUIVI DES COTISATIONS
+    # 7. SUIVI DES COTISATIONS (RECHERCHE REFACTOREE ET INTUITIVE)
     # ==========================================
     elif menu == "💳 Suivi Cotisations":
         st.subheader("💳 Suivi des Cotisations et Frais de Carte")
@@ -957,16 +961,16 @@ else:
         with tab_cotiz_saisie:
             if not df.empty:
                 with st.container(border=True):
-                    with st.form("form_cotisation", clear_on_submit=True):
-                        recherche_cotiz_saisie = st.text_input("🔍 Filtrer le membre concerné...")
-                        
-                        if recherche_cotiz_saisie:
-                            mask_cs = df.astype(str).apply(lambda row: row.str.contains(recherche_cotiz_saisie, case=False, na=False).any(), axis=1)
-                            df_cotiz_s_f = df[mask_cs]
-                        else:
-                            df_cotiz_s_f = df
+                    recherche_cotiz_saisie = st.text_input("🔍 Filtrer le membre concerné...")
+                    
+                    if recherche_cotiz_saisie:
+                        mask_cs = df.astype(str).apply(lambda row: row.str.contains(recherche_cotiz_saisie, case=False, na=False).any(), axis=1)
+                        df_cotiz_s_f = df[mask_cs]
+                    else:
+                        df_cotiz_s_f = df
 
-                        if not df_cotiz_s_f.empty:
+                    if not df_cotiz_s_f.empty:
+                        with st.form("form_cotisation", clear_on_submit=True):
                             liste_membres_cotiz = df_cotiz_s_f[col_membre].astype(str).tolist()
                             membre_c = st.selectbox("Membre concerné", liste_membres_cotiz, format_func=lambda m: f"{m} - {df_cotiz_s_f[df_cotiz_s_f[col_membre].astype(str) == m][col_enfant].values[0]}")
 
@@ -998,8 +1002,8 @@ else:
                                     st.rerun()
                                 except Exception as e:
                                     st.error(f"❌ Erreur : {e}")
-                        else:
-                            st.warning("⚠️ Aucun membre trouvé.")
+                    else:
+                        st.warning("⚠️ Aucun membre trouvé.")
             else:
                 st.warning("⚠️ Aucun membre enregistré.")
 
@@ -1015,6 +1019,7 @@ else:
             if not df_cotiz.empty and "ID_Cotiz" in df_cotiz.columns:
                 with st.container(border=True):
                     recherche_cotiz_mod = st.text_input("🔍 Filtrer les paiements...", key="search_filtre_cotiz_mod")
+                    
                     if recherche_cotiz_mod:
                         mask_cm = df_cotiz.astype(str).apply(lambda row: row.str.contains(recherche_cotiz_mod, case=False, na=False).any(), axis=1)
                         df_cotiz_f = df_cotiz[mask_cm]
@@ -1022,7 +1027,11 @@ else:
                         df_cotiz_f = df_cotiz
 
                     if not df_cotiz_f.empty:
-                        choix_id_cotiz = st.selectbox("Sélectionner le paiement à modifier/supprimer", df_cotiz_f["ID_Cotiz"].astype(str).tolist(), format_func=lambda c: f"{c} - {df_cotiz_f[df_cotiz_f['ID_Cotiz'].astype(str) == c]['Nom_Enfant'].values[0]} ({df_cotiz_f[df_cotiz_f['ID_Cotiz'].astype(str) == c]['Montant_Verse'].values[0]} FCFA)")
+                        choix_id_cotiz = st.selectbox(
+                            "Sélectionner le paiement à modifier/supprimer (tapez pour filtrer)", 
+                            df_cotiz_f["ID_Cotiz"].astype(str).tolist(), 
+                            format_func=lambda c: f"{c} - {df_cotiz_f[df_cotiz_f['ID_Cotiz'].astype(str) == c]['Nom_Enfant'].values[0]} ({df_cotiz_f[df_cotiz_f['ID_Cotiz'].astype(str) == c]['Montant_Verse'].values[0]} FCFA)"
+                        )
                         cotiz_ligne = df_cotiz[df_cotiz["ID_Cotiz"].astype(str) == choix_id_cotiz].iloc[0]
 
                         action_cotiz = st.radio("Action", ["Modifier", "Supprimer définitivement"], horizontal=True, key="radio_act_cotiz")
@@ -1067,7 +1076,7 @@ else:
                 st.info("Aucun paiement enregistré.")
 
     # ==========================================
-    # 8. ARTICLES & GOODIES
+    # 8. ARTICLES & GOODIES (RECHERCHE REFACTOREE ET INTUITIVE)
     # ==========================================
     elif menu == "🛍️ Articles & Goodies":
         st.subheader("🛍️ Gestion des Articles, T-shirts et Goodies d'Événements")
@@ -1076,16 +1085,16 @@ else:
         with tab_art_vente:
             if not df.empty:
                 with st.container(border=True):
-                    with st.form("form_article_event", clear_on_submit=True):
-                        recherche_art_vente = st.text_input("🔍 Filtrer le membre...")
+                    recherche_art_vente = st.text_input("🔍 Filtrer le membre...")
 
-                        if recherche_art_vente:
-                            mask_av = df.astype(str).apply(lambda row: row.str.contains(recherche_art_vente, case=False, na=False).any(), axis=1)
-                            df_art_s_f = df[mask_av]
-                        else:
-                            df_art_s_f = df
+                    if recherche_art_vente:
+                        mask_av = df.astype(str).apply(lambda row: row.str.contains(recherche_art_vente, case=False, na=False).any(), axis=1)
+                        df_art_s_f = df[mask_av]
+                    else:
+                        df_art_s_f = df
 
-                        if not df_art_s_f.empty:
+                    if not df_art_s_f.empty:
+                        with st.form("form_article_event", clear_on_submit=True):
                             liste_membres_art = df_art_s_f[col_membre].astype(str).tolist()
                             membre_a = st.selectbox("Membre acheteur", liste_membres_art, format_func=lambda m: f"{m} - {df_art_s_f[df_art_s_f[col_membre].astype(str) == m][col_enfant].values[0]}")
 
@@ -1116,8 +1125,8 @@ else:
                                         st.error(f"❌ Erreur : {e}")
                                 else:
                                     st.error("⚠️ Saisissez le nom de l'article.")
-                        else:
-                            st.warning("⚠️ Aucun membre trouvé.")
+                    else:
+                        st.warning("⚠️ Aucun membre trouvé.")
             else:
                 st.warning("⚠️ Aucun membre enregistré.")
 
@@ -1133,6 +1142,7 @@ else:
             if not df_articles.empty and "ID_Art" in df_articles.columns:
                 with st.container(border=True):
                     recherche_art_mod = st.text_input("🔍 Filtrer les articles...", key="search_filtre_art_mod")
+                    
                     if recherche_art_mod:
                         mask_am = df_articles.astype(str).apply(lambda row: row.str.contains(recherche_art_mod, case=False, na=False).any(), axis=1)
                         df_articles_f = df_articles[mask_am]
@@ -1140,7 +1150,11 @@ else:
                         df_articles_f = df_articles
 
                     if not df_articles_f.empty:
-                        choix_id_art = st.selectbox("Sélectionner l'article", df_articles_f["ID_Art"].astype(str).tolist(), format_func=lambda a: f"{a} - {df_articles_f[df_articles_f['ID_Art'].astype(str) == a]['Nom_Article'].values[0]}")
+                        choix_id_art = st.selectbox(
+                            "Sélectionner l'article (tapez pour filtrer)", 
+                            df_articles_f["ID_Art"].astype(str).tolist(), 
+                            format_func=lambda a: f"{a} - {df_articles_f[df_articles_f['ID_Art'].astype(str) == a]['Nom_Article'].values[0]}"
+                        )
                         art_ligne = df_articles[df_articles["ID_Art"].astype(str) == choix_id_art].iloc[0]
 
                         action_art = st.radio("Action", ["Modifier", "Supprimer définitivement"], horizontal=True, key="radio_act_art")
