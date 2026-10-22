@@ -16,7 +16,7 @@ st.set_page_config(
     layout="wide",
 )
 
-# --- CHARGEMENT DE L'IMAGE DE FOND EN BASE64 ---
+# --- CHARGEMENT DE L'IMAGE EN BASE64 ---
 def get_image_base64(path):
     if os.path.exists(path):
         with open(path, "rb") as f:
@@ -26,10 +26,10 @@ def get_image_base64(path):
 banner_path = "banner_connection.png" if os.path.exists("banner_connection.png") else "banner_connexion.png"
 banner_b64 = get_image_base64(banner_path)
 
-# L'image recouvre maintenant 100% du conteneur de carte de connexion
-bg_card_style = f"background-image: url('{banner_b64}'); background-size: cover; background-repeat: no-repeat; background-position: center;" if banner_b64 else "background-color: #1e1e1e;"
+# Image appliquée à 100% en fond d'écran du bloc
+bg_card_style = f"background-image: url('{banner_b64}'); background-size: cover; background-repeat: no-repeat; background-position: center;" if banner_b64 else "background-color: #1a1a1a;"
 
-# --- INJECTION CSS STRICT - BANDEAU EN FOND TOTAL ---
+# --- INJECTION CSS - L'IMAGE RECOUVRE TOUTE LA CARTE ---
 st.markdown(
     f"""
     <style>
@@ -39,9 +39,9 @@ st.markdown(
         color: #e0e0e0 !important;
     }}
     
-    /* INPUTS DE SAISIE AVEC TRANSPARENCE POUR ÉCRIRE "SUR L'IMAGE" */
+    /* INPUTS DE SAISIE TRANSPARENTS POUR VOIR L'IMAGE DERRIÈRE */
     div[data-baseweb="input"], div[data-baseweb="select"] {{
-        background-color: rgba(20, 20, 20, 0.75) !important;
+        background-color: rgba(18, 18, 18, 0.75) !important;
         border: 1px solid rgba(255, 255, 255, 0.3) !important;
         border-radius: 8px !important;
         backdrop-filter: blur(4px);
@@ -59,7 +59,7 @@ st.markdown(
 
     label[data-testid="stWidgetLabel"], .stMarkdown p, h1, h2, h3, h4, h5, h6 {{
         color: #ffffff !important;
-        text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+        text-shadow: 0 1px 3px rgba(0,0,0,0.9);
     }}
 
     /* BOUTON VERT D'ACTION */
@@ -71,7 +71,7 @@ st.markdown(
         border-radius: 8px !important;
         border: none !important;
         padding: 10px 24px !important;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
         width: 100% !important;
         transition: all 0.2s ease !important;
     }}
@@ -80,21 +80,21 @@ st.markdown(
         color: #ffffff !important;
     }}
 
-    /* CARTE DE CONNEXION AVEC L'IMAGE EN FOND TOTAL */
+    /* CARTE DE CONNEXION AVEC FOND IMAGE COMPLET */
     .prop3-login-card {{
         width: 480px;
         max-width: 95%;
         margin: 30px auto;
         border-radius: 20px;
-        box-shadow: 0 16px 40px rgba(0,0,0,0.7);
+        box-shadow: 0 16px 40px rgba(0,0,0,0.8);
         overflow: hidden;
-        border: 2px solid rgba(255, 255, 255, 0.2);
+        border: 2px solid rgba(255, 255, 255, 0.25);
         {bg_card_style}
-        padding: 30px 25px 25px 25px;
+        padding: 35px 25px 25px 25px;
         position: relative;
     }}
 
-    /* Overlay sombre léger pour assurer la lisibilité sur l'image */
+    /* Voile de lisibilité très doux sur l'image */
     .prop3-login-card::before {{
         content: "";
         position: absolute;
@@ -103,7 +103,7 @@ st.markdown(
         z-index: 0;
     }}
 
-    .prop3-login-content {{
+    .prop3-login-inner {{
         position: relative;
         z-index: 1;
     }}
@@ -370,7 +370,7 @@ if not st.session_state["user_connected"]:
     col_c1, col_c2, col_c3 = st.columns([1, 2.2, 1])
 
     with col_c2:
-        st.markdown('<div class="prop3-login-card"><div class="prop3-login-content">', unsafe_allow_html=True)
+        st.markdown('<div class="prop3-login-card"><div class="prop3-login-inner">', unsafe_allow_html=True)
         st.markdown('<div class="prop3-title-text">ONG DIEU POURVOIRA</div>', unsafe_allow_html=True)
         
         with st.form("form_connexion_prop3"):
@@ -1257,3 +1257,8 @@ else:
         st.toast(st.session_state["toast_msg"], icon="🎉")
         st.success(st.session_state["toast_msg"])
         del st.session_state["toast_msg"]
+```<FollowUp>
+
+<ElicitationsGroup>
+</ElicitationsGroup>
+</FollowUp>
