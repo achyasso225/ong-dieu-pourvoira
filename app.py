@@ -16,7 +16,7 @@ st.set_page_config(
     layout="wide",
 )
 
-# --- CHARGEMENT DE L'IMAGE DE FOND EN BASE64 ---
+# --- CHARGEMENT DE L'IMAGE DE BANNÈRE / LOGO EN BASE64 ---
 def get_image_base64(path):
     if os.path.exists(path):
         with open(path, "rb") as f:
@@ -26,10 +26,7 @@ def get_image_base64(path):
 banner_path = "banner_connection.png" if os.path.exists("banner_connection.png") else "banner_connexion.png"
 banner_b64 = get_image_base64(banner_path)
 
-# Image appliquée à 100% en fond d'écran du bloc
-bg_card_style = f"background-image: url('{banner_b64}'); background-size: cover; background-repeat: no-repeat; background-position: center;" if banner_b64 else "background-color: #1a1a1a;"
-
-# --- INJECTION CSS - L'IMAGE RECOUVRE TOUTE LA CARTE AVEC VOILE DE LISIBILITÉ ---
+# --- INJECTION CSS - CARTE UNIQUE ENGLOBANTE (COMMME SUR L'IMAGE) ---
 st.markdown(
     f"""
     <style>
@@ -39,30 +36,73 @@ st.markdown(
         color: #e0e0e0 !important;
     }}
     
-    /* INPUTS DE SAISIE TRANSPARENTS POUR VOIR L'IMAGE DERRIÈRE */
+    /* CARTE DE CONNEXION PRINCIPALE */
+    .ong-card-container {{
+        width: 440px;
+        max-width: 95%;
+        margin: 20px auto;
+        border-radius: 20px;
+        box-shadow: 0 12px 32px rgba(0,0,0,0.6);
+        overflow: hidden;
+        background-color: #1a1a1a;
+        border: 1px solid #333333;
+    }}
+
+    /* BANNIÈRE / LOGO EN HAUT DE LA CARTE */
+    .ong-card-header {{
+        width: 100%;
+        min-height: 180px;
+        background-image: url('{banner_b64}');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+    }}
+
+    /* CORPS DE LA CARTE CONTENANT LES CHAMPS ET BOUTONS */
+    .ong-card-body {{
+        padding: 20px 25px 25px 25px;
+    }}
+
+    .prop3-title-text {{
+        text-align: center;
+        font-weight: 800;
+        color: #ffffff;
+        font-size: 20px;
+        margin-bottom: 20px;
+        letter-spacing: 0.5px;
+    }}
+
+    .prop3-footer-coords {{
+        text-align: center;
+        padding-top: 15px;
+        margin-top: 15px;
+        border-top: 1px dashed #444444;
+        font-size: 12px;
+        color: #b0b0b0;
+        line-height: 20px;
+    }}
+
+    /* INPUTS DE SAISIE AVEC BON CONTRASTE */
     div[data-baseweb="input"], div[data-baseweb="select"] {{
-        background-color: rgba(18, 18, 18, 0.75) !important;
-        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        background-color: #242424 !important;
+        border: 1px solid #3f3f46 !important;
         border-radius: 8px !important;
-        backdrop-filter: blur(4px);
     }}
     div[data-baseweb="input"] input, div[data-baseweb="select"] div {{
         color: #ffffff !important;
         background-color: transparent !important;
-        font-weight: 600 !important;
+        font-weight: 500 !important;
     }}
     div[data-baseweb="input"]:focus-within, div[data-baseweb="select"]:focus-within {{
         border-color: #2e8b42 !important;
         box-shadow: 0 0 0 1px #2e8b42 !important;
-        background-color: rgba(10, 10, 10, 0.88) !important;
     }}
 
     label[data-testid="stWidgetLabel"], .stMarkdown p, h1, h2, h3, h4, h5, h6 {{
-        color: #ffffff !important;
-        text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+        color: #f0f0f0 !important;
     }}
 
-    /* BOUTON VERT D'ACTION */
+    /* BOUTON VERT D'ACTION (SE CONNECTER) */
     div.stButton > button, div[data-testid="stFormSubmitButton"] > button {{
         background-color: #2e8b42 !important;
         color: #ffffff !important;
@@ -71,62 +111,13 @@ st.markdown(
         border-radius: 8px !important;
         border: none !important;
         padding: 10px 24px !important;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
+        box-shadow: 0 4px 12px rgba(46,139,66,0.3) !important;
         width: 100% !important;
         transition: all 0.2s ease !important;
     }}
     div.stButton > button:hover, div[data-testid="stFormSubmitButton"] > button:hover {{
         background-color: #236f33 !important;
         color: #ffffff !important;
-    }}
-
-    /* CARTE DE CONNEXION AVEC FOND IMAGE COMPLET */
-    .prop3-login-card {{
-        width: 480px;
-        max-width: 95%;
-        margin: 30px auto;
-        border-radius: 20px;
-        box-shadow: 0 16px 40px rgba(0,0,0,0.8);
-        overflow: hidden;
-        border: 2px solid rgba(255, 255, 255, 0.25);
-        {bg_card_style}
-        padding: 35px 25px 25px 25px;
-        position: relative;
-    }}
-
-    /* Voile de lisibilité sur l'image de fond */
-    .prop3-login-card::before {{
-        content: "";
-        position: absolute;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background: rgba(0, 0, 0, 0.45);
-        z-index: 0;
-    }}
-
-    .prop3-login-inner {{
-        position: relative;
-        z-index: 1;
-    }}
-
-    .prop3-title-text {{
-        text-align: center;
-        font-weight: 900;
-        color: #ffffff;
-        font-size: 22px;
-        margin-bottom: 20px;
-        letter-spacing: 1px;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.9);
-    }}
-
-    .prop3-footer-coords {{
-        text-align: center;
-        padding-top: 15px;
-        margin-top: 20px;
-        border-top: 1px dashed rgba(255, 255, 255, 0.4);
-        font-size: 12px;
-        color: #ffffff;
-        line-height: 20px;
-        text-shadow: 0 1px 3px rgba(0,0,0,0.9);
     }}
 
     /* BARRE LATÉRALE ET COMPOSANTS */
@@ -364,14 +355,22 @@ if "current_page" not in st.session_state:
     st.session_state["current_page"] = "📊 Tableau de Bord"
 
 # ==========================================
-# --- ÉCRAN DE CONNEXION ---
+# --- ÉCRAN DE CONNEXION (STRUCTURE EXACTE DE L'IMAGE) ---
 # ==========================================
 if not st.session_state["user_connected"]:
     col_c1, col_c2, col_c3 = st.columns([1, 2.2, 1])
 
     with col_c2:
-        st.markdown('<div class="prop3-login-card"><div class="prop3-login-inner">', unsafe_allow_html=True)
-        st.markdown('<div class="prop3-title-text">ONG DIEU POURVOIRA</div>', unsafe_allow_html=True)
+        # Ouverture du conteneur unique englobant
+        st.markdown(
+            """
+            <div class="ong-card-container">
+                <div class="ong-card-header"></div>
+                <div class="ong-card-body">
+                    <div class="prop3-title-text">ONG DIEU POURVOIRA</div>
+            """,
+            unsafe_allow_html=True,
+        )
         
         with st.form("form_connexion_prop3"):
             identifiant = st.text_input("Identifiant utilisateur", placeholder="Ex: asso")
@@ -400,13 +399,14 @@ if not st.session_state["user_connected"]:
 
         st.markdown(
             """
-            <div class="prop3-footer-coords">
-                📌 <strong>Coordonnées de l'ONG</strong><br>
-                📞 <strong>Téléphone :</strong> +225 77 71 04 41 8 / 05 86 99 73 27<br>
-                ✉️ <strong>Email :</strong> dieupourvoira187@gmail.com<br>
-                📍 <strong>Adresse :</strong> 08 BP 2945 ABIDJAN 08
+                    <div class="prop3-footer-coords">
+                        📌 <strong>Coordonnées de l'ONG</strong><br>
+                        📞 <strong>Téléphone :</strong> +225 77 71 04 41 8 / 05 86 99 73 27<br>
+                        ✉️ <strong>Email :</strong> dieupourvoira187@gmail.com<br>
+                        📍 <strong>Adresse :</strong> 08 BP 2945 ABIDJAN 08
+                    </div>
+                </div>
             </div>
-            </div></div>
             """,
             unsafe_allow_html=True,
         )
