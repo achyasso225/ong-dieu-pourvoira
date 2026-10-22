@@ -26,9 +26,10 @@ def get_image_base64(path):
 banner_path = "banner_connection.png" if os.path.exists("banner_connection.png") else "banner_connexion.png"
 banner_b64 = get_image_base64(banner_path)
 
-bg_card_style = f"background-image: url('{banner_b64}'); background-size: 100% auto; background-repeat: no-repeat; background-position: top center;" if banner_b64 else "background-color: #1e1e1e;"
+# L'image recouvre maintenant 100% du conteneur de carte de connexion
+bg_card_style = f"background-image: url('{banner_b64}'); background-size: cover; background-repeat: no-repeat; background-position: center;" if banner_b64 else "background-color: #1e1e1e;"
 
-# --- INJECTION CSS STRICT - THEME SOMBRE ET LISIBILITÉ AMÉLIORÉE ---
+# --- INJECTION CSS STRICT - BANDEAU EN FOND TOTAL ---
 st.markdown(
     f"""
     <style>
@@ -38,27 +39,30 @@ st.markdown(
         color: #e0e0e0 !important;
     }}
     
-    /* INPUTS DE SAISIE SOMBRES AVEC TEXTE BLANC ET CONTRASTE MAXIMAL */
+    /* INPUTS DE SAISIE AVEC TRANSPARENCE POUR ÉCRIRE "SUR L'IMAGE" */
     div[data-baseweb="input"], div[data-baseweb="select"] {{
-        background-color: #1e1e1e !important;
-        border: 1px solid #3f3f46 !important;
+        background-color: rgba(20, 20, 20, 0.75) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
         border-radius: 8px !important;
+        backdrop-filter: blur(4px);
     }}
     div[data-baseweb="input"] input, div[data-baseweb="select"] div {{
         color: #ffffff !important;
-        background-color: #1e1e1e !important;
-        font-weight: 500 !important;
+        background-color: transparent !important;
+        font-weight: 600 !important;
     }}
     div[data-baseweb="input"]:focus-within, div[data-baseweb="select"]:focus-within {{
         border-color: #2e8b42 !important;
         box-shadow: 0 0 0 1px #2e8b42 !important;
+        background-color: rgba(10, 10, 10, 0.88) !important;
     }}
 
     label[data-testid="stWidgetLabel"], .stMarkdown p, h1, h2, h3, h4, h5, h6 {{
-        color: #f0f0f0 !important;
+        color: #ffffff !important;
+        text-shadow: 0 1px 3px rgba(0,0,0,0.8);
     }}
 
-    /* BOUTONS VERTS PRINCIPAUX */
+    /* BOUTON VERT D'ACTION */
     div.stButton > button, div[data-testid="stFormSubmitButton"] > button {{
         background-color: #2e8b42 !important;
         color: #ffffff !important;
@@ -67,7 +71,7 @@ st.markdown(
         border-radius: 8px !important;
         border: none !important;
         padding: 10px 24px !important;
-        box-shadow: 0 3px 8px rgba(46,139,66,0.3) !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
         width: 100% !important;
         transition: all 0.2s ease !important;
     }}
@@ -76,43 +80,56 @@ st.markdown(
         color: #ffffff !important;
     }}
 
-    /* CARTE DE CONNEXION AVEC BANNERE EN FOND */
+    /* CARTE DE CONNEXION AVEC L'IMAGE EN FOND TOTAL */
     .prop3-login-card {{
-        width: 420px;
+        width: 480px;
         max-width: 95%;
-        margin: 20px auto;
+        margin: 30px auto;
         border-radius: 20px;
-        box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+        box-shadow: 0 16px 40px rgba(0,0,0,0.7);
         overflow: hidden;
-        border: 1px solid #333333;
+        border: 2px solid rgba(255, 255, 255, 0.2);
         {bg_card_style}
-        padding-top: 240px;
-        padding-left: 25px;
-        padding-right: 25px;
-        padding-bottom: 20px;
-        background-color: #1a1a1a;
+        padding: 30px 25px 25px 25px;
+        position: relative;
+    }}
+
+    /* Overlay sombre léger pour assurer la lisibilité sur l'image */
+    .prop3-login-card::before {{
+        content: "";
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0, 0, 0, 0.35);
+        z-index: 0;
+    }}
+
+    .prop3-login-content {{
+        position: relative;
+        z-index: 1;
     }}
 
     .prop3-title-text {{
         text-align: center;
-        font-weight: 800;
+        font-weight: 900;
         color: #ffffff;
-        font-size: 20px;
-        margin-bottom: 15px;
-        letter-spacing: 0.5px;
+        font-size: 22px;
+        margin-bottom: 20px;
+        letter-spacing: 1px;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.9);
     }}
 
     .prop3-footer-coords {{
         text-align: center;
         padding-top: 15px;
-        margin-top: 15px;
-        border-top: 1px dashed #444444;
+        margin-top: 20px;
+        border-top: 1px dashed rgba(255, 255, 255, 0.4);
         font-size: 12px;
-        color: #b0b0b0;
+        color: #ffffff;
         line-height: 20px;
+        text-shadow: 0 1px 3px rgba(0,0,0,0.9);
     }}
 
-    /* BARRE LATÉRALE ET COMPOSANTS */
+    /* BARRE LATÉRALE ET COMPOSANTS INTERNES */
     button[aria-label*="sidebar"], [data-testid="stSidebarCollapseButton"] button {{
         background-color: #1e1e1e !important;
         border: 2px solid #2e8b42 !important;
@@ -347,13 +364,13 @@ if "current_page" not in st.session_state:
     st.session_state["current_page"] = "📊 Tableau de Bord"
 
 # ==========================================
-# --- ÉCRAN DE CONNEXION ---
+# --- ÉCRAN DE CONNEXION (IMAGE EN FOND TOTAL) ---
 # ==========================================
 if not st.session_state["user_connected"]:
-    col_c1, col_c2, col_c3 = st.columns([1, 1.8, 1])
+    col_c1, col_c2, col_c3 = st.columns([1, 2.2, 1])
 
     with col_c2:
-        st.markdown('<div class="prop3-login-card">', unsafe_allow_html=True)
+        st.markdown('<div class="prop3-login-card"><div class="prop3-login-content">', unsafe_allow_html=True)
         st.markdown('<div class="prop3-title-text">ONG DIEU POURVOIRA</div>', unsafe_allow_html=True)
         
         with st.form("form_connexion_prop3"):
@@ -389,7 +406,7 @@ if not st.session_state["user_connected"]:
                 ✉️ <strong>Email :</strong> dieupourvoira187@gmail.com<br>
                 📍 <strong>Adresse :</strong> 08 BP 2945 ABIDJAN 08
             </div>
-            </div>
+            </div></div>
             """,
             unsafe_allow_html=True,
         )
@@ -566,7 +583,7 @@ else:
                         st.error("⚠️ Veuillez renseigner le nom de l'enfant et du parent.")
 
     # ==========================================
-    # 3. MODIFIER / SUPPRIMER (RECHERCHE INTUITIVE CORRIGÉE)
+    # 3. MODIFIER / SUPPRIMER
     # ==========================================
     elif menu == "✏️ Modifier / Supprimer":
         st.subheader(f"✏️ Modifier ou Supprimer - {choix_zone_label}")
@@ -583,7 +600,6 @@ else:
             if not df_filtered_select.empty:
                 liste_membres_complets = df_filtered_select[col_membre].astype(str).tolist()
                 
-                # Si recherche active, on prend directement les résultats filtrés sans option vide
                 if recherche_edit:
                     options_select = liste_membres_complets
                 else:
@@ -772,7 +788,7 @@ else:
             st.warning("⚠️ Aucune donnée disponible.")
 
     # ==========================================
-    # 5. STOCK DES DONS (RECHERCHE INTUITIVE CORRIGÉE)
+    # 5. STOCK DES DONS
     # ==========================================
     elif menu == "📦 Stock des Dons":
         st.subheader("📦 Stock & Réception des Dons")
@@ -882,7 +898,7 @@ else:
                 st.info("Aucun stock pour le moment.")
 
     # ==========================================
-    # 6. REMISE DE DONS (RECHERCHE INTUITIVE CORRIGÉE)
+    # 6. REMISE DE DONS
     # ==========================================
     elif menu == "🎁 Remise de Dons":
         st.subheader("🎁 Attribution & Remise de Don aux Enfants")
@@ -967,7 +983,7 @@ else:
                 st.info("Aucune distribution enregistrée.")
 
     # ==========================================
-    # 7. SUIVI DES COTISATIONS (RECHERCHE INTUITIVE CORRIGÉE)
+    # 7. SUIVI DES COTISATIONS
     # ==========================================
     elif menu == "💳 Suivi Cotisations":
         st.subheader("💳 Suivi des Cotisations et Frais de Carte")
@@ -1101,7 +1117,7 @@ else:
                 st.info("Aucun paiement enregistré.")
 
     # ==========================================
-    # 8. ARTICLES & GOODIES (RECHERCHE INTUITIVE CORRIGÉE)
+    # 8. ARTICLES & GOODIES
     # ==========================================
     elif menu == "🛍️ Articles & Goodies":
         st.subheader("🛍️ Gestion des Articles, T-shirts et Goodies d'Événements")
@@ -1228,8 +1244,8 @@ else:
                                             st.rerun()
                                         except Exception as e:
                                             st.error(f"❌ Erreur : {e}")
-                                    else:
-                                        st.error("⚠️ Cochez la case de confirmation.")
+                                else:
+                                    st.error("⚠️ Cochez la case de confirmation.")
                         else:
                             st.info("ℹ️ Veuillez sélectionner un article dans la liste filtrée ci-dessus.")
                     else:
