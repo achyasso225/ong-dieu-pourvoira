@@ -16,7 +16,7 @@ st.set_page_config(
     layout="wide",
 )
 
-# --- CHARGEMENT DE L'IMAGE DE BANNÈRE / LOGO EN BASE64 ---
+# --- CHARGEMENT DE L'IMAGE DE FOND EN BASE64 ---
 def get_image_base64(path):
     if os.path.exists(path):
         with open(path, "rb") as f:
@@ -26,7 +26,9 @@ def get_image_base64(path):
 banner_path = "banner_connection.png" if os.path.exists("banner_connection.png") else "banner_connexion.png"
 banner_b64 = get_image_base64(banner_path)
 
-# --- INJECTION CSS - CARTE UNIQUE ENGLOBANTE (COMMME SUR L'IMAGE) ---
+bg_card_style = f"background-image: url('{banner_b64}'); background-size: 100% auto; background-repeat: no-repeat; background-position: top center;" if banner_b64 else "background-color: #1e1e1e;"
+
+# --- INJECTION CSS STRICT - THEME SOMBRE ET LISIBILITÉ AMÉLIORÉE ---
 st.markdown(
     f"""
     <style>
@@ -36,61 +38,15 @@ st.markdown(
         color: #e0e0e0 !important;
     }}
     
-    /* CARTE DE CONNEXION PRINCIPALE */
-    .ong-card-container {{
-        width: 440px;
-        max-width: 95%;
-        margin: 20px auto;
-        border-radius: 20px;
-        box-shadow: 0 12px 32px rgba(0,0,0,0.6);
-        overflow: hidden;
-        background-color: #1a1a1a;
-        border: 1px solid #333333;
-    }}
-
-    /* BANNIÈRE / LOGO EN HAUT DE LA CARTE */
-    .ong-card-header {{
-        width: 100%;
-        min-height: 180px;
-        background-image: url('{banner_b64}');
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-    }}
-
-    /* CORPS DE LA CARTE CONTENANT LES CHAMPS ET BOUTONS */
-    .ong-card-body {{
-        padding: 20px 25px 25px 25px;
-    }}
-
-    .prop3-title-text {{
-        text-align: center;
-        font-weight: 800;
-        color: #ffffff;
-        font-size: 20px;
-        margin-bottom: 20px;
-        letter-spacing: 0.5px;
-    }}
-
-    .prop3-footer-coords {{
-        text-align: center;
-        padding-top: 15px;
-        margin-top: 15px;
-        border-top: 1px dashed #444444;
-        font-size: 12px;
-        color: #b0b0b0;
-        line-height: 20px;
-    }}
-
-    /* INPUTS DE SAISIE AVEC BON CONTRASTE */
+    /* INPUTS DE SAISIE SOMBRES AVEC TEXTE BLANC ET CONTRASTE MAXIMAL */
     div[data-baseweb="input"], div[data-baseweb="select"] {{
-        background-color: #242424 !important;
+        background-color: #1e1e1e !important;
         border: 1px solid #3f3f46 !important;
         border-radius: 8px !important;
     }}
     div[data-baseweb="input"] input, div[data-baseweb="select"] div {{
         color: #ffffff !important;
-        background-color: transparent !important;
+        background-color: #1e1e1e !important;
         font-weight: 500 !important;
     }}
     div[data-baseweb="input"]:focus-within, div[data-baseweb="select"]:focus-within {{
@@ -102,7 +58,7 @@ st.markdown(
         color: #f0f0f0 !important;
     }}
 
-    /* BOUTON VERT D'ACTION (SE CONNECTER) */
+    /* BOUTONS VERTS PRINCIPAUX */
     div.stButton > button, div[data-testid="stFormSubmitButton"] > button {{
         background-color: #2e8b42 !important;
         color: #ffffff !important;
@@ -111,13 +67,49 @@ st.markdown(
         border-radius: 8px !important;
         border: none !important;
         padding: 10px 24px !important;
-        box-shadow: 0 4px 12px rgba(46,139,66,0.3) !important;
+        box-shadow: 0 3px 8px rgba(46,139,66,0.3) !important;
         width: 100% !important;
         transition: all 0.2s ease !important;
     }}
     div.stButton > button:hover, div[data-testid="stFormSubmitButton"] > button:hover {{
         background-color: #236f33 !important;
         color: #ffffff !important;
+    }}
+
+    /* CARTE DE CONNEXION AVEC BANNERE EN FOND */
+    .prop3-login-card {{
+        width: 420px;
+        max-width: 95%;
+        margin: 20px auto;
+        border-radius: 20px;
+        box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+        overflow: hidden;
+        border: 1px solid #333333;
+        {bg_card_style}
+        padding-top: 240px;
+        padding-left: 25px;
+        padding-right: 25px;
+        padding-bottom: 20px;
+        background-color: #1a1a1a;
+    }}
+
+    .prop3-title-text {{
+        text-align: center;
+        font-weight: 800;
+        color: #ffffff;
+        font-size: 20px;
+        margin-bottom: 15px;
+        letter-spacing: 0.5px;
+    }}
+
+    .prop3-footer-coords {{
+        text-align: center;
+        padding-top: 15px;
+        margin-top: 15px;
+        border-top: 1px dashed #444444;
+        font-size: 12px;
+        color: #b0b0b0;
+        line-height: 20px;
     }}
 
     /* BARRE LATÉRALE ET COMPOSANTS */
@@ -355,22 +347,14 @@ if "current_page" not in st.session_state:
     st.session_state["current_page"] = "📊 Tableau de Bord"
 
 # ==========================================
-# --- ÉCRAN DE CONNEXION (STRUCTURE EXACTE DE L'IMAGE) ---
+# --- ÉCRAN DE CONNEXION ---
 # ==========================================
 if not st.session_state["user_connected"]:
-    col_c1, col_c2, col_c3 = st.columns([1, 2.2, 1])
+    col_c1, col_c2, col_c3 = st.columns([1, 1.8, 1])
 
     with col_c2:
-        # Ouverture du conteneur unique englobant
-        st.markdown(
-            """
-            <div class="ong-card-container">
-                <div class="ong-card-header"></div>
-                <div class="ong-card-body">
-                    <div class="prop3-title-text">ONG DIEU POURVOIRA</div>
-            """,
-            unsafe_allow_html=True,
-        )
+        st.markdown('<div class="prop3-login-card">', unsafe_allow_html=True)
+        st.markdown('<div class="prop3-title-text">ONG DIEU POURVOIRA</div>', unsafe_allow_html=True)
         
         with st.form("form_connexion_prop3"):
             identifiant = st.text_input("Identifiant utilisateur", placeholder="Ex: asso")
@@ -399,13 +383,12 @@ if not st.session_state["user_connected"]:
 
         st.markdown(
             """
-                    <div class="prop3-footer-coords">
-                        📌 <strong>Coordonnées de l'ONG</strong><br>
-                        📞 <strong>Téléphone :</strong> +225 77 71 04 41 8 / 05 86 99 73 27<br>
-                        ✉️ <strong>Email :</strong> dieupourvoira187@gmail.com<br>
-                        📍 <strong>Adresse :</strong> 08 BP 2945 ABIDJAN 08
-                    </div>
-                </div>
+            <div class="prop3-footer-coords">
+                📌 <strong>Coordonnées de l'ONG</strong><br>
+                📞 <strong>Téléphone :</strong> +225 77 71 04 41 8 / 05 86 99 73 27<br>
+                ✉️ <strong>Email :</strong> dieupourvoira187@gmail.com<br>
+                📍 <strong>Adresse :</strong> 08 BP 2945 ABIDJAN 08
+            </div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -583,7 +566,7 @@ else:
                         st.error("⚠️ Veuillez renseigner le nom de l'enfant et du parent.")
 
     # ==========================================
-    # 3. MODIFIER / SUPPRIMER
+    # 3. MODIFIER / SUPPRIMER (RECHERCHE INTUITIVE CORRIGÉE)
     # ==========================================
     elif menu == "✏️ Modifier / Supprimer":
         st.subheader(f"✏️ Modifier ou Supprimer - {choix_zone_label}")
@@ -599,15 +582,20 @@ else:
 
             if not df_filtered_select.empty:
                 liste_membres_complets = df_filtered_select[col_membre].astype(str).tolist()
-                options_select = ["-- Sélectionnez un membre dans la liste --"] + liste_membres_complets
+                
+                # Si recherche active, on prend directement les résultats filtrés sans option vide
+                if recherche_edit:
+                    options_select = liste_membres_complets
+                else:
+                    options_select = ["-- Sélectionnez un membre dans la liste --"] + liste_membres_complets
 
                 choix_membre = st.selectbox(
-                    "Sélectionner le membre (tapez directement au clavier pour filtrer)", 
+                    "Sélectionner le membre (résultats filtrés automatiquement)", 
                     options_select, 
-                    format_func=lambda m: m if m == "-- Sélectionnez un membre dans la liste --" else f"{m} - {df_filtered_select[df_filtered_select[col_membre].astype(str) == m][col_enfant].values[0]} ({df_filtered_select[df_filtered_select[col_membre].astype(str) == m][col_parent].values[0]})" if col_enfant in df_filtered_select.columns else m
+                    format_func=lambda m: m if m.startswith("--") else f"{m} - {df_filtered_select[df_filtered_select[col_membre].astype(str) == m][col_enfant].values[0]} ({df_filtered_select[df_filtered_select[col_membre].astype(str) == m][col_parent].values[0]})" if col_enfant in df_filtered_select.columns else m
                 )
 
-                if choix_membre != "-- Sélectionnez un membre dans la liste --":
+                if choix_membre and not choix_membre.startswith("--"):
                     membre_actuel = df[df[col_membre].astype(str) == choix_membre].iloc[0]
 
                     st.markdown("---")
@@ -659,7 +647,7 @@ else:
                                 else:
                                     st.error("⚠️ Cochez la case de confirmation.")
                 else:
-                    st.info("ℹ️ Veuillez sélectionner un membre dans la liste déroulante ci-dessus.")
+                    st.info("ℹ️ Veuillez sélectionner un membre dans la liste filtrée ci-dessus.")
             else:
                 st.warning("⚠️ Aucun membre ne correspond à votre recherche.")
         else:
@@ -784,7 +772,7 @@ else:
             st.warning("⚠️ Aucune donnée disponible.")
 
     # ==========================================
-    # 5. STOCK DES DONS
+    # 5. STOCK DES DONS (RECHERCHE INTUITIVE CORRIGÉE)
     # ==========================================
     elif menu == "📦 Stock des Dons":
         st.subheader("📦 Stock & Réception des Dons")
@@ -828,48 +816,58 @@ else:
                         df_stock_filtered = df_stock
 
                     if not df_stock_filtered.empty:
-                        choix_id_don = st.selectbox(
-                            "Sélectionner le Don à modifier/supprimer (tapez pour filtrer)", 
-                            df_stock_filtered["ID_Don"].astype(str).tolist(), 
-                            format_func=lambda d: f"{d} - {df_stock_filtered[df_stock_filtered['ID_Don'].astype(str) == d]['Designation'].values[0]}"
-                        )
-                        don_ligne = df_stock[df_stock["ID_Don"].astype(str) == choix_id_don].iloc[0]
-
-                        action_stock = st.radio("Action sur ce stock", ["Modifier", "Supprimer définitivement"], horizontal=True)
-                        if action_stock == "Modifier":
-                            with st.form("form_modif_stock"):
-                                nouveau_des = st.text_input("Désignation", value=str(don_ligne.get("Designation", ""))).upper()
-                                nouv_stock_act = st.number_input("Stock Actuel", min_value=0, value=safe_int_convert(don_ligne.get("Stock_Actuel", 0)))
-                                nouv_valeur = st.number_input("Valeur (FCFA)", min_value=0, value=safe_int_convert(don_ligne.get("Valeur_Estimee", 0)))
-
-                                if st.form_submit_button("💾 Mettre à jour le stock"):
-                                    try:
-                                        ws_stock = spreadsheet.worksheet("Dons_Stock")
-                                        cell = ws_stock.find(str(choix_id_don))
-                                        row_idx = cell.row
-                                        ws_stock.update_cell(row_idx, 4, nouveau_des)
-                                        ws_stock.update_cell(row_idx, 6, int(nouv_stock_act))
-                                        ws_stock.update_cell(row_idx, 7, int(nouv_valeur))
-                                        st.cache_data.clear()
-                                        st.session_state["toast_msg"] = f"✅ Don {choix_id_don} mis à jour avec succès !"
-                                        st.rerun()
-                                    except Exception as e:
-                                        st.error(f"❌ Erreur : {e}")
+                        liste_dons_f = df_stock_filtered["ID_Don"].astype(str).tolist()
+                        if recherche_stock_mod:
+                            options_dons = liste_dons_f
                         else:
-                            conf_sup = st.checkbox("Je confirme la suppression de ce don")
-                            if st.button("🗑️ Supprimer définitivement du stock", type="primary"):
-                                if conf_sup:
-                                    try:
-                                        ws_stock = spreadsheet.worksheet("Dons_Stock")
-                                        cell = ws_stock.find(str(choix_id_don))
-                                        ws_stock.delete_rows(cell.row)
-                                        st.cache_data.clear()
-                                        st.session_state["toast_msg"] = f"✅ Don {choix_id_don} supprimé !"
-                                        st.rerun()
-                                    except Exception as e:
-                                        st.error(f"❌ Erreur : {e}")
-                                else:
-                                    st.error("⚠️ Veuillez cocher la case de confirmation.")
+                            options_dons = ["-- Sélectionnez un don --"] + liste_dons_f
+
+                        choix_id_don = st.selectbox(
+                            "Sélectionner le Don à modifier/supprimer", 
+                            options_dons, 
+                            format_func=lambda d: d if d.startswith("--") else f"{d} - {df_stock_filtered[df_stock_filtered['ID_Don'].astype(str) == d]['Designation'].values[0]}"
+                        )
+
+                        if choix_id_don and not choix_id_don.startswith("--"):
+                            don_ligne = df_stock[df_stock["ID_Don"].astype(str) == choix_id_don].iloc[0]
+
+                            action_stock = st.radio("Action sur ce stock", ["Modifier", "Supprimer définitivement"], horizontal=True)
+                            if action_stock == "Modifier":
+                                with st.form("form_modif_stock"):
+                                    nouveau_des = st.text_input("Désignation", value=str(don_ligne.get("Designation", ""))).upper()
+                                    nouv_stock_act = st.number_input("Stock Actuel", min_value=0, value=safe_int_convert(don_ligne.get("Stock_Actuel", 0)))
+                                    nouv_valeur = st.number_input("Valeur (FCFA)", min_value=0, value=safe_int_convert(don_ligne.get("Valeur_Estimee", 0)))
+
+                                    if st.form_submit_button("💾 Mettre à jour le stock"):
+                                        try:
+                                            ws_stock = spreadsheet.worksheet("Dons_Stock")
+                                            cell = ws_stock.find(str(choix_id_don))
+                                            row_idx = cell.row
+                                            ws_stock.update_cell(row_idx, 4, nouveau_des)
+                                            ws_stock.update_cell(row_idx, 6, int(nouv_stock_act))
+                                            ws_stock.update_cell(row_idx, 7, int(nouv_valeur))
+                                            st.cache_data.clear()
+                                            st.session_state["toast_msg"] = f"✅ Don {choix_id_don} mis à jour avec succès !"
+                                            st.rerun()
+                                        except Exception as e:
+                                            st.error(f"❌ Erreur : {e}")
+                            else:
+                                conf_sup = st.checkbox("Je confirme la suppression de ce don")
+                                if st.button("🗑️ Supprimer définitivement du stock", type="primary"):
+                                    if conf_sup:
+                                        try:
+                                            ws_stock = spreadsheet.worksheet("Dons_Stock")
+                                            cell = ws_stock.find(str(choix_id_don))
+                                            ws_stock.delete_rows(cell.row)
+                                            st.cache_data.clear()
+                                            st.session_state["toast_msg"] = f"✅ Don {choix_id_don} supprimé !"
+                                            st.rerun()
+                                        except Exception as e:
+                                            st.error(f"❌ Erreur : {e}")
+                                    else:
+                                        st.error("⚠️ Veuillez cocher la case de confirmation.")
+                        else:
+                            st.info("ℹ️ Veuillez sélectionner un don dans la liste filtrée ci-dessus.")
                     else:
                         st.warning("⚠️ Aucun don ne correspond à votre recherche.")
             else:
@@ -884,7 +882,7 @@ else:
                 st.info("Aucun stock pour le moment.")
 
     # ==========================================
-    # 6. REMISE DE DONS
+    # 6. REMISE DE DONS (RECHERCHE INTUITIVE CORRIGÉE)
     # ==========================================
     elif menu == "🎁 Remise de Dons":
         st.subheader("🎁 Attribution & Remise de Don aux Enfants")
@@ -969,7 +967,7 @@ else:
                 st.info("Aucune distribution enregistrée.")
 
     # ==========================================
-    # 7. SUIVI DES COTISATIONS
+    # 7. SUIVI DES COTISATIONS (RECHERCHE INTUITIVE CORRIGÉE)
     # ==========================================
     elif menu == "💳 Suivi Cotisations":
         st.subheader("💳 Suivi des Cotisations et Frais de Carte")
@@ -1044,56 +1042,66 @@ else:
                         df_cotiz_f = df_cotiz
 
                     if not df_cotiz_f.empty:
-                        choix_id_cotiz = st.selectbox(
-                            "Sélectionner le paiement à modifier/supprimer (tapez pour filtrer)", 
-                            df_cotiz_f["ID_Cotiz"].astype(str).tolist(), 
-                            format_func=lambda c: f"{c} - {df_cotiz_f[df_cotiz_f['ID_Cotiz'].astype(str) == c]['Nom_Enfant'].values[0]} ({df_cotiz_f[df_cotiz_f['ID_Cotiz'].astype(str) == c]['Montant_Verse'].values[0]} FCFA)"
-                        )
-                        cotiz_ligne = df_cotiz[df_cotiz["ID_Cotiz"].astype(str) == choix_id_cotiz].iloc[0]
-
-                        action_cotiz = st.radio("Action", ["Modifier", "Supprimer définitivement"], horizontal=True, key="radio_act_cotiz")
-
-                        if action_cotiz == "Modifier":
-                            with st.form("form_modif_cotiz"):
-                                nouveau_montant = st.number_input("Montant versé (FCFA)", min_value=0, value=safe_int_convert(cotiz_ligne.get("Montant_Verse", 0)))
-                                nouveau_statut = st.selectbox("Statut", ["Payé en totalité", "Avance / Partiel"], index=0 if str(cotiz_ligne.get("Statut", "")).startswith("Payé") else 1)
-                                nouveau_comm = st.text_input("Commentaire", value=str(cotiz_ligne.get("Commentaire", "")))
-
-                                if st.form_submit_button("💾 Mettre à jour le paiement"):
-                                    try:
-                                        ws_cotiz = spreadsheet.worksheet("Cotisations")
-                                        cell = ws_cotiz.find(str(choix_id_cotiz))
-                                        row_idx = cell.row
-                                        ws_cotiz.update_cell(row_idx, 7, int(nouveau_montant))
-                                        ws_cotiz.update_cell(row_idx, 8, nouveau_statut)
-                                        ws_cotiz.update_cell(row_idx, 9, nouveau_comm)
-                                        st.cache_data.clear()
-                                        st.session_state["toast_msg"] = f"✅ Paiement {choix_id_cotiz} mis à jour !"
-                                        st.rerun()
-                                    except Exception as e:
-                                        st.error(f"❌ Erreur : {e}")
+                        liste_cotiz_f = df_cotiz_f["ID_Cotiz"].astype(str).tolist()
+                        if recherche_cotiz_mod:
+                            options_cotiz = liste_cotiz_f
                         else:
-                            conf_sup_c = st.checkbox("Je confirme la suppression", key="chk_sup_cot")
-                            if st.button("🗑️ Supprimer ce paiement", type="primary"):
-                                if conf_sup_c:
-                                    try:
-                                        ws_cotiz = spreadsheet.worksheet("Cotisations")
-                                        cell = ws_cotiz.find(str(choix_id_cotiz))
-                                        ws_cotiz.delete_rows(cell.row)
-                                        st.cache_data.clear()
-                                        st.session_state["toast_msg"] = f"✅ Paiement {choix_id_cotiz} supprimé !"
-                                        st.rerun()
-                                    except Exception as e:
-                                        st.error(f"❌ Erreur : {e}")
-                                else:
-                                    st.error("⚠️ Cochez la case de confirmation.")
+                            options_cotiz = ["-- Sélectionnez un paiement --"] + liste_cotiz_f
+
+                        choix_id_cotiz = st.selectbox(
+                            "Sélectionner le paiement à modifier/supprimer", 
+                            options_cotiz, 
+                            format_func=lambda c: c if c.startswith("--") else f"{c} - {df_cotiz_f[df_cotiz_f['ID_Cotiz'].astype(str) == c]['Nom_Enfant'].values[0]} ({df_cotiz_f[df_cotiz_f['ID_Cotiz'].astype(str) == c]['Montant_Verse'].values[0]} FCFA)"
+                        )
+
+                        if choix_id_cotiz and not choix_id_cotiz.startswith("--"):
+                            cotiz_ligne = df_cotiz[df_cotiz["ID_Cotiz"].astype(str) == choix_id_cotiz].iloc[0]
+
+                            action_cotiz = st.radio("Action", ["Modifier", "Supprimer définitivement"], horizontal=True, key="radio_act_cotiz")
+
+                            if action_cotiz == "Modifier":
+                                with st.form("form_modif_cotiz"):
+                                    nouveau_montant = st.number_input("Montant versé (FCFA)", min_value=0, value=safe_int_convert(cotiz_ligne.get("Montant_Verse", 0)))
+                                    nouveau_statut = st.selectbox("Statut", ["Payé en totalité", "Avance / Partiel"], index=0 if str(cotiz_ligne.get("Statut", "")).startswith("Payé") else 1)
+                                    nouveau_comm = st.text_input("Commentaire", value=str(cotiz_ligne.get("Commentaire", "")))
+
+                                    if st.form_submit_button("💾 Mettre à jour le paiement"):
+                                        try:
+                                            ws_cotiz = spreadsheet.worksheet("Cotisations")
+                                            cell = ws_cotiz.find(str(choix_id_cotiz))
+                                            row_idx = cell.row
+                                            ws_cotiz.update_cell(row_idx, 7, int(nouveau_montant))
+                                            ws_cotiz.update_cell(row_idx, 8, nouveau_statut)
+                                            ws_cotiz.update_cell(row_idx, 9, nouveau_comm)
+                                            st.cache_data.clear()
+                                            st.session_state["toast_msg"] = f"✅ Paiement {choix_id_cotiz} mis à jour !"
+                                            st.rerun()
+                                        except Exception as e:
+                                            st.error(f"❌ Erreur : {e}")
+                            else:
+                                conf_sup_c = st.checkbox("Je confirme la suppression", key="chk_sup_cot")
+                                if st.button("🗑️ Supprimer ce paiement", type="primary"):
+                                    if conf_sup_c:
+                                        try:
+                                            ws_cotiz = spreadsheet.worksheet("Cotisations")
+                                            cell = ws_cotiz.find(str(choix_id_cotiz))
+                                            ws_cotiz.delete_rows(cell.row)
+                                            st.cache_data.clear()
+                                            st.session_state["toast_msg"] = f"✅ Paiement {choix_id_cotiz} supprimé !"
+                                            st.rerun()
+                                        except Exception as e:
+                                            st.error(f"❌ Erreur : {e}")
+                                    else:
+                                        st.error("⚠️ Cochez la case de confirmation.")
+                        else:
+                            st.info("ℹ️ Veuillez sélectionner un paiement dans la liste filtrée ci-dessus.")
                     else:
                         st.warning("⚠️ Aucun paiement trouvé.")
             else:
                 st.info("Aucun paiement enregistré.")
 
     # ==========================================
-    # 8. ARTICLES & GOODIES
+    # 8. ARTICLES & GOODIES (RECHERCHE INTUITIVE CORRIGÉE)
     # ==========================================
     elif menu == "🛍️ Articles & Goodies":
         st.subheader("🛍️ Gestion des Articles, T-shirts et Goodies d'Événements")
@@ -1167,53 +1175,63 @@ else:
                         df_articles_f = df_articles
 
                     if not df_articles_f.empty:
-                        choix_id_art = st.selectbox(
-                            "Sélectionner l'article (tapez pour filtrer)", 
-                            df_articles_f["ID_Art"].astype(str).tolist(), 
-                            format_func=lambda a: f"{a} - {df_articles_f[df_articles_f['ID_Art'].astype(str) == a]['Nom_Article'].values[0]}"
-                        )
-                        art_ligne = df_articles[df_articles["ID_Art"].astype(str) == choix_id_art].iloc[0]
-
-                        action_art = st.radio("Action", ["Modifier", "Supprimer définitivement"], horizontal=True, key="radio_act_art")
-
-                        if action_art == "Modifier":
-                            with st.form("form_modif_art"):
-                                nouveau_nom_art = st.text_input("Nom de l'article", value=str(art_ligne.get("Nom_Article", ""))).upper()
-                                nouvelle_qte = st.number_input("Quantité", min_value=1, value=safe_int_convert(art_ligne.get("Quantite", 1), default=1))
-                                nouveau_montant_art = st.number_input("Montant Total (FCFA)", min_value=0, value=safe_int_convert(art_ligne.get("Montant_Total", 0)))
-                                nouveau_stat_reg = st.selectbox("Statut paiement", ["Payé", "Avance", "Impayé"])
-                                nouveau_stat_liv = st.selectbox("Statut remise", ["Livré / Remis", "En attente de retrait"])
-
-                                if st.form_submit_button("💾 Mettre à jour"):
-                                    try:
-                                        ws_art = spreadsheet.worksheet("Articles_Evenements")
-                                        cell = ws_art.find(str(choix_id_art))
-                                        row_idx = cell.row
-                                        ws_art.update_cell(row_idx, 6, nouveau_nom_art)
-                                        ws_art.update_cell(row_idx, 7, int(nouvelle_qte))
-                                        ws_art.update_cell(row_idx, 8, int(nouveau_montant_art))
-                                        ws_art.update_cell(row_idx, 9, nouveau_stat_reg)
-                                        ws_art.update_cell(row_idx, 10, nouveau_stat_liv)
-                                        st.cache_data.clear()
-                                        st.session_state["toast_msg"] = f"✅ Article {choix_id_art} mis à jour !"
-                                        st.rerun()
-                                    except Exception as e:
-                                        st.error(f"❌ Erreur : {e}")
+                        liste_art_f = df_articles_f["ID_Art"].astype(str).tolist()
+                        if recherche_art_mod:
+                            options_art = liste_art_f
                         else:
-                            conf_sup_a = st.checkbox("Je confirme la suppression", key="chk_sup_art")
-                            if st.button("🗑️ Supprimer l'article", type="primary"):
-                                if conf_sup_a:
-                                    try:
-                                        ws_art = spreadsheet.worksheet("Articles_Evenements")
-                                        cell = ws_art.find(str(choix_id_art))
-                                        ws_art.delete_rows(cell.row)
-                                        st.cache_data.clear()
-                                        st.session_state["toast_msg"] = f"✅ Article {choix_id_art} supprimé !"
-                                        st.rerun()
-                                    except Exception as e:
-                                        st.error(f"❌ Erreur : {e}")
-                                else:
-                                    st.error("⚠️ Cochez la case de confirmation.")
+                            options_art = ["-- Sélectionnez un article --"] + liste_art_f
+
+                        choix_id_art = st.selectbox(
+                            "Sélectionner l'article", 
+                            options_art, 
+                            format_func=lambda a: a if a.startswith("--") else f"{a} - {df_articles_f[df_articles_f['ID_Art'].astype(str) == a]['Nom_Article'].values[0]}"
+                        )
+
+                        if choix_id_art and not choix_id_art.startswith("--"):
+                            art_ligne = df_articles[df_articles["ID_Art"].astype(str) == choix_id_art].iloc[0]
+
+                            action_art = st.radio("Action", ["Modifier", "Supprimer définitivement"], horizontal=True, key="radio_act_art")
+
+                            if action_art == "Modifier":
+                                with st.form("form_modif_art"):
+                                    nouveau_nom_art = st.text_input("Nom de l'article", value=str(art_ligne.get("Nom_Article", ""))).upper()
+                                    nouvelle_qte = st.number_input("Quantité", min_value=1, value=safe_int_convert(art_ligne.get("Quantite", 1), default=1))
+                                    nouveau_montant_art = st.number_input("Montant Total (FCFA)", min_value=0, value=safe_int_convert(art_ligne.get("Montant_Total", 0)))
+                                    nouveau_stat_reg = st.selectbox("Statut paiement", ["Payé", "Avance", "Impayé"])
+                                    nouveau_stat_liv = st.selectbox("Statut remise", ["Livré / Remis", "En attente de retrait"])
+
+                                    if st.form_submit_button("💾 Mettre à jour"):
+                                        try:
+                                            ws_art = spreadsheet.worksheet("Articles_Evenements")
+                                            cell = ws_art.find(str(choix_id_art))
+                                            row_idx = cell.row
+                                            ws_art.update_cell(row_idx, 6, nouveau_nom_art)
+                                            ws_art.update_cell(row_idx, 7, int(nouvelle_qte))
+                                            ws_art.update_cell(row_idx, 8, int(nouveau_montant_art))
+                                            ws_art.update_cell(row_idx, 9, nouveau_stat_reg)
+                                            ws_art.update_cell(row_idx, 10, nouveau_stat_liv)
+                                            st.cache_data.clear()
+                                            st.session_state["toast_msg"] = f"✅ Article {choix_id_art} mis à jour !"
+                                            st.rerun()
+                                        except Exception as e:
+                                            st.error(f"❌ Erreur : {e}")
+                            else:
+                                conf_sup_a = st.checkbox("Je confirme la suppression", key="chk_sup_art")
+                                if st.button("🗑️ Supprimer l'article", type="primary"):
+                                    if conf_sup_a:
+                                        try:
+                                            ws_art = spreadsheet.worksheet("Articles_Evenements")
+                                            cell = ws_art.find(str(choix_id_art))
+                                            ws_art.delete_rows(cell.row)
+                                            st.cache_data.clear()
+                                            st.session_state["toast_msg"] = f"✅ Article {choix_id_art} supprimé !"
+                                            st.rerun()
+                                        except Exception as e:
+                                            st.error(f"❌ Erreur : {e}")
+                                    else:
+                                        st.error("⚠️ Cochez la case de confirmation.")
+                        else:
+                            st.info("ℹ️ Veuillez sélectionner un article dans la liste filtrée ci-dessus.")
                     else:
                         st.warning("⚠️ Aucun article trouvé.")
             else:
