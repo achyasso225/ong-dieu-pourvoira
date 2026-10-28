@@ -28,7 +28,7 @@ banner_b64 = get_image_base64(banner_path)
 
 bg_card_style = f"background-image: url('{banner_b64}'); background-size: 100% auto; background-repeat: no-repeat; background-position: top center;" if banner_b64 else "background-color: #1e1e1e;"
 
-# --- INJECTION CSS STRICT - THEME SOMBRE ET LISIBILITÉ AMÉLIORÉE ---
+# --- INJECTION CSS STRICT - THEME SOMBRE ET PROFIL MEMBRE ---
 st.markdown(
     f"""
     <style>
@@ -72,6 +72,25 @@ st.markdown(
         transition: all 0.2s ease !important;
     }}
     div.stButton > button:hover, div[data-testid="stFormSubmitButton"] > button:hover {{
+        background-color: #236f33 !important;
+        color: #ffffff !important;
+    }}
+
+    /* BOUTONS PROFIL PLUS PETITS */
+    .btn-profil-small {{
+        background-color: #2e8b42 !important;
+        color: #ffffff !important;
+        font-size: 12px !important;
+        font-weight: bold !important;
+        padding: 4px 10px !important;
+        border-radius: 6px !important;
+        border: none !important;
+        width: auto !important;
+        min-width: 90px !important;
+        cursor: pointer !important;
+        transition: all 0.2s ease !important;
+    }}
+    .btn-profil-small:hover {{
         background-color: #236f33 !important;
         color: #ffffff !important;
     }}
@@ -158,6 +177,91 @@ st.markdown(
         border: 1px solid #2d2d2d !important;
         border-radius: 10px;
         padding: 15px;
+    }}
+
+    /* CARTE PROFIL MEMBRE */
+    .profile-header {{
+        background: linear-gradient(135deg, #1b4332 0%, #2e8b42 50%, #4ade80 100%);
+        border-radius: 16px 16px 0 0;
+        padding: 25px 20px;
+        color: white;
+        text-align: center;
+        position: relative;
+    }}
+    .profile-header h2 {{
+        margin: 0;
+        font-size: 22px;
+        font-weight: 800;
+        color: #ffffff !important;
+    }}
+    .profile-header p {{
+        margin: 5px 0 0 0;
+        font-size: 14px;
+        color: #e2e8f0 !important;
+    }}
+    .profile-body {{
+        background-color: #1e1e1e;
+        border-radius: 0 0 16px 16px;
+        padding: 20px;
+        border: 1px solid #333;
+        border-top: none;
+    }}
+    .profile-field {{
+        display: flex;
+        padding: 8px 0;
+        border-bottom: 1px solid #2a2a2a;
+    }}
+    .profile-field:last-child {{
+        border-bottom: none;
+    }}
+    .profile-label {{
+        min-width: 200px;
+        font-weight: bold;
+        color: #4ade80;
+        font-size: 13px;
+    }}
+    .profile-value {{
+        flex: 1;
+        color: #f0f0f0;
+        font-size: 14px;
+    }}
+    .profile-badge {{
+        display: inline-block;
+        padding: 3px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: bold;
+    }}
+    .badge-ok {{
+        background-color: #2e8b42;
+        color: white;
+    }}
+    .badge-attente {{
+        background-color: #ca8a04;
+        color: white;
+    }}
+    .badge-interieur {{
+        background-color: #6366f1;
+        color: white;
+    }}
+    .profile-close-btn {{
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        background: rgba(0,0,0,0.3);
+        border: none;
+        color: white;
+        font-size: 20px;
+        cursor: pointer;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }}
+    .profile-close-btn:hover {{
+        background: rgba(0,0,0,0.6);
     }}
     </style>
 """,
@@ -345,6 +449,8 @@ if "user_connected" not in st.session_state:
     st.session_state["user_info"] = None
 if "current_page" not in st.session_state:
     st.session_state["current_page"] = "📊 Tableau de Bord"
+if "selected_member_profile" not in st.session_state:
+    st.session_state["selected_member_profile"] = None
 
 # ==========================================
 # --- ÉCRAN DE CONNEXION ---
@@ -583,7 +689,6 @@ else:
             if not df_filtered_select.empty:
                 liste_membres_complets = df_filtered_select[col_membre].astype(str).tolist()
                 
-                # Si recherche active, on prend directement les résultats filtrés sans option vide
                 if recherche_edit:
                     options_select = liste_membres_complets
                 else:
@@ -654,7 +759,7 @@ else:
             st.info("Aucun membre disponible.")
 
     # ==========================================
-    # 4. LISTE & REPERTOIRE + CARTES
+    # 4. LISTE & REPERTOIRE + CARTES + PROFIL MEMBRE (AMÉLIORÉ)
     # ==========================================
     elif menu == "📋 Liste & Répertoire":
         st.subheader(f"📋 Répertoire & Cartes - {choix_zone_label}")
@@ -684,10 +789,55 @@ else:
                     fin = min(debut + lignes_par_page, total_lignes)
                     df_page = df_affiche.iloc[debut:fin]
 
+                    # --- TABLEAU AVEC BOUTONS PROFIL ---
+                    cols_affichage = [c for c in df_page.columns if c != "Zone_Geographique"]
+                    
+                    # Créer un DataFrame modifié avec une colonne Profil en premier
+                    import pandas as pd
+                    df_page_display = df_page[cols_affichage].copy()
+                    
+                    # Préparer les données pour affichage avec boutons
+                    data_rows = []
+                    btns = []
+                    for idx, row in df_page_display.iterrows():
+                        matricule_val = row.get(col_membre, "")
+                        # On ajoute le numéro de ligne pour le bouton
+                        data_rows.append(row.to_dict())
+                    
+                    # Afficher le tableau principal
                     with st.container(border=True):
-                        cols_affichage = [c for c in df_page.columns if c != "Zone_Geographique"]
-                        st.dataframe(df_page[cols_affichage], use_container_width=True)
+                        st.dataframe(df_page_display, use_container_width=True, height=400)
 
+                    # --- BOUTONS "VOIR PROFIL" DEVANT CHAQUE LIGNE ---
+                    st.markdown("##### 👁️ Voir le Profil Détaillé")
+                    cols_profil_1, cols_profil_2 = st.columns([0.8, 0.2])
+                    
+                    # Créer des lignes avec boutons
+                    for i, (idx, row) in enumerate(df_page_display.iterrows()):
+                        # Calcule la colonne (chaque ligne prend 2 colonnes dans le layout)
+                        col_data, col_btn = st.columns([3, 1])
+                        
+                        matricule_val = str(row.get(col_membre, ""))
+                        enfant_val = str(row.get(col_enfant, ""))
+                        
+                        with col_data:
+                            # Affiche le résumé du membre
+                            st.markdown(f"""
+                                <div style="padding: 6px 12px; background-color: #27272a; border-radius: 8px; margin-bottom: 4px; border: 1px solid #3f3f46;">
+                                    <span style="font-weight: bold; color: #4ade80;">{matricule_val}</span> 
+                                    &nbsp;|&nbsp; 
+                                    <span style="color: #e0e0e0;">{enfant_val}</span>
+                                </div>
+                            """, unsafe_allow_html=True)
+                        
+                        with col_btn:
+                            if st.button("👁️ Voir profil", key=f"profil_{matricule_val}_{i}", use_container_width=True):
+                                st.session_state["selected_member_profile"] = matricule_val
+                                st.rerun()
+
+                    st.markdown("---")
+
+                    # --- EXPORT EXCEL ---
                     output = BytesIO()
                     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
                         df_affiche.to_excel(writer, index=False, sheet_name="Membres")
@@ -701,6 +851,202 @@ else:
                     )
                 else:
                     st.warning("⚠️ Aucun membre ne correspond à votre recherche.")
+
+            # --- VUE PROFIL DÉTAILLÉE ---
+            if st.session_state.get("selected_member_profile"):
+                st.markdown("---")
+                
+                # Vérifier si le membre existe dans df_f
+                matricule_sélectionné = st.session_state["selected_member_profile"]
+                membre_profil = df_f[df_f[col_membre].astype(str) == matricule_sélectionné]
+                
+                if not membre_profil.empty:
+                    membre = membre_profil.iloc[0]
+
+                    # En-tête du profil avec HTML personnalisé
+                    st.markdown(f"""
+                        <div class="profile-header">
+                            <button class="profile-close-btn" onclick="this.parentElement.parentElement.style.display='none';">×</button>
+                            <h2>👤 PROFIL DU MEMBRE</h2>
+                            <p>ONG DIEU POURVOIRA - Fiche Complète</p>
+                        </div>
+                    """, unsafe_allow_html=True)
+
+                    with st.container():
+                        st.markdown('<div class="profile-body">', unsafe_allow_html=True)
+
+                        # Colonne gauche : Infos de base
+                        col_info_gauche, col_info_droite = st.columns(2)
+
+                        with col_info_gauche:
+                            st.markdown("##### 🧒 Informations de l'enfant")
+                            
+                            # Numéro du membre
+                            st.markdown(f"""
+                                <div class="profile-field">
+                                    <div class="profile-label">📌 N° Membre :</div>
+                                    <div class="profile-value" style="color: #4ade80; font-weight: bold; font-size: 16px;">
+                                        {membre.get(col_membre, 'N/A')}
+                                    </div>
+                                </div>
+                            """, unsafe_allow_html=True)
+
+                            # Nom et prénom
+                            st.markdown(f"""
+                                <div class="profile-field">
+                                    <div class="profile-label">👤 Nom et Prénom :</div>
+                                    <div class="profile-value">{membre.get(col_enfant, 'N/A')}</div>
+                                </div>
+                            """, unsafe_allow_html=True)
+
+                            # Date de naissance
+                            st.markdown(f"""
+                                <div class="profile-field">
+                                    <div class="profile-label">📅 Date de naissance :</div>
+                                    <div class="profile-value">{membre.get(col_date, 'N/A')}</div>
+                                </div>
+                            """, unsafe_allow_html=True)
+
+                            # Sexe
+                            sexe_val = str(membre.get(col_sexe, 'N/A')).upper()
+                            sexe_icone = "👦 Garçon" if sexe_val == "M" else "👧 Fille" if sexe_val == "F" else "N/A"
+                            st.markdown(f"""
+                                <div class="profile-field">
+                                    <div class="profile-label">⚧ Sexe :</div>
+                                    <div class="profile-value">{sexe_icone}</div>
+                                </div>
+                            """, unsafe_allow_html=True)
+
+                            # Ville et Zone
+                            st.markdown(f"""
+                                <div class="profile-field">
+                                    <div class="profile-label">🏙️ Ville :</div>
+                                    <div class="profile-value">{membre.get(col_ville, 'N/A')}</div>
+                                </div>
+                            """, unsafe_allow_html=True)
+
+                            zone_val = membre.get("Zone_Geographique", "N/A")
+                            zone_badge_class = "badge-interieur" if "Intérieur" in str(zone_val) else "badge-ok"
+                            st.markdown(f"""
+                                <div class="profile-field">
+                                    <div class="profile-label">🗺️ Zone :</div>
+                                    <div class="profile-value">
+                                        <span class="profile-badge {zone_badge_class}">{zone_val}</span>
+                                    </div>
+                                </div>
+                            """, unsafe_allow_html=True)
+
+                        with col_info_droite:
+                            st.markdown("##### 👨‍👩‍👧 Informations du parent")
+                            
+                            # Parent
+                            st.markdown(f"""
+                                <div class="profile-field">
+                                    <div class="profile-label">👨‍👩‍👧 Parent :</div>
+                                    <div class="profile-value">{membre.get(col_parent, 'N/A')}</div>
+                                </div>
+                            """, unsafe_allow_html=True)
+
+                            # Téléphone
+                            st.markdown(f"""
+                                <div class="profile-field">
+                                    <div class="profile-label">📞 Téléphone :</div>
+                                    <div class="profile-value">{membre.get(col_tel, 'N/A')}</div>
+                                </div>
+                            """, unsafe_allow_html=True)
+
+                            # Adhésion
+                            adh_val = str(membre.get(col_adh, 'N/A')).upper()
+                            adh_badge = "badge-ok" if "OK" in adh_val else "badge-attente"
+                            st.markdown(f"""
+                                <div class="profile-field">
+                                    <div class="profile-label">✅ Adhésion :</div>
+                                    <div class="profile-value">
+                                        <span class="profile-badge {adh_badge}">{adh_val}</span>
+                                    </div>
+                                </div>
+                            """, unsafe_allow_html=True)
+
+                            # Date d'enregistrement
+                            col_date_enr = df.columns[8] if len(df.columns) > 8 else None
+                            if col_date_enr:
+                                st.markdown(f"""
+                                    <div class="profile-field">
+                                        <div class="profile-label">📅 Date d'adhésion :</div>
+                                        <div class="profile-value">{membre.get(col_date_enr, 'N/A')}</div>
+                                    </div>
+                                """, unsafe_allow_html=True)
+
+                            # Enregistré par
+                            col_enregistré_par = df.columns[9] if len(df.columns) > 9 else None
+                            if col_enregistré_par:
+                                st.markdown(f"""
+                                    <div class="profile-field">
+                                        <div class="profile-label">👤 Enregistré par :</div>
+                                        <div class="profile-value">{membre.get(col_enregistré_par, 'N/A')}</div>
+                                    </div>
+                                """, unsafe_allow_html=True)
+
+                        st.markdown("---")
+
+                        # --- HISTORIQUE DU MEMBRE (Cotisations, Dons, Articles) ---
+                        st.markdown("##### 📊 Historique du Membre")
+
+                        tab_hist_cotiz, tab_hist_dons, tab_hist_articles = st.tabs([
+                            "💳 Cotisations", "🎁 Dons Reçus", "🛍️ Articles"
+                        ])
+
+                        with tab_hist_cotiz:
+                            if not df_cotiz.empty and "ID_Membre" in df_cotiz.columns:
+                                cotiz_membre = df_cotiz[df_cotiz["ID_Membre"].astype(str) == matricule_sélectionné]
+                                if not cotiz_membre.empty:
+                                    st.dataframe(cotiz_membre, use_container_width=True)
+                                else:
+                                    st.info("ℹ️ Aucune cotisation enregistrée pour ce membre.")
+                            else:
+                                st.info("ℹ️ Aucune donnée de cotisation disponible.")
+
+                        with tab_hist_dons:
+                            if not df_distrib.empty and col_membre.replace("Numéro du membre", "ID_Membre") in df_distrib.columns:
+                                # On cherche la bonne colonne
+                                col_distrib_membre = None
+                                for c in ["ID_Membre", "Numéro du membre", "ID_Membre"]:
+                                    if c in df_distrib.columns:
+                                        col_distrib_membre = c
+                                        break
+                                if col_distrib_membre:
+                                    dons_membre = df_distrib[df_distrib[col_distrib_membre].astype(str) == matricule_sélectionné]
+                                    if not dons_membre.empty:
+                                        st.dataframe(dons_membre, use_container_width=True)
+                                    else:
+                                        st.info("ℹ️ Aucun don reçu pour ce membre.")
+                                else:
+                                    st.info("ℹ️ Aucune donnée de distribution disponible.")
+                            else:
+                                st.info("ℹ️ Aucune donnée de distribution disponible.")
+
+                        with tab_hist_articles:
+                            if not df_articles.empty and "ID_Membre" in df_articles.columns:
+                                articles_membre = df_articles[df_articles["ID_Membre"].astype(str) == matricule_sélectionné]
+                                if not articles_membre.empty:
+                                    st.dataframe(articles_membre, use_container_width=True)
+                                else:
+                                    st.info("ℹ️ Aucun article acheté pour ce membre.")
+                            else:
+                                st.info("ℹ️ Aucune donnée d'article disponible.")
+
+                        st.markdown('</div>', unsafe_allow_html=True)
+
+                        # Bouton retour
+                        if st.button("⬅️ Retour à la liste", use_container_width=True):
+                            st.session_state["selected_member_profile"] = None
+                            st.rerun()
+
+                else:
+                    st.warning("⚠️ Membre non trouvé dans votre zone.")
+                    if st.button("⬅️ Retour à la liste", use_container_width=True):
+                        st.session_state["selected_member_profile"] = None
+                        st.rerun()
 
             with tab_cartes:
                 st.markdown("##### 🪪 Génération de Cartes aux couleurs officielles de l'ONG")
