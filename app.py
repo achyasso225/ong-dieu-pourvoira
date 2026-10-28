@@ -787,53 +787,69 @@ else:
 
                     debut = (page_actuelle - 1) * lignes_par_page
                     fin = min(debut + lignes_par_page, total_lignes)
-                    df_page = df_affiche.iloc[debut:fin]
+                    df_page = df_affiche.iloc[debut:fin].reset_index(drop=True)
 
-                    # --- TABLEAU AVEC BOUTONS PROFIL ---
+                    # --- AFFICHAGE DES LIGNES AVEC BOUTON "VOIR PROFIL" ---
                     cols_affichage = [c for c in df_page.columns if c != "Zone_Geographique"]
                     
-                    # Créer un DataFrame modifié avec une colonne Profil en premier
-                    import pandas as pd
-                    df_page_display = df_page[cols_affichage].copy()
-                    
-                    # Préparer les données pour affichage avec boutons
-                    data_rows = []
-                    btns = []
-                    for idx, row in df_page_display.iterrows():
-                        matricule_val = row.get(col_membre, "")
-                        # On ajoute le numéro de ligne pour le bouton
-                        data_rows.append(row.to_dict())
-                    
-                    # Afficher le tableau principal
                     with st.container(border=True):
-                        st.dataframe(df_page_display, use_container_width=True, height=400)
-
-                    # --- BOUTONS "VOIR PROFIL" DEVANT CHAQUE LIGNE ---
-                    st.markdown("##### 👁️ Voir le Profil Détaillé")
-                    cols_profil_1, cols_profil_2 = st.columns([0.8, 0.2])
-                    
-                    # Créer des lignes avec boutons
-                    for i, (idx, row) in enumerate(df_page_display.iterrows()):
-                        # Calcule la colonne (chaque ligne prend 2 colonnes dans le layout)
-                        col_data, col_btn = st.columns([3, 1])
+                        # En-tête du tableau
+                        st.markdown("""
+                        <style>
+                        .header-row { display: flex; gap: 8px; padding: 10px 8px; background: linear-gradient(135deg, #1b4332, #2e8b42); border-radius: 8px 8px 0 0; border-bottom: 2px solid #4ade80; }
+                        .header-cell { color: white; font-weight: bold; font-size: 11px; text-transform: uppercase; }
+                        .data-row { display: flex; gap: 8px; padding: 8px; border-bottom: 1px solid #2a2a2a; align-items: center; }
+                        .data-row:hover { background-color: #27272a !important; }
+                        .data-cell { color: #e0e0e0; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+                        .matricule-tag { background-color: #27272a; color: #4ade80; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 11px; }
+                        .status-ok { background-color: #2e8b42; color: white; padding: 2px 6px; border-radius: 8px; font-size: 10px; }
+                        .status-wait { background-color: #ca8a04; color: white; padding: 2px 6px; border-radius: 8px; font-size: 10px; }
+                        .btn-profil-row { background-color: #2e8b42 !important; color: white !important; border: none !important; padding: 5px 10px !important; border-radius: 5px !important; font-size: 11px !important; font-weight: bold !important; cursor: pointer !important; width: auto !important; min-width: 50px !important; }
+                        .btn-profil-row:hover { background-color: #236f33 !important; }
+                        </style>
+                        """, unsafe_allow_html=True)
                         
-                        matricule_val = str(row.get(col_membre, ""))
-                        enfant_val = str(row.get(col_enfant, ""))
+                        # En-têtes
+                        headers_html = '<div class="header-row">'
+                        headers_html += '<div class="header-cell" style="min-width: 90px; text-align: center;">⚡ Action</div>'
+                        for c in cols_affichage:
+                            width_map = {col_membre: "min-width: 85px", col_enfant: "min-width: 140px", col_parent: "min-width: 120px", col_tel: "min-width: 80px", col_adh: "min-width: 60px", col_sexe: "min-width: 35px", col_date: "min-width: 75px", col_ville: "min-width: 70px"}
+                            w = width_map.get(c, "min-width: 70px")
+                            headers_html += f'<div class="header-cell" style="{w}">{c}</div>'
+                        headers_html += '</div>'
+                        st.markdown(headers_html, unsafe_allow_html=True)
                         
-                        with col_data:
-                            # Affiche le résumé du membre
-                            st.markdown(f"""
-                                <div style="padding: 6px 12px; background-color: #27272a; border-radius: 8px; margin-bottom: 4px; border: 1px solid #3f3f46;">
-                                    <span style="font-weight: bold; color: #4ade80;">{matricule_val}</span> 
-                                    &nbsp;|&nbsp; 
-                                    <span style="color: #e0e0e0;">{enfant_val}</span>
-                                </div>
-                            """, unsafe_allow_html=True)
-                        
-                        with col_btn:
-                            if st.button("👁️ Voir profil", key=f"profil_{matricule_val}_{i}", use_container_width=True):
-                                st.session_state["selected_member_profile"] = matricule_val
-                                st.rerun()
+                        # Lignes de données avec boutons
+                        for idx, row in df_page.iterrows():
+                            matricule_val = str(row.get(col_membre, "")).strip()
+                            matricule_safe = matricule_val.replace(" ", "_").replace(".", "_")
+                            
+                            # Ligne HTML avec les données
+                            row_html = '<div class="data-row">'
+                            
+                            for c in cols_affichage:
+                                val = str(row.get(c, ""))
+                                width_map = {col_membre: "min-width: 85px", col_enfant: "min-width: 140px", col_parent: "min-width: 120px", col_tel: "min-width: 80px", col_adh: "min-width: 60px", col_sexe: "min-width: 35px", col_date: "min-width: 75px", col_ville: "min-width: 70px"}
+                                w = width_map.get(c, "min-width: 70px")
+                                
+                                if c == col_membre:
+                                    row_html += f'<div class="data-cell" style="{w}"><span class="matricule-tag">{val}</span></div>'
+                                elif "Adh" in c:
+                                    cls = "status-ok" if "OK" in val.upper() else "status-wait"
+                                    row_html += f'<div class="data-cell" style="{w}"><span class="{cls}">{val}</span></div>'
+                                else:
+                                    row_html += f'<div class="data-cell" style="{w}">{val}</div>'
+                            
+                            row_html += '</div>'
+                            
+                            # Colonne bouton + données
+                            col_b, col_d = st.columns([0.6, 9.4], gap="small")
+                            with col_b:
+                                if st.button("👁️ Voir", key=f"vp_{matricule_safe}_{idx}", type="primary", help=f"Profil {matricule_val}"):
+                                    st.session_state["selected_member_profile"] = matricule_val
+                                    st.rerun()
+                            with col_d:
+                                st.markdown(row_html, unsafe_allow_html=True)
 
                     st.markdown("---")
 
