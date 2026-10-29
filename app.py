@@ -789,66 +789,176 @@ else:
                     fin = min(debut + lignes_par_page, total_lignes)
                     df_page = df_affiche.iloc[debut:fin].reset_index(drop=True)
 
-                    # --- AFFICHAGE DES LIGNES AVEC BOUTON "VOIR PROFIL" ---
+                    # --- BOUTON PROFIL PAR LIGNE via st.columns ---
                     cols_affichage = [c for c in df_page.columns if c != "Zone_Geographique"]
                     
+                    # En-tête du tableau (HTML aligné)
                     with st.container(border=True):
-                        # En-tête du tableau
+                        # CSS global
                         st.markdown("""
                         <style>
-                        .header-row { display: flex; gap: 8px; padding: 10px 8px; background: linear-gradient(135deg, #1b4332, #2e8b42); border-radius: 8px 8px 0 0; border-bottom: 2px solid #4ade80; }
-                        .header-cell { color: white; font-weight: bold; font-size: 11px; text-transform: uppercase; }
-                        .data-row { display: flex; gap: 8px; padding: 8px; border-bottom: 1px solid #2a2a2a; align-items: center; }
-                        .data-row:hover { background-color: #27272a !important; }
-                        .data-cell { color: #e0e0e0; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-                        .matricule-tag { background-color: #27272a; color: #4ade80; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 11px; }
-                        .status-ok { background-color: #2e8b42; color: white; padding: 2px 6px; border-radius: 8px; font-size: 10px; }
-                        .status-wait { background-color: #ca8a04; color: white; padding: 2px 6px; border-radius: 8px; font-size: 10px; }
-                        .btn-profil-row { background-color: #2e8b42 !important; color: white !important; border: none !important; padding: 5px 10px !important; border-radius: 5px !important; font-size: 11px !important; font-weight: bold !important; cursor: pointer !important; width: auto !important; min-width: 50px !important; }
-                        .btn-profil-row:hover { background-color: #236f33 !important; }
+                        .rep-table-header {
+                            display: flex;
+                            background: linear-gradient(135deg, #1b4332, #2e8b42);
+                            color: white;
+                            padding: 12px 8px;
+                            border-radius: 8px 8px 0 0;
+                            font-size: 10px;
+                            font-weight: 700;
+                            text-transform: uppercase;
+                            letter-spacing: 0.3px;
+                            border-bottom: 2px solid #4ade80;
+                        }
+                        .rep-table-row {
+                            display: flex;
+                            border-bottom: 1px solid #2a2a2a;
+                            transition: background-color 0.15s;
+                        }
+                        .rep-table-row:hover {
+                            background-color: #27272a !important;
+                        }
+                        .rep-cell {
+                            padding: 10px 8px;
+                            color: #e0e0e0;
+                            font-size: 12px;
+                            overflow: hidden;
+                            text-overflow: ellipsis;
+                            white-space: nowrap;
+                            display: flex;
+                            align-items: center;
+                        }
+                        .matricule-badge {
+                            background-color: #27272a;
+                            color: #4ade80;
+                            padding: 3px 8px;
+                            border-radius: 4px;
+                            font-weight: bold;
+                            font-size: 11px;
+                        }
+                        .status-ok {
+                            background-color: #2e8b42;
+                            color: white;
+                            padding: 3px 8px;
+                            border-radius: 10px;
+                            font-size: 10px;
+                            font-weight: bold;
+                        }
+                        .status-wait {
+                            background-color: #ca8a04;
+                            color: white;
+                            padding: 3px 8px;
+                            border-radius: 10px;
+                            font-size: 10px;
+                            font-weight: bold;
+                        }
+                        .sexe-m { background-color: #3b82f6; color: white; padding: 3px 8px; border-radius: 50%; font-size: 10px; font-weight: bold; display: inline-flex; justify-content: center; min-width: 22px; }
+                        .sexe-f { background-color: #ec4899; color: white; padding: 3px 8px; border-radius: 50%; font-size: 10px; font-weight: bold; display: inline-flex; justify-content: center; min-width: 22px; }
+                        
+                        /* Largeurs des colonnes */
+                        .c-action { width: 60px; min-width: 60px; max-width: 60px; justify-content: center !important; }
+                        .c-membre { width: 8%; min-width: 75px; }
+                        .c-enfant { width: 16%; min-width: 130px; }
+                        .c-date { width: 9%; min-width: 65px; }
+                        .c-sexe { width: 4%; min-width: 35px; justify-content: center !important; }
+                        .c-ville { width: 7%; min-width: 55px; }
+                        .c-parent { width: 14%; min-width: 100px; }
+                        .c-tel { width: 8%; min-width: 70px; }
+                        .c-adh { width: 6%; min-width: 50px; }
+                        .c-date-heure { width: 12%; min-width: 100px; }
+                        .c-auteur { width: 10%; min-width: 80px; }
+                        .c-default { width: 8%; min-width: 60px; }
+                        
+                        /* Bouton profil intégré */
+                        .rep-btn-profil {
+                            background-color: #2e8b42 !important;
+                            color: white !important;
+                            border: none !important;
+                            padding: 5px 8px !important;
+                            border-radius: 5px !important;
+                            font-size: 11px !important;
+                            font-weight: bold !important;
+                            cursor: pointer !important;
+                            width: auto !important;
+                            min-width: 50px !important;
+                            transition: all 0.2s !important;
+                        }
+                        .rep-btn-profil:hover {
+                            background-color: #236f33 !important;
+                        }
+                        
+                        /* RESPONSIVE */
+                        @media screen and (max-width: 768px) {
+                            .rep-table-header, .rep-table-row { font-size: 10px; }
+                            .rep-cell { padding: 8px 5px; font-size: 10px; }
+                            .c-date-heure, .c-auteur { display: none !important; }
+                            .rep-btn-profil { padding: 4px 6px !important; font-size: 10px !important; }
+                        }
+                        @media screen and (max-width: 480px) {
+                            .c-ville, .c-parent { display: none !important; }
+                            .rep-btn-profil { padding: 4px 5px !important; font-size: 9px !important; }
+                        }
                         </style>
                         """, unsafe_allow_html=True)
                         
-                        # En-têtes
-                        headers_html = '<div class="header-row">'
-                        headers_html += '<div class="header-cell" style="min-width: 90px; text-align: center;">⚡ Action</div>'
+                        # En-tête
+                        header_html = '<div class="rep-table-header">'
+                        header_html += '<div class="rep-cell c-action" style="justify-content:center;">⚡ Action</div>'
                         for c in cols_affichage:
-                            width_map = {col_membre: "min-width: 85px", col_enfant: "min-width: 140px", col_parent: "min-width: 120px", col_tel: "min-width: 80px", col_adh: "min-width: 60px", col_sexe: "min-width: 35px", col_date: "min-width: 75px", col_ville: "min-width: 70px"}
-                            w = width_map.get(c, "min-width: 70px")
-                            headers_html += f'<div class="header-cell" style="{w}">{c}</div>'
-                        headers_html += '</div>'
-                        st.markdown(headers_html, unsafe_allow_html=True)
+                            if c == col_membre: cls = "c-membre"
+                            elif c == col_enfant: cls = "c-enfant"
+                            elif c == col_date: cls = "c-date"
+                            elif c == col_sexe: cls = "c-sexe"
+                            elif c == col_ville: cls = "c-ville"
+                            elif c == col_parent: cls = "c-parent"
+                            elif c == col_tel: cls = "c-tel"
+                            elif "Adh" in str(c): cls = "c-adh"
+                            elif "Date_Heure" in str(c): cls = "c-date-heure"
+                            elif "Auteur" in str(c): cls = "c-auteur"
+                            else: cls = "c-default"
+                            header_html += f'<div class="rep-cell {cls}">{c}</div>'
+                        header_html += '</div>'
+                        st.markdown(header_html, unsafe_allow_html=True)
                         
-                        # Lignes de données avec boutons
+                        # Lignes avec boutons intégrés
                         for idx, row in df_page.iterrows():
                             matricule_val = str(row.get(col_membre, "")).strip()
                             matricule_safe = matricule_val.replace(" ", "_").replace(".", "_")
                             
-                            # Ligne HTML avec les données
-                            row_html = '<div class="data-row">'
-                            
+                            # HTML de la ligne de données
+                            row_html = '<div class="rep-table-row">'
                             for c in cols_affichage:
                                 val = str(row.get(c, ""))
-                                width_map = {col_membre: "min-width: 85px", col_enfant: "min-width: 140px", col_parent: "min-width: 120px", col_tel: "min-width: 80px", col_adh: "min-width: 60px", col_sexe: "min-width: 35px", col_date: "min-width: 75px", col_ville: "min-width: 70px"}
-                                w = width_map.get(c, "min-width: 70px")
+                                if c == col_membre: cls = "c-membre"
+                                elif c == col_enfant: cls = "c-enfant"
+                                elif c == col_date: cls = "c-date"
+                                elif c == col_sexe: cls = "c-sexe"
+                                elif c == col_ville: cls = "c-ville"
+                                elif c == col_parent: cls = "c-parent"
+                                elif c == col_tel: cls = "c-tel"
+                                elif "Adh" in str(c): cls = "c-adh"
+                                elif "Date_Heure" in str(c): cls = "c-date-heure"
+                                elif "Auteur" in str(c): cls = "c-auteur"
+                                else: cls = "c-default"
                                 
                                 if c == col_membre:
-                                    row_html += f'<div class="data-cell" style="{w}"><span class="matricule-tag">{val}</span></div>'
-                                elif "Adh" in c:
-                                    cls = "status-ok" if "OK" in val.upper() else "status-wait"
-                                    row_html += f'<div class="data-cell" style="{w}"><span class="{cls}">{val}</span></div>'
+                                    row_html += f'<div class="rep-cell {cls}"><span class="matricule-badge">{val}</span></div>'
+                                elif c == col_sexe:
+                                    sexe_cls = "sexe-m" if val.upper() == "M" else "sexe-f"
+                                    row_html += f'<div class="rep-cell {cls}" style="justify-content:center;"><span class="{sexe_cls}">{val}</span></div>'
+                                elif "Adh" in str(c):
+                                    badge_cls = "status-ok" if "OK" in val.upper() else "status-wait"
+                                    row_html += f'<div class="rep-cell {cls}"><span class="{badge_cls}">{val}</span></div>'
                                 else:
-                                    row_html += f'<div class="data-cell" style="{w}">{val}</div>'
-                            
+                                    row_html += f'<div class="rep-cell {cls}" title="{val}">{val}</div>'
                             row_html += '</div>'
                             
-                            # Colonne bouton + données
-                            col_b, col_d = st.columns([0.6, 9.4], gap="small")
-                            with col_b:
-                                if st.button("👁️ Voir", key=f"vp_{matricule_safe}_{idx}", type="primary", help=f"Profil {matricule_val}"):
+                            # Bouton + données sur la même ligne
+                            c_btn, c_data = st.columns([0.4, 9.6], gap="small")
+                            with c_btn:
+                                if st.button("👁️ Voir", key=f"vp_{matricule_safe}_{idx}"):
                                     st.session_state["selected_member_profile"] = matricule_val
                                     st.rerun()
-                            with col_d:
+                            with c_data:
                                 st.markdown(row_html, unsafe_allow_html=True)
 
                     st.markdown("---")
