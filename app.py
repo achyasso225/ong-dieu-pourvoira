@@ -16,15 +16,21 @@ st.set_page_config(
     layout="wide",
 )
 
-# --- CHARGEMENT DE L'IMAGE DE FOND EN BASE64 ---
+# --- CHARGEMENT DES IMAGES EN BASE64 ---
 def get_image_base64(path):
     if os.path.exists(path):
+        ext = os.path.splitext(path)[1].lower().replace(".", "")
+        mime = "jpeg" if ext in ["jpg", "jpeg"] else "png"
         with open(path, "rb") as f:
-            return f"data:image/png;base64,{base64.b64encode(f.read()).decode()}"
+            return f"data:image/{mime};base64,{base64.b64encode(f.read()).decode()}"
     return None
+
+def esc_html(val):
+    return str(val).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
 
 banner_path = "banner_connection.png" if os.path.exists("banner_connection.png") else "banner_connexion.png"
 banner_b64 = get_image_base64(banner_path)
+logo_b64 = get_image_base64("logo.png")
 
 # Image appliquée à 100% en fond d'écran du bloc de connexion
 bg_card_style = f"background-image: url('{banner_b64}'); background-size: cover; background-repeat: no-repeat; background-position: center;" if banner_b64 else "background-color: #1a1a1a;"
@@ -429,6 +435,16 @@ def safe_int_convert(val, default=0):
         return int(match.group(1))
     return default
 
+# --- FORMATAGE DATE ADHESION ---
+def formater_date_fr(val):
+    s = str(val).strip().split(" ")[0]
+    if re.match(r"^\d{4}-\d{2}-\d{2}$", s):
+        try:
+            return datetime.strptime(s, "%Y-%m-%d").strftime("%d/%m/%Y")
+        except Exception:
+            return s
+    return s
+
 # --- GOOGLE SHEETS & CACHE ---
 @st.cache_resource
 def init_connection():
@@ -613,7 +629,7 @@ if not st.session_state["user_connected"]:
             """
             <div class="prop3-footer-coords">
                 📌 <strong>Coordonnées de l'ONG</strong><br>
-                📞 <strong>Téléphone :</strong> +225 77 71 04 41 8 / 05 86 99 73 27<br>
+                📞 <strong>Téléphone :</strong> +225 07 77 10 44 18 / 05 86 99 73 27<br>
                 ✉️ <strong>Email :</strong> dieupourvoira187@gmail.com<br>
                 📍 <strong>Adresse :</strong> 08 BP 2945 ABIDJAN 08
             </div>
@@ -632,7 +648,7 @@ else:
             <h1 style="margin:0; font-size:24px; font-weight:800; color: #ffffff;">ONG DIEU POURVOIRA</h1>
             <p style="margin:4px 0 0 0; font-size:13px; color: #e2e8f0;">Ensemble aidons les enfants atteints de Paralysie cérébrale</p>
             <div style="font-size: 11px; margin-top: 8px; opacity: 0.9; color: #cbd5e1;">
-                📞 +225 77 71 04 41 8 / 05 86 99 73 27 &nbsp;|&nbsp; ✉️ dieupourvoira187@gmail.com &nbsp;|&nbsp; 📍 08 BP 2945 ABIDJAN 08
+                📞 +225 07 77 10 44 18 / 05 86 99 73 27 &nbsp;|&nbsp; ✉️ dieupourvoira187@gmail.com &nbsp;|&nbsp; 📍 08 BP 2945 ABIDJAN 08
             </div>
         </div>
     """,
@@ -721,7 +737,7 @@ else:
             st.markdown("""
             Bienvenue sur l'application de gestion de l'**ONG DIEU POURVOIRA** ! Voici comment naviguer facilement :
             * **➕ Enregistrer un Membre** : Permet d'inscrire un nouvel enfant et son parent (le matricule est généré automatiquement).
-            * **📋 Liste & Répertoire** : Permet de consulter tous les inscrits, de rechercher un membre, de voir sa **fiche profil détaillée** ou d'imprimer sa **carte d'adhérent**.
+            * **📋 Liste & Répertoire** : Permet de consulter tous les inscrits, de rechercher un membre, de voir sa **fiche profil détaillée** ou d'imprimer sa **carte d'adhérent officielle**.
             * **📦 Stock des Dons & 🎁 Remise** : Permet de suivre les entrées de matériel/vivres et de les distribuer aux enfants.
             * **💳 Suivi Cotisations & 🛍️ Articles** : Permet d'enregistrer les paiements, rechercher/imprimer la liste et suivre l'achat de goodies.
             """)
@@ -1168,9 +1184,13 @@ else:
                         st.session_state["selected_member_profile"] = None
                         st.rerun()
 
+            # --- ONGLET CARTES D'ADHÉRENTS (MODÈLE OFFICIEL ONG DIEU POURVOIRA) ---
             with tab_cartes:
-                st.markdown("##### 🪪 Génération de Cartes aux couleurs officielles de l'ONG")
-                st.caption("Sélectionnez un membre actif pour générer sa carte de membre officielle imprimable.")
+                st.markdown("##### 🪪 Production de Cartes de Membre Officielles")
+                st.caption("Sélectionnez un membre actif, importez sa photo et imprimez la carte officielle au format badge PVC ou grand format.")
+
+                def _reset_search_carte():
+                    st.session_state["search_filtre_carte"] = ""
 
                 if col_adh in df_affiche.columns:
                     df_ok = df_affiche[df_affiche[col_adh].astype(str).str.upper().str.strip() == "OK"]
@@ -1178,7 +1198,13 @@ else:
                     df_ok = pd.DataFrame()
 
                 if not df_ok.empty:
-                    recherche_carte = st.text_input("🔍 Filtrer l'enfant pour la carte...", key="search_filtre_carte")
+                    c_fc1, c_fc2 = st.columns([4, 1])
+                    with c_fc1:
+                        recherche_carte = st.text_input("🔍 Filtrer l'enfant pour la carte (Nom, Matricule, Parent)...", key="search_filtre_carte")
+                    with c_fc2:
+                        st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+                        st.button("🔄 Réinitialiser", use_container_width=True, key="btn_reset_carte", on_click=_reset_search_carte)
+
                     if recherche_carte:
                         mask_c = df_ok.astype(str).apply(lambda row: row.str.contains(recherche_carte, case=False, na=False, regex=False).any(), axis=1)
                         df_ok_filtered = df_ok[mask_c]
@@ -1188,53 +1214,506 @@ else:
                     if not df_ok_filtered.empty:
                         c_sel, c_img = st.columns([2, 1])
                         with c_sel:
-                            membre_selectionne = st.selectbox("1. Sélectionnez l'enfant :", df_ok_filtered[col_membre].astype(str).tolist(), format_func=lambda m: f"{m} - {df_ok_filtered[df_ok_filtered[col_membre].astype(str) == m][col_enfant].values[0]}")
+                            membre_selectionne = st.selectbox(
+                                "1. Sélectionnez l'enfant :",
+                                df_ok_filtered[col_membre].astype(str).tolist(),
+                                format_func=lambda m: f"{m} - {df_ok_filtered[df_ok_filtered[col_membre].astype(str) == m][col_enfant].values[0]}"
+                            )
                         with c_img:
                             photo_file = st.file_uploader("2. Photo de l'enfant (Optionnel)", type=["jpg", "png", "jpeg"])
 
                         if membre_selectionne:
                             row_m = df_ok_filtered[df_ok_filtered[col_membre].astype(str) == membre_selectionne].iloc[0]
-                            if photo_file is not None:
-                                img_src = f"data:image/png;base64,{base64.b64encode(photo_file.getvalue()).decode()}"
-                            else:
-                                img_src = "https://via.placeholder.com/130x150/e9ecef/6c757d?text=PHOTO"
 
-                            nom_complet = str(row_m.get(col_enfant, "")).upper().split(" ", 1)
-                            nom_e = nom_complet[0]
-                            prenom_e = nom_complet[1] if len(nom_complet) > 1 else ""
-                            nom_p = str(row_m.get(col_parent, "")).upper()
-                            num_m = str(row_m.get(col_membre, ""))
-                            date_adh = str(row_m.get(df.columns[8] if len(df.columns) > 8 else "", "")).split(" ")[0]
-                            tel_p = str(row_m.get(col_tel, ""))
+                            # Découpage automatique Nom / Prénom ajustable pour les noms composés
+                            nom_complet_parts = str(row_m.get(col_enfant, "")).strip().upper().split(" ", 1)
+                            nom_defaut = nom_complet_parts[0] if len(nom_complet_parts) > 0 else ""
+                            prenom_defaut = nom_complet_parts[1] if len(nom_complet_parts) > 1 else ""
+                            date_adh_defaut = formater_date_fr(row_m.get(df.columns[8], "")) if len(df.columns) > 8 else ""
+
+                            with st.expander("✏️ Ajuster le texte sur la carte avant impression (optionnel)", expanded=False):
+                                ca1, ca2, ca3 = st.columns(3)
+                                with ca1:
+                                    nom_e = st.text_input("Nom de l'enfant", value=nom_defaut, key=f"card_nom_{membre_selectionne}").upper()
+                                with ca2:
+                                    prenom_e = st.text_input("Prénom de l'enfant", value=prenom_defaut, key=f"card_prenom_{membre_selectionne}").upper()
+                                with ca3:
+                                    date_adh = st.text_input("Date d'adhésion", value=date_adh_defaut, key=f"card_date_{membre_selectionne}")
+
+                            nom_p = str(row_m.get(col_parent, "")).strip().upper()
+                            num_m = str(row_m.get(col_membre, "")).strip()
+                            tel_p = str(row_m.get(col_tel, "")).strip()
+
+                            # Photo de l'enfant ou silhouette grise identique à la maquette
+                            if photo_file is not None:
+                                mime_photo = "jpeg" if photo_file.name.lower().endswith((".jpg", ".jpeg")) else "png"
+                                img_b64 = base64.b64encode(photo_file.getvalue()).decode()
+                                photo_html = f'<img src="data:image/{mime_photo};base64,{img_b64}" class="photo-img" alt="Photo membre">'
+                            else:
+                                photo_html = """
+                                <svg viewBox="0 0 140 160" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                                    <rect width="140" height="160" fill="#e9eaec"/>
+                                    <circle cx="70" cy="58" r="28" fill="#9ea3aa"/>
+                                    <path d="M 22,160 C 22,112 42,96 70,96 C 98,96 118,112 118,160 Z" fill="#9ea3aa"/>
+                                </svg>
+                                """
+
+                            # Logo officiel centré sous la photo
+                            if logo_b64:
+                                logo_html = f'<img src="{logo_b64}" class="ong-logo-img" alt="Logo ONG">'
+                            else:
+                                logo_html = '<div class="ong-logo-fallback">ONG<br>DIEU POURVOIRA</div>'
+
+                            nom_e_html = esc_html(nom_e)
+                            prenom_e_html = esc_html(prenom_e)
+                            nom_p_html = esc_html(nom_p)
+                            num_m_html = esc_html(num_m)
+                            date_adh_html = esc_html(date_adh)
+                            tel_p_html = esc_html(tel_p)
 
                             html_carte = f"""
                             <!DOCTYPE html>
                             <html>
-                            <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-                            <body style="text-align: center; font-family: Arial, sans-serif;">
-                                <div style="max-width: 600px; width: 100%; aspect-ratio: 600/380; background: #ffffff; border-radius: 16px; border: 3px solid #2e8b42; position: relative; margin: auto; text-align: left; overflow: hidden;">
-                                    <div style="background: #2e8b42; color: white; padding: 12px; text-align: center; font-weight: bold; font-size: clamp(12px, 2.5vw, 18px);">ONG DIEU POURVOIRA - CARTE MEMBRE OFFICIELLE</div>
-                                    <div style="position: absolute; left: 30px; top: 75px; width: 130px; height: 150px; border: 2px solid #2e8b42; border-radius: 8px; overflow: hidden;">
-                                        <img src="{img_src}" style="width: 100%; height: 100%; object-fit: cover;">
-                                    </div>
-                                    <div style="position: absolute; left: 180px; top: 75px; font-size: 14px; line-height: 26px; color: #222;">
-                                        <div><strong>Nom :</strong> {nom_e}</div>
-                                        <div><strong>Prénom :</strong> {prenom_e}</div>
-                                        <div><strong>Parent :</strong> {nom_p}</div>
-                                        <div><strong>N° Membre :</strong> <span style="color: #2e8b42; font-weight: bold;">{num_m}</span></div>
-                                        <div><strong>Date :</strong> {date_adh}</div>
-                                        <div><strong>Contact :</strong> {tel_p}</div>
-                                    </div>
-                                    <div style="position: absolute; bottom: 10px; width: 100%; text-align: center; font-size: 11px; color: #666;">
-                                        Ensemble aidons les enfants atteints de Paralysie Cérébrale | Contact : +225 77 71 04 41 8
+                            <head>
+                                <meta charset="utf-8">
+                                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                                <style>
+                                    * {{
+                                        box-sizing: border-box;
+                                        -webkit-print-color-adjust: exact !important;
+                                        print-color-adjust: exact !important;
+                                    }}
+                                    body {{
+                                        margin: 0;
+                                        padding: 12px 0;
+                                        background: transparent;
+                                        font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
+                                        display: flex;
+                                        flex-direction: column;
+                                        align-items: center;
+                                    }}
+                                    .card-stage {{
+                                        width: 100%;
+                                        display: flex;
+                                        justify-content: center;
+                                        overflow-x: auto;
+                                        padding: 6px;
+                                    }}
+                                    .member-card {{
+                                        width: 640px;
+                                        height: 404px;
+                                        min-width: 640px;
+                                        background-color: #ffffff;
+                                        border-radius: 18px;
+                                        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+                                        position: relative;
+                                        overflow: hidden;
+                                        border: 1px solid #d1d5db;
+                                    }}
+
+                                    /* Vagues décoratives SVG */
+                                    .wave-top-right {{
+                                        position: absolute;
+                                        top: 0;
+                                        right: 0;
+                                        width: 310px;
+                                        height: 92px;
+                                        z-index: 1;
+                                        pointer-events: none;
+                                    }}
+                                    .wave-bottom {{
+                                        position: absolute;
+                                        bottom: 0;
+                                        left: 0;
+                                        width: 640px;
+                                        height: 162px;
+                                        z-index: 1;
+                                        pointer-events: none;
+                                    }}
+
+                                    /* Colonne gauche : Photo + Logo */
+                                    .left-col {{
+                                        position: absolute;
+                                        left: 42px;
+                                        top: 32px;
+                                        width: 158px;
+                                        z-index: 3;
+                                        display: flex;
+                                        flex-direction: column;
+                                        align-items: center;
+                                    }}
+                                    .photo-box {{
+                                        width: 156px;
+                                        height: 170px;
+                                        border-radius: 10px;
+                                        border: 1.8px solid #1e7c34;
+                                        overflow: hidden;
+                                        background: #e9eaec;
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: center;
+                                    }}
+                                    .photo-img {{
+                                        width: 100%;
+                                        height: 100%;
+                                        object-fit: cover;
+                                        display: block;
+                                    }}
+                                    .logo-wrap {{
+                                        margin-top: 8px;
+                                        width: 96px;
+                                        height: 96px;
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: center;
+                                    }}
+                                    .ong-logo-img {{
+                                        max-width: 96px;
+                                        max-height: 96px;
+                                        object-fit: contain;
+                                        border-radius: 50%;
+                                    }}
+                                    .ong-logo-fallback {{
+                                        width: 84px;
+                                        height: 84px;
+                                        border-radius: 50%;
+                                        border: 2px solid #f17216;
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: center;
+                                        text-align: center;
+                                        font-size: 9px;
+                                        font-weight: 800;
+                                        color: #1e7c34;
+                                        background: #ffffff;
+                                    }}
+
+                                    /* Colonne droite : En-tête + Champs */
+                                    .right-col {{
+                                        position: absolute;
+                                        left: 224px;
+                                        top: 30px;
+                                        right: 30px;
+                                        z-index: 3;
+                                    }}
+                                    .title-ong {{
+                                        color: #157a31;
+                                        font-size: 25px;
+                                        font-weight: 900;
+                                        line-height: 1;
+                                        letter-spacing: 0.5px;
+                                        margin-left: 56px;
+                                    }}
+                                    .title-name {{
+                                        color: #f17216;
+                                        font-size: 36px;
+                                        font-weight: 900;
+                                        line-height: 1.05;
+                                        letter-spacing: -0.5px;
+                                        margin-top: 2px;
+                                        text-align: center;
+                                    }}
+                                    .badge-row {{
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: center;
+                                        gap: 10px;
+                                        margin: 7px 0 12px 0;
+                                    }}
+                                    .orange-line {{
+                                        height: 2px;
+                                        width: 28px;
+                                        background-color: #f17216;
+                                        border-radius: 2px;
+                                    }}
+                                    .badge-pill {{
+                                        background-color: #157a31;
+                                        color: #ffffff;
+                                        font-weight: 800;
+                                        font-size: 16px;
+                                        letter-spacing: 1px;
+                                        padding: 4px 20px;
+                                        border-radius: 20px;
+                                    }}
+
+                                    /* Champs avec pointillés */
+                                    .fields-wrap {{
+                                        display: flex;
+                                        flex-direction: column;
+                                        gap: 7px;
+                                        margin-top: 6px;
+                                    }}
+                                    .field-row {{
+                                        display: flex;
+                                        align-items: baseline;
+                                        width: 100%;
+                                        font-size: 13.5px;
+                                        color: #1f2937;
+                                    }}
+                                    .field-label {{
+                                        font-weight: 700;
+                                        white-space: nowrap;
+                                        margin-right: 6px;
+                                        color: #1f2937;
+                                    }}
+                                    .field-val {{
+                                        flex: 1;
+                                        border-bottom: 1.4px dotted #6b7280;
+                                        padding-left: 4px;
+                                        padding-bottom: 1px;
+                                        font-weight: 800;
+                                        font-size: 13px;
+                                        color: #111827;
+                                        overflow: hidden;
+                                        text-overflow: ellipsis;
+                                        white-space: nowrap;
+                                    }}
+                                    .field-val.matricule-val {{
+                                        color: #157a31;
+                                    }}
+
+                                    /* Pied de carte vert */
+                                    .footer-content {{
+                                        position: absolute;
+                                        bottom: 9px;
+                                        left: 26px;
+                                        right: 26px;
+                                        z-index: 4;
+                                        color: #ffffff;
+                                    }}
+                                    .slogan-line {{
+                                        display: flex;
+                                        align-items: center;
+                                        gap: 8px;
+                                        font-family: Georgia, 'Times New Roman', serif;
+                                        font-style: italic;
+                                        font-size: 15px;
+                                        font-weight: 500;
+                                        color: #ffffff;
+                                        margin-bottom: 7px;
+                                        margin-left: 6px;
+                                    }}
+                                    .contact-social-row {{
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: space-between;
+                                    }}
+                                    .contact-box {{
+                                        display: flex;
+                                        align-items: center;
+                                        gap: 8px;
+                                        font-size: 13.5px;
+                                        font-weight: 700;
+                                        color: #ffffff;
+                                    }}
+                                    .phone-circle {{
+                                        width: 24px;
+                                        height: 24px;
+                                        border-radius: 50%;
+                                        background: #ffffff;
+                                        display: inline-flex;
+                                        align-items: center;
+                                        justify-content: center;
+                                        flex-shrink: 0;
+                                    }}
+                                    .social-icons {{
+                                        display: flex;
+                                        align-items: center;
+                                        gap: 7px;
+                                        margin-right: 14px;
+                                    }}
+                                    .soc-btn {{
+                                        width: 25px;
+                                        height: 25px;
+                                        border-radius: 50%;
+                                        display: inline-flex;
+                                        align-items: center;
+                                        justify-content: center;
+                                    }}
+
+                                    /* Barre d'actions d'impression */
+                                    .print-actions {{
+                                        margin-top: 16px;
+                                        display: flex;
+                                        gap: 12px;
+                                        flex-wrap: wrap;
+                                        justify-content: center;
+                                    }}
+                                    .btn-action {{
+                                        background: #2e8b42;
+                                        color: #ffffff;
+                                        border: none;
+                                        padding: 10px 20px;
+                                        border-radius: 8px;
+                                        font-weight: 700;
+                                        font-size: 14px;
+                                        cursor: pointer;
+                                        box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+                                    }}
+                                    .btn-action:hover {{ background: #236f33; }}
+                                    .btn-action.secondary {{ background: #f17216; }}
+                                    .btn-action.secondary:hover {{ background: #d45e08; }}
+
+                                    /* Impression */
+                                    @media print {{
+                                        body {{
+                                            background: #ffffff !important;
+                                            padding: 0 !important;
+                                            margin: 0 !important;
+                                            display: block !important;
+                                        }}
+                                        .no-print {{ display: none !important; }}
+                                        .card-stage {{
+                                            padding: 0 !important;
+                                            overflow: visible !important;
+                                            justify-content: flex-start !important;
+                                        }}
+                                        .member-card {{
+                                            box-shadow: none !important;
+                                            border: 1px solid #cbd5e1 !important;
+                                        }}
+                                        body.mode-badge .member-card {{
+                                            transform: scale(0.506);
+                                            transform-origin: top left;
+                                        }}
+                                    }}
+                                </style>
+                            </head>
+                            <body>
+                                <div class="card-stage">
+                                    <div class="member-card">
+                                        <!-- Vagues haut-droite -->
+                                        <svg class="wave-top-right" viewBox="0 0 310 92" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M 85,0 C 155,4 225,40 310,60 L 310,0 Z" fill="#f17216"/>
+                                            <path d="M 215,0 C 248,18 282,36 310,44 L 310,0 Z" fill="#157a31"/>
+                                            <path d="M 62,40 C 110,-6 185,12 248,55 C 205,34 128,4 62,40 Z" fill="#157a31"/>
+                                            <circle cx="272" cy="14" r="2.2" fill="#ffffff"/>
+                                            <circle cx="283" cy="10" r="1.8" fill="#ffffff"/>
+                                            <circle cx="294" cy="16" r="2.4" fill="#ffffff"/>
+                                            <circle cx="280" cy="21" r="1.6" fill="#ffffff"/>
+                                            <circle cx="290" cy="26" r="2.0" fill="#ffffff"/>
+                                            <circle cx="299" cy="27" r="1.5" fill="#ffffff"/>
+                                            <circle cx="264" cy="10" r="1.5" fill="#ffffff"/>
+                                        </svg>
+
+                                        <!-- Vagues bas + bandeau vert -->
+                                        <svg class="wave-bottom" viewBox="0 0 640 162" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+                                            <!-- Courbe orange gauche -->
+                                            <path d="M 0,10 C 48,72 132,88 260,64 C 155,102 68,108 0,58 Z" fill="#f17216"/>
+                                            <!-- Courbe verte fine gauche -->
+                                            <path d="M 0,68 C 58,102 135,100 218,86 C 142,115 62,122 0,98 Z" fill="#157a31"/>
+                                            <!-- Courbe orange droite -->
+                                            <path d="M 640,78 C 618,96 604,104 585,106 C 608,110 626,112 640,116 Z" fill="#f17216"/>
+                                            <!-- Bandeau principal vert ondulé -->
+                                            <path d="M 0,88 C 115,125 235,95 360,100 C 470,105 565,92 640,122 L 640,162 L 0,162 Z" fill="#157a31"/>
+                                            <!-- Accent vert plus foncé bas-droite -->
+                                            <path d="M 380,102 C 485,108 570,96 640,126 L 640,162 L 430,162 Z" fill="#106528" opacity="0.45"/>
+                                        </svg>
+
+                                        <!-- Colonne Gauche : Photo + Logo -->
+                                        <div class="left-col">
+                                            <div class="photo-box">
+                                                {photo_html}
+                                            </div>
+                                            <div class="logo-wrap">
+                                                {logo_html}
+                                            </div>
+                                        </div>
+
+                                        <!-- Colonne Droite : Titres + Champs -->
+                                        <div class="right-col">
+                                            <div class="title-ong">ONG</div>
+                                            <div class="title-name">DIEU POURVOIRA</div>
+                                            <div class="badge-row">
+                                                <div class="orange-line"></div>
+                                                <div class="badge-pill">CARTE DE MEMBRE</div>
+                                                <div class="orange-line"></div>
+                                            </div>
+
+                                            <div class="fields-wrap">
+                                                <div class="field-row">
+                                                    <span class="field-label">Nom de l'enfant :</span>
+                                                    <span class="field-val">{nom_e_html}</span>
+                                                </div>
+                                                <div class="field-row">
+                                                    <span class="field-label">Prénom de l'enfant :</span>
+                                                    <span class="field-val">{prenom_e_html}</span>
+                                                </div>
+                                                <div class="field-row">
+                                                    <span class="field-label">Nom et prénom du parent :</span>
+                                                    <span class="field-val">{nom_p_html}</span>
+                                                </div>
+                                                <div class="field-row">
+                                                    <span class="field-label">N° Membre :</span>
+                                                    <span class="field-val matricule-val">{num_m_html}</span>
+                                                </div>
+                                                <div class="field-row">
+                                                    <span class="field-label">Date d'adhésion :</span>
+                                                    <span class="field-val">{date_adh_html}</span>
+                                                </div>
+                                                <div class="field-row">
+                                                    <span class="field-label">Numéro du parent :</span>
+                                                    <span class="field-val">{tel_p_html}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Pied de carte -->
+                                        <div class="footer-content">
+                                            <div class="slogan-line">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="#ffffff"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                                                <span>Ensemble aidons les enfants atteints de Paralysie cérébrale</span>
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="#ffffff"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                                            </div>
+                                            <div class="contact-social-row">
+                                                <div class="contact-box">
+                                                    <span class="phone-circle">
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="#f17216"><path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24 11.36 11.36 0 003.58.57 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1 11.36 11.36 0 00.57 3.58 1 1 0 01-.25 1.01l-2.2 2.2z"/></svg>
+                                                    </span>
+                                                    <span>Contact : 07 77 10 44 18 / 05 86 99 73 27</span>
+                                                </div>
+                                                <div class="social-icons">
+                                                    <!-- TikTok -->
+                                                    <span class="soc-btn" style="background:#111111;">
+                                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="#ffffff"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z"/></svg>
+                                                    </span>
+                                                    <!-- Instagram -->
+                                                    <span class="soc-btn" style="background:radial-gradient(circle at 30% 107%, #fdf497 0%, #fd5949 45%, #d6249f 60%, #285AEB 90%);">
+                                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="#ffffff" stroke="none"/></svg>
+                                                    </span>
+                                                    <!-- Facebook -->
+                                                    <span class="soc-btn" style="background:#1877f2;">
+                                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="#ffffff"><path d="M14 13.5h2.5l1-4H14v-2c0-1.03 0-2 2-2h1.5V2.14c-.326-.043-1.557-.14-2.857-.14C11.928 2 10 3.657 10 6.7v2.8H7v4h3V22h4v-8.5z"/></svg>
+                                                    </span>
+                                                    <!-- WhatsApp -->
+                                                    <span class="soc-btn" style="background:#25d366; border:1.5px solid #ffffff;">
+                                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="#ffffff"><path d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.16-.17.2-.35.22-.64.07-.3-.15-1.26-.46-2.39-1.48-.88-.79-1.48-1.76-1.65-2.06-.17-.3-.02-.46.13-.6.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.61-.92-2.21-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48 0 1.46 1.07 2.88 1.21 3.07.15.2 2.1 3.2 5.08 4.49.71.3 1.26.49 1.69.62.71.23 1.36.2 1.87.12.57-.08 1.76-.72 2.01-1.41.25-.69.25-1.29.17-1.41-.07-.12-.27-.2-.57-.35z"/></svg>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                                <br>
-                                <button onclick="window.print()" style="background: #2e8b42; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer;">🖨️ Imprimer la carte</button>
+
+                                <div class="print-actions no-print">
+                                    <button class="btn-action" onclick="imprimerCarte('badge')">🖨️ Imprimer (Taille Badge PVC 8,5 × 5,4 cm)</button>
+                                    <button class="btn-action secondary" onclick="imprimerCarte('grand')">🖨️ Imprimer (Grand format)</button>
+                                </div>
+
+                                <script>
+                                    function imprimerCarte(mode) {{
+                                        if (mode === 'badge') {{
+                                            document.body.classList.add('mode-badge');
+                                        }} else {{
+                                            document.body.classList.remove('mode-badge');
+                                        }}
+                                        window.print();
+                                    }}
+                                </script>
                             </body>
                             </html>
                             """
-                            st.components.v1.html(html_carte, height=450)
+                            st.components.v1.html(html_carte, height=500, scrolling=True)
                     else:
                         st.warning("⚠️ Aucun enfant ne correspond à votre recherche.")
                 else:
@@ -1596,9 +2075,6 @@ else:
         def _reset_cotiz_modif():
             st.session_state["search_filtre_cotiz_mod"] = ""
 
-        def _esc_html(val):
-            return str(val).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-
         tab_cotiz_saisie, tab_cotiz_suivi, tab_cotiz_modif = st.tabs([
             "➕ Enregistrer un Paiement",
             "📊 Tableau de Bord, Recherche & Impression",
@@ -1763,7 +2239,7 @@ else:
                         date_edition = datetime.now().strftime("%d/%m/%Y à %H:%M")
                         total_fmt = f"{total_encaisse:,} FCFA".replace(",", " ")
 
-                        th_html = "".join(f"<th>{_esc_html(c.replace('_', ' '))}</th>" for c in cols_print)
+                        th_html = "".join(f"<th>{esc_html(c.replace('_', ' '))}</th>" for c in cols_print)
                         rows_html = ""
                         for _, r_c in df_cotiz_affiche.iterrows():
                             tds = ""
@@ -1773,12 +2249,12 @@ else:
                                     val_fmt = f"{safe_int_convert(val):,} FCFA".replace(",", " ")
                                     tds += f"<td style='text-align:right; font-weight:bold;'>{val_fmt}</td>"
                                 else:
-                                    tds += f"<td>{_esc_html(val)}</td>"
+                                    tds += f"<td>{esc_html(val)}</td>"
                             rows_html += f"<tr>{tds}</tr>"
 
-                        filtre_resume = f"Type : {_esc_html(filtre_type)} | Statut : {_esc_html(filtre_statut)}"
+                        filtre_resume = f"Type : {esc_html(filtre_type)} | Statut : {esc_html(filtre_statut)}"
                         if recherche_suivi:
-                            filtre_resume += f" | Recherche : « {_esc_html(recherche_suivi)} »"
+                            filtre_resume += f" | Recherche : « {esc_html(recherche_suivi)} »"
 
                         html_print_cotiz = f"""
                         <!DOCTYPE html>
@@ -1871,12 +2347,12 @@ else:
                             <div class="header-doc">
                                 <h2>ONG DIEU POURVOIRA</h2>
                                 <p>Ensemble aidons les enfants atteints de Paralysie cérébrale</p>
-                                <p>Tél : +225 77 71 04 41 8 / 05 86 99 73 27 | Email : dieupourvoira187@gmail.com | 08 BP 2945 ABIDJAN 08</p>
+                                <p>Tél : 07 77 10 44 18 / 05 86 99 73 27 | Email : dieupourvoira187@gmail.com | 08 BP 2945 ABIDJAN 08</p>
                                 <h3 style="margin: 10px 0 0 0; font-size: 15px;">ÉTAT DES COTISATIONS ET FRAIS DE CARTE</h3>
                             </div>
                             <div class="meta">
                                 <div><strong>Filtres :</strong> {filtre_resume}</div>
-                                <div><strong>Édité le :</strong> {date_edition} par {_esc_html(user_nom)}</div>
+                                <div><strong>Édité le :</strong> {date_edition} par {esc_html(user_nom)}</div>
                             </div>
                             <table>
                                 <thead><tr>{th_html}</tr></thead>
